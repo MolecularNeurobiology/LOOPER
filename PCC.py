@@ -69,7 +69,7 @@ TODO regarding PCC
 *better handle/close out of labjack 
     (probably try except and closing out connection)
 *better handling for arduino connection
-
+*incorporate logging library for improved status and debugging...maybe?
 
 *revisit UX restrictions for tweakables for display and general UX design
 
@@ -110,13 +110,23 @@ import serial
 # prep serial connection to arduino
 try:
     ser=serial.Serial()
-    ser.baudrate=9600
-    ser.port='/dev/ttyACM0' #this may need to be updated if arduino settings change
+    ser.baudrate = 9600
+    
+    # search for Arduino on comports
+    arduino_list = [p for p in serial.tools.list_ports.comports() if 
+        ('Arduino' in p.manufacturer or 'Arduino' in p.description)]
+    if len(arduino_list) > 1:
+        print('multiple arduinos found, using first')
+        ser.port = arduino_list[0].device
+    elif len(arduino_list) == 1:
+        ser.port = arduino_list[0].device
+    else:
+        print('unable to locate arduino')
     ser.timeout=1
     ser.open()
     Connected_Arduino=True
 except Exception as e:
-    print('unable to connect to arduino')
+    print('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
     
 ##
@@ -691,20 +701,26 @@ Mode_dict={0:'startup',
            3:'calibration',
            4:'Signal Preview 2',
            5:'Habituation',
-           6:'Baseline',
-           7:'Challenge',
-           8:'Finished'}
+           6:'Signal Preview 3',
+           7:'Pre-Inject',
+           8:'Inject',
+           9:'Baseline'
+           10:'Challenge',
+           11:'Finished'}
 Mode_timing={0:-1,
              1:-1,
              2:-1,
              3:60*2,
              4:-1,
              5:30*60,
-             6:10*60,
-             7:-1,
-             8:-1}
+             6:-1,
+             7:10*60,
+             8:-1,
+             9:15*60,
+             10:-1,
+             11:-1}
 
-savable_modes=['calibration','Habituation','Baseline','Challenge']
+savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
 
 
 Current_Mode=0 # start in standby mode
@@ -1817,29 +1833,6 @@ ardThread.start()
 #%%   
 #% main loop
 
-"""
-1-signal preview mode (adjust baseline and confirm tunable parameters)
-**user confirmation for next step
-2-calibration mode (receive calibration signals [20x30uL pulses])
-**signal to DC out [trigger auto pipette and LED] upon start
-**end upon timer (and confirmation from auto pipett upon complete?)
-+++creates save file for calibration values
-3-habituation mode (wait 30 minutes for habituation)
-**preview and capture signals for review later - consider updates to interval
-4-baseline mode (capture 10 minutes of signal for baseline)
-**preview and capture signals - consider criteria of QUANTITY_OF_QUALITY signal...
-.........Q_O_Q : 10 seconds per interval of 'calm breathing', sum of intervals is at least 1 minute
-5-challenge mode (ANOXIA challenge until breath cessation, Room Air until recovery...
-.........recovery based on >=63% HR recovery)
-"""
-
-"""
-consider using queue.join() -> sdr.data.join() to resynch GUI as advancing between modes
-need to reset self.start when fresh segment is needed - maybe do this by stopping then restarting stream
-need timing for calibration file
-need timing for baseline file
-need timing for challenge file
-"""
 Arduino_Dump_Toggle=0
 Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
@@ -1847,20 +1840,9 @@ Challenge_phrase='Finished: On Anoxic'
 
 while running==True: # the main game loop
     #read serial i/o from arduino
-##    if cur_time.second%5==0:
-    # prep serial connection to arduino
-    if Connected_Arduino==False:
-        try:
-            ser=serial.Serial()
-            ser.baudrate=9600
-            ser.port='/dev/ttyACM0' #this may need to be updated if arduino settings change
-            ser.timeout=1
-            ser.open()
-            Connected_Arduino=True
-        except Exception as e:
-            print('unable to connect to arduino')
-            Connected_Arduino=False
-
+    
+    # !!! removed code for Arduino Reconnect - need to test if fine removed
+    
     Arduino_Dump_Toggle=0
     if arduino_stream.data.empty()==False:
         Arduino_Dump_Toggle=1
@@ -2530,7 +2512,7 @@ while running==True: # the main game loop
             if max(data1)>=thresh2_flow:
                 Challenge_Toggle = 2
         
-        if cur_STATUS_Dict['challenge gas']==1 and Challenge_Toggle==2: #$$$ this will need to be replaced with gas verify variable from serial io
+        if cur_STATUS_Dict['challenge gas']==1 and Challenge_Toggle==2: # !!! this will need to be replaced with gas verify variable from serial io
             BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
             Annot_Color=RED
         else:
@@ -2642,7 +2624,8 @@ while running==True: # the main game loop
         
         
         box_qual_test.update(QualColor,BLACK,' '.join(exclude))
-        
+        # !!! for multi baseline experiment - this section may need to be addressed
+        # !!! can this information be addressed in a config file
         if Mode_dict[Current_Mode]=='Baseline' and prev_Mode!=Current_Mode:
             RunningBreaths=[]
             RunningBeats=[]
