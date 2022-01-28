@@ -704,7 +704,7 @@ Mode_dict={0:'startup',
            6:'Signal Preview 3',
            7:'Pre-Inject',
            8:'Inject',
-           9:'Baseline'
+           9:'Baseline',
            10:'Challenge',
            11:'Finished'}
 Mode_timing={0:-1,
