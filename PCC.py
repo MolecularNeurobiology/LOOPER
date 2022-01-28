@@ -315,13 +315,17 @@ def save_button():
         readytosave=1
         now=datetime.now()
         ##
-        with open(outputfile,'w') as f:
-            f.write('PLETHYSMOGRAPHY COMMAND CENTER DATA FILE\n')
-            f.write('file may contain mutliple sessions, session marker : $$$$$\n')
-            f.write('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
-                    year=now.year, month=now.month, day=now.day,
-                    hour=now.hour, minute=now.minute, second=now.second))
-        ##
+        if outputfile is not None and outputfile != '':
+            with open(outputfile,'w') as f:
+                f.write('PLETHYSMOGRAPHY COMMAND CENTER DATA FILE\n')
+                f.write('file may contain mutliple sessions, session marker : $$$$$\n')
+                f.write('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
+                        year=now.year, month=now.month, day=now.day,
+                        hour=now.hour, minute=now.minute, second=now.second))
+        else:
+            outputfile=None
+            readytosave=0
+            
     except:
         outputfile=None
         readytosave=0
@@ -723,7 +727,7 @@ Mode_timing={0:-1,
 savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
 
 
-Current_Mode=0 # start in standby mode
+Current_Mode=0 # start in first mode
 prev_Mode=-1
 
 
@@ -1576,7 +1580,7 @@ box_mode_select={}
 box_mode_times={}
 for i in Mode_dict:
     box_mode_select[i]=labeledbutton(BLACK,WHITE,300,25,'{}:{:#.2F}'.format(Mode_dict[i],Mode_timing[i]/60),(ScreenSize[0]-325,25*i+50))
-    box_mode_times[i]=labeledbutton(VIOLET,WHITE,25,25,'t'.format(Mode_dict[i],Mode_timing[i]),(ScreenSize[0]-25,25*i+50))
+    box_mode_times[i]=labeledbutton(VIOLET,WHITE,25,25,'t',(ScreenSize[0]-25,25*i+50))
 
 #prep sprite list
 sprite_list=pygame.sprite.Group()
@@ -1948,7 +1952,7 @@ while running==True: # the main game loop
     #%%
     # check for auto advance
     
-    if cur_STATUS_Dict['ready to save']==1:
+    if cur_STATUS_Dict['ready to save']==1 or Current_Mode<3: # !!! update needed when shift to config file addressing 'save lock'
         if Mode_timing[Current_Mode]<0:
             pass
         elif Mode_timing[Current_Mode]<=REL_TIMER:
@@ -1978,7 +1982,7 @@ while running==True: # the main game loop
                 print('left clicked')
                 print(event.pos)
             for i in box_mode_select:
-                if box_mode_select[i].rect.collidepoint(event.pos) and cur_STATUS_Dict['ready to save']==1:
+                if box_mode_select[i].rect.collidepoint(event.pos) and (cur_STATUS_Dict['ready to save']==1 or Current_Mode<3): # !!! will need update when updated to config file version addressing 'save lock'
                     Current_Mode=i
                     sdr.stopStreamData()
                     
@@ -2015,7 +2019,8 @@ while running==True: # the main game loop
                 sdrThread = threading.Thread(target=sdr.readStreamData)
                 sdrThread.start()
                 box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])
-            elif box_NEXT.rect.collidepoint(event.pos) and cur_STATUS_Dict['ready to save']==1:
+            #elif box_NEXT.rect.collidepoint(event.pos) and cur_STATUS_Dict['ready to save']==1:
+            elif box_NEXT.rect.collidepoint(event.pos) and (cur_STATUS_Dict['ready to save']==1 or Current_Mode<3): # !!! need to fix this with config update for 'save lock'
                 Current_Mode=advance(Current_Mode,0,8)
                 sdr.stopStreamData()
                 
@@ -2033,10 +2038,16 @@ while running==True: # the main game loop
                 sdrThread.start()
                 box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])  
                 
-            elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode==0:
-                OUTPUTFILE,rts=save_button()
-                cur_STATUS_Dict['ready to save']=rts
-                box_SAVE.update(WHITE,BLUE,os.path.basename(OUTPUTFILE))
+            #elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode==0:
+            elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode<3: # !!! this will need to be changed when shifted to config file setup - set this so that save is expected before first 'savable' mode
+                
+                new_OUTPUTFILE,new_rts=save_button()
+                if new_rts == 0:
+                    pass
+                else:
+                    cur_STATUS_Dict['ready to save']=new_rts
+                    OUTPUTFILE = str(new_OUTPUTFILE)
+                    box_SAVE.update(WHITE,BLUE,os.path.basename(OUTPUTFILE))
                 
                 
             elif box_NOTIFICATION.rect.collidepoint(event.pos) and Current_Mode==0:
