@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '41.0.2'
+__VERSION__ = '42.0.0'
 
 """
 
@@ -80,7 +80,15 @@ related but slightly seperate
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
 
+!!! v42.0.0 goals CW !!!
+*check/fix CO2 timer
+*migrate settings to external file
+*add challenge endpoint based on trial number
+*start minor gui improvements
+*EXTERNAL CODE - PCC output converter
 """
+
+
 
 ##
 #%% import libraries
