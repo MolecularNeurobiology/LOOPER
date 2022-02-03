@@ -369,7 +369,7 @@ def main():
         i.mode_block.iloc[-1] for i in signal_header_pieces
         ]
     
-    #%% add block timestamp column
+    # add block timestamp column
     # set on a copy warning triggered by this. not sure why
     for i in range(len(signal_data_pieces)):
         signal_data_pieces[i].loc[:,'timestamp_comment'] = ''
@@ -380,7 +380,7 @@ def main():
             signal_start_pieces[i]
         
  
-    #%% export data as csv
+    # export data as csv
     
     columns_for_export = [
         'time',
@@ -391,12 +391,17 @@ def main():
         'timestamp_starttime'
         ]
     
+    #
+    
+    
     
     experiment_time = 0
     sampling_interval = \
         signal_data_pieces[0]['time'].iloc[1] - \
             signal_data_pieces[0]['time'].iloc[0]
-        
+    
+    
+    #    
     for i in range(len(signal_data_pieces)):
         logger.info(f'Exporting Block {i} : {signal_mode_pieces[i]}')
         
@@ -404,13 +409,12 @@ def main():
             input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.csv",
             index=False
             )
-        
+
         # adjust timing so it doesn't reset to 0 between blocks
-        signal_data_pieces[i].loc[:,'time'] = \
-            signal_data_pieces[i]['time'] + experiment_time
+        signal_data_pieces[i].loc[:,'time'] += experiment_time
         
         experiment_time = \
-            signal_data_pieces[i]['time'].iloc[-1] = sampling_interval
+            signal_data_pieces[i]['time'].iloc[-1] + sampling_interval
         
         if i == 0:
             signal_data_pieces[i][columns_for_export].to_csv(
@@ -424,7 +428,7 @@ def main():
                 input_file[:-4]+"all.csv",
                 index=False,
                 mode='a',
-                header=True
+                header=False
                 )
     
 
