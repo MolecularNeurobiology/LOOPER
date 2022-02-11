@@ -116,6 +116,7 @@ import ssl
 import serial
 import serial.tools.list_ports
 
+import logging
 ##
 #%%
 # prep serial connection to arduino
@@ -148,6 +149,10 @@ except Exception as e:
     
 ##
 #%% define functions
+
+def addtoLog(message, logtype):
+    return None
+    
 def guiSaveFileName(kwargs={}):
     """Returns the path to the filename and location entered in the GUI
     *Function calls on tkFileDialog and uses those arguments
@@ -170,43 +175,6 @@ def guiOpenFileName(kwargs={}):
     (declare as a dictionairy)
     {"defaultextension":"","filetypes":"","initialdir":"",...
     "initialfile":"","multiple":"","message":"","parent":"","title":""}
-    .....
-    """
-    root=tkinter.Tk()
-    outputtext=tkinter.filedialog.askopenfilename(
-        **kwargs)
-    root.destroy()
-    return outputtext
-
-def guiGetFloat(title,text,default_if_canceled):
-    """Returns a float based on the users entry
-    *Function calls on tkinter.simpledialog and uses those arguments
-    .....
-    declare as a dictionairy)
-    {"title":"","minvalue":"","maxvalue":""}
-
-    .....
-    """
-    root=tkinter.Tk().withdraw()
-    outputfloat=tkinter.simpledialog.askfloat(title,text)
-    if outputfloat is None:
-        try:
-            root.destroy()
-        except: pass
-        return default_if_canceled
-    else:
-        try:
-            root.destroy()
-        except: pass
-        return outputfloat
-
-def guiGetText(title,text,default_if_canceled):
-    """Returns text based on the users entry
-    *Function calls on tkinter.simpledialog and uses those arguments
-    .....
-    declare as a dictionairy)
-    {"title":"","minvalue":"","maxvalue":""}
-
     .....
     """
     root=tkinter.Tk().withdraw()
@@ -1858,6 +1826,19 @@ Arduino_Dump_Toggle=0
 Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
 
+##
+
+##LOGGING SETUP
+#Set to one if debug mode should be on
+debug_on = 0
+if debug_on:
+    logging.basicConfig(level =logging.DEBUG, format = '%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
+else:
+    logging.basicConfig(level = logging.INFO, format = '%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
+    
+##
+
+
 try:
     while running==True: # the main game loop
         #read serial i/o from arduino
@@ -1905,6 +1886,7 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     print('first challenge')
+                    logging.info("first challenge")
                 #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
                 elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -1953,6 +1935,7 @@ try:
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
             print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            logging.info('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
         #%%
 
         if old_STATUS_Dict['startup_ready']==1:
@@ -2866,10 +2849,10 @@ try:
 except:
     print('no loose thread found')
 # Close the device
-d.setDIOState(0,0)
-d.setDIOState(1,0)
-d.setDIOState(2,0)
-d.setDIOState(3,0)
+##d.setDIOState(0,0)
+##d.setDIOState(1,0)
+##d.setDIOState(2,0)
+##d.setDIOState(3,0)
 
 d.close()
     
