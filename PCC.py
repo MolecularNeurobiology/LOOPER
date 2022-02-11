@@ -221,6 +221,49 @@ def guiGetText(title,text,default_if_canceled):
             root.destroy()
         except: pass
         return outputtext
+
+# class OptionPanel:
+#     def __init__(self,panel_title, option_dict):
+#         root = tkinter.Tk()
+#         root.title = panel_title
+#         self.Buttons = {}
+#         for k in option_dict:
+#             self.Buttons[k] = tkinter.Button(
+#                 root,
+#                 text = option_dict[k]['text'],
+#                 value = option_dict[k]['value'],
+#                 command = option_dict[k]['command'],
+#                 bg = option_dict[k]['bg_color'],
+#                 height = option_dict[k]['height'],
+#                 width = option_dict[k]['width']
+#                 )
+#             self.Buttons[k].grid(sticky ='S')
+    
+
+# #%% option panel test
+# TestPanel = OptionPanel(
+#     'this is just a test',
+#     {'button1':
+#      {
+#       'text':'button1',
+#       'command':guiGetText('test1','test1 text','default'),
+#       'bg_color':'green',
+#       'height':10,
+#       'width':40
+#       },
+#      'button2':
+#       {
+#        'text':'button2',
+#        'command':guiGetText('test2','test2 text','default'),
+#        'bg_color':'red',
+#        'height':10,
+#        'width':40
+#        }
+#      }
+#         )
+                        
+
+
 #%%
 def emailnotification(emailsettingslocation,dev):
     with open(emailsettingslocation,'r') as oif:
@@ -721,13 +764,14 @@ Mode_dict={0:'startup',
            2:'Signal Preview 1',
            3:'calibration',
            4:'Signal Preview 2',
-           5:'Habituation',
+           5:'Habituation-1',
            6:'Signal Preview 3',
            7:'Pre-Inject',
            8:'Inject',
-           9:'Baseline',
-           10:'Challenge',
-           11:'Finished'}
+           9:'Habituation-2',
+           10:'Baseline',
+           11:'Challenge',
+           12:'Finished'}
 Mode_timing={0:-1,
              1:-1,
              2:-1,
@@ -738,8 +782,9 @@ Mode_timing={0:-1,
              7:10*60,
              8:-1,
              9:15*60,
-             10:-1,
-             11:-1}
+             10:10*60,
+             11:-1,
+             12:-1}
 
 savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
 
@@ -923,11 +968,11 @@ absthresh_ecg_TL=(40,700)
 thresh_ecg1_TL=(450,700)
 thresh_ecg2_TL=(450,770)
 
-INVERT_FLOW_TL=(950,300)
-PLETHFILT_TL=(950,325)
+INVERT_FLOW_TL=(200,880)
+PLETHFILT_TL=(200,905)
 
-ECGFILT_TL=(950,360)
-INVERT_ECG_TL=(950,385)#
+ECGFILT_TL=(400,905)
+INVERT_ECG_TL=(400,880)
 
 HR_recovery_thresh_TL=(950,420)
 BPM_recovery_thresh_TL=(950,450)
@@ -1481,10 +1526,10 @@ box_stream_lag=labeledbutton(BACKGROUND_COLOR,RED,
                              150,25,
                              '{:#.3F}'.format(stream_lag),
                                  (ScreenSize[0]-150,ScreenSize[1]-25))
-PLETHFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER PLETH',PLETHFILT_TL)
-ECGFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER ECG',ECGFILT_TL)
-INVERT_FLOW_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert Flow:{}'.format(INVERT_FLOW),INVERT_FLOW_TL)
-INVERT_ECG_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert ECG:{}'.format(INVERT_ECG),INVERT_ECG_TL)
+PLETHFILT_TOGGLE=labeledbutton(RED,BLACK,200,25,'FILT FLOW',PLETHFILT_TL)
+ECGFILT_TOGGLE=labeledbutton(RED,BLACK,200,25,'FILT ECG',ECGFILT_TL)
+INVERT_FLOW_TOGGLE=labeledbutton(WHITE,BLACK,200,25,'Inv Flow:{}'.format(INVERT_FLOW),INVERT_FLOW_TL)
+INVERT_ECG_TOGGLE=labeledbutton(WHITE,BLACK,200,25,'Inv ECG:{}'.format(INVERT_ECG),INVERT_ECG_TL)
 
 box_minimum_resus_time=labeledbutton(WHITE,BLACK,300,25,'RECOVERY:{:d}/{:d})'.format(int(current_recovery),int(minimum_resus_time)),minimum_resus_time_TL)
 
@@ -2870,6 +2915,14 @@ try:
 except:
     print('no loose thread found')
 # Close the device
+try:
+    d.streamStop()
+    print('stream stopped')
+except:
+    print('no remaining stream found')
+    
+
+
 d.setDIOState(0,0)
 d.setDIOState(1,0)
 d.setDIOState(2,0)
