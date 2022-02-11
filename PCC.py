@@ -1975,7 +1975,7 @@ try:
                 box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])  
         
         
-                
+            
         #update from prior button clicks
         for event in pygame.event.get():
             if event.type==pygame.MOUSEBUTTONDOWN:
