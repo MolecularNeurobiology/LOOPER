@@ -1828,17 +1828,27 @@ Challenge_phrase='Finished: On Anoxic'
 
 ##
 
-##LOGGING SETUP
+##LOGGING SETUPn
 #Set to one if debug mode should be on
 debug_on = 0
+log_format = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
+logger = logging.getLogger(__name__)
 if debug_on:
-    logging.basicConfig(level =logging.DEBUG, format = '%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(logging.DEBUG)
 else:
-    logging.basicConfig(level = logging.INFO, format = '%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
-    
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(logging.INFO)
+f_handler = logging.FileHandler("log_file.log")
+f_handler.setLevel(logging.WARNING)
+c_handler.setFormatter(log_format)
+f_handler.setFormatter(log_format)
+logger.addHandler(c_handler)
+logger.addHandler(f_handler)
 ##
 
-
+logger.info("TEST")
+logger.warning("TESTinFIle")
 try:
     while running==True: # the main game loop
         #read serial i/o from arduino
@@ -1886,7 +1896,6 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     print('first challenge')
-                    logging.info("first challenge")
                 #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
                 elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -1935,7 +1944,7 @@ try:
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
             print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
-            logging.info('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            logger.info('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
         #%%
 
         if old_STATUS_Dict['startup_ready']==1:
@@ -1975,7 +1984,7 @@ try:
                 box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])  
         
         
-            
+                
         #update from prior button clicks
         for event in pygame.event.get():
             if event.type==pygame.MOUSEBUTTONDOWN:
