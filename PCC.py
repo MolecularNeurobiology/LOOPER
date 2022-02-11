@@ -1791,6 +1791,12 @@ Requests=0
 d = u6.U6()
 # For applying the proper calibration to readings.
 d.getCalibrationData()
+
+try:
+    d.streamStop()
+    print('stream found running - now stopped')
+except:
+    print('labjack pre-stream checked')
 ##
 
 #"""
@@ -2752,7 +2758,11 @@ try:
             box_qual_bouts.update(YELLOW,BLACK,'bouts:{}'.format(QB_Counter))
             box_qual_dur.update(YELLOW,BLACK,'duration:{:#.1F}'.format(QB_duration))                   
             # updated unused boxes for demo video
-            box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            try:
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            except:
+                # print('unable to get RPi CPU Temp - or other error, expected if testing on device other than RPi')
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{}'.format(CT_value,'unk')) #see note abot regarding labjack internal temp
             box_BT.update(RED,BLACK,'CT: {:#.1F}C'.format(1000*numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])))
             box_RH.update(BLACK,BLACK,'RH: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['RH'])])))
             box_O2.update(BLACK,BLACK,'O2: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['O2'])])))
@@ -2851,13 +2861,7 @@ try:
 except Exception as e:
     print(e)
     traceback.print_exc()
-    # Close the device
-    d.setDIOState(0,0)
-    d.setDIOState(1,0)
-    d.setDIOState(2,0)
-    d.setDIOState(3,0)
 
-d.close()
 print('exit received')
 #% Wait for the stream thread to stop
 try:
