@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.0.0'
+__VERSION__ = '42.0.1'
 
 """
 
@@ -904,8 +904,11 @@ Position_RA_xySize=(200,25)
 Position_Gas_xySize=(200,25)
 Duration_Cal_xySize=(200,25)
 Duration_Prefill_xySize=(200,25)
+Duration_Challenge_Delay_xySize=(200,25)
+Text_Challenge_Phrase_xySize=(200,25)
 
 Serial_Abort_xySize=(100,50)
+Serial_Rec_OR_xySize=(100,50)
 Serial_ShutDown_xySize=(100,50)
 finish_startup_xySize=(200,50)
 SerialOutTester_xySize=(200,50)
@@ -922,14 +925,20 @@ Arduino_Function_Constants={
     'Duration_Prefill':60
     }
 
-Position_RA_TL=(700,250)
-Position_Gas_TL=(700,275)
-Duration_Cal_TL=(700,300)
-Duration_Prefill_TL=(700,325)
+Challenge_phrase='Finished: On Anoxic'
+Challenge_Timer=datetime.now()
+Challenge_Delay=5
 
+Position_RA_TL=(700,200)
+Position_Gas_TL=(700,225)
+Duration_Cal_TL=(700,250)
+Duration_Prefill_TL=(700,275)
+Position_Challenge_Delay_TL=(700,300)
+Position_Challenge_Phrase_TL=(700,325)
 
-Serial_Abort_TL=(700,350)
-Serial_ShutDown_TL=(800,350)
+Serial_Abort_TL=(650,350)
+Serial_Rec_OR_TL=(750,350)
+Serial_ShutDown_TL=(850,350)
 finish_startup_TL=(700,400)
 
 SerialOutTester_TL=(700,450)
@@ -1601,9 +1610,17 @@ Duration_Cal=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySiz
 Duration_Prefill=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySize[1],
                                'Prefill dur: {}'.format(Arduino_Function_Constants['Duration_Prefill']),
                                Duration_Prefill_TL)
+Duration_Challenge_Delay=labeledbutton(BLACK,WHITE,Duration_Challenge_Delay_xySize[0],Duration_Challenge_Delay_xySize[1],
+                                       'Challenge Delay: {}'.format(Challenge_Delay),
+                                       Position_Challenge_Delay_TL)
+Text_Challenge_Phrase=labeledbutton(BLACK,WHITE,Text_Challenge_Phrase_xySize[0],Text_Challenge_Phrase_xySize[1],
+                                    'Phrase: {}'.format(Challenge_phrase),
+                                    Position_Challenge_Phrase_TL)
 
 Serial_Abort=labeledbutton(RED,BLACK,Serial_Abort_xySize[0],Serial_Abort_xySize[1],
                            'ABORT!',Serial_Abort_TL)
+Serial_Rec_OR=labeledbutton(GREEN,BLACK,Serial_Rec_OR_xySize[0],Serial_Rec_OR_xySize[1],
+                            'ORide!',Serial_Rec_OR_TL)
 Serial_ShutDown=labeledbutton(BLACK,WHITE,Serial_ShutDown_xySize[0],Serial_ShutDown_xySize[1],
                               'ShutDown',Serial_ShutDown_TL)
 
@@ -1792,11 +1809,14 @@ sprite_list.add(Position_RA)
 sprite_list.add(Position_Gas)
 sprite_list.add(Duration_Cal)
 sprite_list.add(Duration_Prefill)
+sprite_list.add(Duration_Challenge_Delay)
+sprite_list.add(Text_Challenge_Phrase)
 sprite_list.add(SLB_Trigger_Setter)
 sprite_list.add(Challenge_Counter)
 sprite_list.add(CurrentChallengeCO2_Timer)
 sprite_list.add(CurrentChallengeRecovery_Timer)
 sprite_list.add(Serial_Abort)
+sprite_list.add(Serial_Rec_OR)
 sprite_list.add(Serial_ShutDown)
 sprite_list.add(SerialOutTester)
 sprite_list.add(SO1)
@@ -1908,6 +1928,8 @@ ardThread.start()
 Arduino_Dump_Toggle=0
 Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
+Challenge_Timer=datetime.now()
+Challenge_Delay=5
 
 try:
     while running==True: # the main game loop
@@ -1926,6 +1948,8 @@ try:
                 print(serial_list)
             for i in arduino_list:
                 if Challenge_phrase in i:
+                    if Challenge_Toggle==0:
+                        Challenge_Timer=datetime.now()
                     Challenge_Toggle=1
         #%% update state of program
         if sdr.finished==False:
@@ -1956,6 +1980,25 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     print('first challenge')
+
+                elif (SinceLastBreath>=SLB_Trigger or Abort_Toggle==1) and cur_STATUS_Dict['challenge gas']==1:
+                    cur_STATUS_Dict['challenge air']=1
+                    cur_STATUS_Dict['challenge gas']=0
+                    Abort_Toggle=0
+                    slb_COLOR2=YELLOW
+                    value_CurrentChallengeRecovery_Start=datetime.now()
+                    
+                    print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
+                    Challenge_Toggle=0
+                    print(value_CurrentChallenge_Timer)
+                    if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
+                        print('Recommend Update to Challenge Thresh!')
+                        serial_list+=['!!!','Warning - False Apnea Likely',
+                                      'Recommend Update to Threshold2',
+                                      '!!!']
+                        WarningColor=RED
+                        WarningText='[CLEAR]!!Check Threshold2!!'
+
                 #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
                 elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -2152,7 +2195,17 @@ try:
                         Arduino_Function_Constants['Duration_Prefill']
                         )
                     Duration_Prefill.update(BLACK,WHITE,'Prefill dur {}'.format(Arduino_Function_Constants['Duration_Prefill']))
-
+                elif Duration_Challenge_Delay.rect.collidepoint(event.pos):
+                    Challenge_Delay=guiGetFloat(
+                        'Challenge Delay',
+                        'Challenge Delay',
+                        Challenge_Delay
+                        )
+                    Duration_Challenge_Delay.update(BLACK,WHITE,'Challenge Delay: {}'.format(Challenge_Delay))
+                elif Text_Challenge_Phrase.rect.collidepoint(event.pos):
+                    Challenge_Delay=guiGetText('Challenge Signal Phrase','Challenge Signal Phrase',Challenge_phrase)
+                    
+                    Text_Challenge_Phrase.update(BLACK,WHITE,'Phrase: {}'.format(Challenge_phrase))
                 elif Serial_Abort.rect.collidepoint(event.pos):
                     serialtext='<Z,0,0>'
                     try:
@@ -2160,7 +2213,9 @@ try:
                         print('{} - sent'.format(serialtext))
                     except:
                         print('unable to transmit "{} "via serial io'.format(serialtext))
-
+                elif Serial_Rec_OR.rect.collidepoint(event.pos):
+                    Recovery_Override_Toggle=1
+                    print('override')
                 elif Serial_ShutDown.rect.collidepoint(event.pos):
                     serialtext='<D,0,0>'
                     try:
@@ -2432,9 +2487,19 @@ try:
         
         if cur_STATUS_Dict['challenge gas']==1:
             Challenge_Counter.update(WHITE,BLACK,'Challenge #: {}'.format(value_Challenge_Counter))
-            value_CurrentChallengeCO2_Timer=cur_time-value_CurrentChallengeCO2_Start
+            value_CurrentChallengeCO2_Timer_uncorrected=cur_time-value_CurrentChallengeCO2_Start
+            if Challenge_Toggle==0:
+                value_CurrentChallengeCO2_Timer=\
+                value_CurrentChallengeCO2_Timer_uncorrected.days*24*60*60+\
+                value_CurrentChallengeCO2_Timer_uncorrected.seconds-\
+                Arduino_Function_Constants['Duration_Prefill']
+            else:
+                value_CurrentChallengeCO2_Timer=\
+                    (cur_time-Challenge_Timer).days*24*60*60+\
+                    (cur_time-Challenge_Timer).seconds
+            
             CurrentChallengeCO2_Timer.update(WHITE,BLACK,'CO2: {} sec'.format(
-                value_CurrentChallengeCO2_Timer.days*24*60*60+value_CurrentChallengeCO2_Timer.seconds))
+                value_CurrentChallengeCO2_Timer))
 
 
         elif cur_STATUS_Dict['challenge air']==1:
@@ -2590,16 +2655,25 @@ try:
             ts1=[i/1000+20/1000 for i in range(int(round((REL_TIMER-5)*1000,3)),int(REL_TIMER*1000),20)] # this may need adjusting if frequency is changed
             ts3=[i/1000+1/1000 for i in range(int(round((REL_TIMER-2.5)*1000,3)),int(REL_TIMER*1000),2)]
             
+            #reset annotation marks to green
+            Annot_Color=GREEN
+
             if Challenge_Toggle==1:
-                if max(data1)>=thresh2_flow:
+                Annot_Color=VIOLET
+                # depreciated requirement for thresh2 to have been crossed to utilize - too likely to have error of missing apnea
+                #if max(data1)>=thresh2_flow and (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
+                if (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
                     Challenge_Toggle = 2
-            
+                    print('violet stopped')
+                    print((datetime.now()-Challenge_Timer).seconds)
+                
             if cur_STATUS_Dict['challenge gas']==1 and Challenge_Toggle==2: # !!! this will need to be replaced with gas verify variable from serial io
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
+                # change marks to red when thresh 2 in use
                 Annot_Color=RED
             else:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh_flow)
-                Annot_Color=GREEN
+                #Annot_Color=GREEN
             if BreathCalls is None or len(BreathCalls)<2:
                 avgBPM='<12'
                 #avgPIF='-----'
