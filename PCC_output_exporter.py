@@ -369,6 +369,61 @@ def main():
         i.mode_block.iloc[-1] for i in signal_header_pieces
         ]
     
+    # list of recognized commands
+    recognized_commands = [
+        'Starting: Calibrating for 90s',
+        'Finished: Calibrating',
+        'Starting: On Anoxic Air,60,60000,Ongoing: On Position ,3, Prefilled for 60s',
+        'Finished: On Position ,3, Prefilled for 60s,Finished: On Anoxic Air',
+        'Starting: On Room Air,0,0,Ongoing: On Position ,1, Gas Off',
+        'Finished: On Room Air',
+        '0'
+        ]
+    
+    
+    
+    for i in range(len(signal_data_pieces)):
+        broken_comment_index_1 = 0
+        arduino_comment_list = []
+        logger.info(
+            f'checking for fragmented commands:\n {i} {signal_mode_pieces[i]}'
+            )
+        arduino_comment_list = \
+            signal_data_pieces[i]['arduino_comments'].fillna('')
+        
+        for j in range(len(arduino_comment_list)):
+            c = arduino_comment_list[j]
+            if c in recognized_commands or c == '':
+                pass
+            else:
+                logger.info(f'unrecognized arduino com:\n{c}')
+                for k in recognized_commands:
+                    if k.startswith(c):
+                        broken_comment_index_1 = j
+                        logger.info('--likely beginning fragment of command')
+                    elif k.endswith(c) and \
+                            k == arduino_comment_list[
+                                broken_comment_index_1
+                                ]+c:
+                        logger.info('--likely ending fragment of command')
+                        arduino_comment_list[broken_comment_index_1] = \
+                            arduino_comment_list[broken_comment_index_1]+c
+                        arduino_comment_list[j] = ''
+                        logger.info(
+                            f'FIXED:{arduino_comment_list[broken_comment_index_1]}'
+                            )
+                    elif c in k and \
+                            k.startswith(
+                                arduino_comment_list[broken_comment_index_1]+c
+                                ):
+                        logger.info('--likely mid fragment of command')
+                        arduino_comment_list[broken_comment_index_1] = \
+                            arduino_comment_list[broken_comment_index_1]+c
+                        arduino_comment_list[j] = ''
+        signal_data_pieces[i].loc[:,'arduino_comments'] = arduino_comment_list
+                    
+        
+    
     # add block timestamp column
     # set on a copy warning triggered by this. not sure why
     for i in range(len(signal_data_pieces)):
@@ -378,15 +433,29 @@ def main():
             signal_mode_pieces[i]
         signal_data_pieces[i]['timestamp_starttime'].iloc[0] = \
             signal_start_pieces[i]
+        signal_data_pieces[i].loc[:,'all_comments'] = \
+            signal_data_pieces[i]['timestamp_comment'].fillna('') + \
+            signal_data_pieces[i]['arduino_comments'].fillna('')
+    
+    # fix cases where serial com was missed
+    
+    for i in range(len(signal_data_pieces)):
+        signal_data_pieces[i].loc[
+            signal_data_pieces[i]['all_comments'] != '',
+            'all_comments'
+            ] = '#* ' + signal_data_pieces[i].loc[
+                signal_data_pieces[i]['all_comments'] != '','all_comments'
+                ]
         
+    
  
-    # export data as csv
+    #%% export data as csv
     
     columns_for_export = [
         'time',
         'FLOW',
         'ECG',
-        'arduino_comments'
+        'all_comments'
         ]
     
     #
@@ -399,7 +468,19 @@ def main():
             signal_data_pieces[0]['time'].iloc[0]
     
     
-    #    
+    #
+    with open(input_file[:-4]+"all.txt",'w') as lcf:
+        lcf.write('\n'.join([
+            'Interval= 0.001 s',
+            'TimeFormat= StartofBlock',
+            'ChannelTitle= \tFLOW\tECG\t',
+            'Range= \t10.000V\t10.000V\t\n'                                 
+            ]
+            )
+            )
+
+
+    
     for i in range(len(signal_data_pieces)):
         logger.info(f'Exporting Block {i} : {signal_mode_pieces[i]}')
         
@@ -446,6 +527,14 @@ def main():
                 mode='a',
                 header=False
                 )
+            
+        signal_data_pieces[i][columns_for_export].to_csv(
+            input_file[:-4]+"all.txt",
+            index=False,
+            header=False,
+            sep='\t',
+            mode = 'a'
+            )
     
 
 
