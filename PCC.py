@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.0.1'
+__VERSION__ = '42.0.2'
 
 """
 
@@ -81,11 +81,9 @@ related but slightly seperate
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
 
 !!! v42.0.0 goals CW !!!
-*check/fix CO2 timer
 *migrate settings to external file
 *add challenge endpoint based on trial number
 *start minor gui improvements
-*EXTERNAL CODE - PCC output converter
 """
 
 
@@ -786,7 +784,14 @@ Mode_timing={0:-1,
              11:-1,
              12:-1}
 
-savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
+savable_modes=[
+    'calibration',
+    'Habituation-1',
+    'Pre-Inject',
+    'Habituation-2',
+    'Baseline',
+    'Challenge'
+    ]
 
 
 Current_Mode=0 # start in first mode
