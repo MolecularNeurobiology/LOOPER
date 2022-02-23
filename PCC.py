@@ -121,6 +121,9 @@ import logging
 #Import constants from CONSTANTS.PY
 from CONSTANTS import *
 
+#GET GUI classes from GUI.py
+from GUI import adjustbutton, labeledbutton
+
 ##
 #%%
 # prep serial connection to arduino
@@ -159,7 +162,7 @@ debug_on = 0
 
 ##
 
-def setup_logging(debug = 0, filename):
+def setup_logging(filename, debug = 0):
     log_format = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
     logger = logging.getLogger(__name__)
     if debug_on:
@@ -174,6 +177,11 @@ def setup_logging(debug = 0, filename):
     f_handler.setFormatter(log_format)
     logger.addHandler(c_handler)
     logger.addHandler(f_handler)
+    logger.warning('PLETHYSMOGRAPHY COMMAND CENTER LOG FILE\n')
+    logger.warning('file may contain mutliple sessions, session marker : $$$$$\n')
+    logger.warning('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
+                        year=now.year, month=now.month, day=now.day,
+                        hour=now.hour, minute=now.minute, second=now.second))
     return logger
 
 
@@ -548,82 +556,7 @@ def processStatus(status,device,serial_connection,ADC):
 
 
 #%% define classes
-class adjustbutton(pygame.sprite.Sprite):
-    def __init__(self,color,width,height,points,TL=(0,0)):
-        super().__init__() #not sure what this does - probably gathers sprite class initialization data...
-        
-        self.TL=TL
-        self.image=pygame.Surface([width,height])
-        self.image.fill(WHITE)
-        pygame.draw.polygon(self.image,color,points)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-        
-class labeledbutton(pygame.sprite.Sprite):
-    def __init__(self,color1,color2,width,height,label,TL=(0,0)):
-        super().__init__() #not sure what this does - probably gathers sprite class initialization data...
 
-        self.width=width
-        self.height=height
-        self.TL=TL
-        self.label=label
-        self.color1=color1
-        self.color2=color2
-        
-        buttonlabel = font.render(label,True,color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(width/2),int(height/2))
-        
-        self.image=pygame.Surface([width,height])
-        self.image.fill(color1)
-        pygame.draw.rect(self.image,color1,(0,0,width,height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-    
-    def relocate(self,x,y):
-        self.TL=(x,y)
-
-        buttonlabel = font.render(self.label,True,self.color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(self.width/2),int(self.height/2))
-        
-        self.image=pygame.Surface([self.width,self.height])
-        self.image.fill(self.color1)
-        pygame.draw.rect(self.image,self.color1,(0,0,self.width,self.height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-    
-    def update(self,color1,color2,label):
-        self.color1=color1
-        self.color2=color2
-        self.label=label
-        
-        buttonlabel = font.render(label,True,color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(self.width/2),int(self.height/2))
-        self.image=pygame.Surface([self.width,self.height])
-        self.image.fill(color1)
-        pygame.draw.rect(self.image,color1,(0,0,self.width,self.height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-
-    def update_left(self,color1,color2,label):
-            self.color1=color1
-            self.color2=color2
-            self.label=label
-            
-            buttonlabel = font.render(label,True,color2)
-            buttonlabel_rect= buttonlabel.get_rect()
-            buttonlabel_rect.midleft=(10,int(self.height/2))
-            self.image=pygame.Surface([self.width,self.height])
-            self.image.fill(color1)
-            pygame.draw.rect(self.image,color1,(0,0,self.width,self.height))
-            self.image.blit(buttonlabel,buttonlabel_rect)
-            self.rect = self.image.get_rect()
-            self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
 
 #%% set-up class for streaming data
 ## try streaming arduino data
