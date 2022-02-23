@@ -1,4 +1,16 @@
 import pygame
+
+#Import constants from CONSTANTS.PY
+from CONSTANTS import *
+
+#%% setup display
+pygame.init()
+font=pygame.font.SysFont('lucidaconsole',18)
+DISPLAYSURF = pygame.display.set_mode(ScreenSize)
+pygame.display.set_caption('Plethysmography Command Center')
+#%%
+DISPLAYSURF.fill(BACKGROUND_COLOR)
+
 #pygame classes
 class adjustbutton(pygame.sprite.Sprite):
     def __init__(self,color,width,height,points,TL=(0,0)):

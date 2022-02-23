@@ -1,3 +1,8 @@
+import pygame
+from datetime import datetime
+
+from gpiozero import CPUTemperature
+
 #%% define constants/buffers/status-tags/customization-parameters
 Mode_dict={0:'startup',
            1:'standby',
