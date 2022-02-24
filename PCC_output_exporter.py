@@ -21,7 +21,7 @@ import re
 #%% define functions
 ##
 
-def gui_open_filename(kwargs={}):
+def gui_open_filenames(kwargs={}):
     """
     Returns the path to the file selected by the GUI.
     *Function calls on tkFileDialog and uses those arguments
@@ -33,7 +33,7 @@ def gui_open_filename(kwargs={}):
     """
 
     root = tkinter.Tk()
-    output_text = tkinter.filedialog.askopenfilename(
+    output_text = tkinter.filedialog.askopenfilenames(
         **kwargs)
     root.destroy()
     return output_text
@@ -284,6 +284,7 @@ def merge_signal_data_pieces(df_list):
 ##
 
 def main():
+    
     #%%
     ##
     logger = logging.getLogger('PCC Output Extractor')
@@ -303,341 +304,347 @@ def main():
     logger.addHandler(console_handler)
     
     #%% select file to extract
-    input_file = gui_open_filename({'title':'select file to extract'})
+    input_files = gui_open_filenames({'title':'select file to extract'})
     
-    # log initial inputs
-    logger.info(f'file selected {input_file}')
-    
-    # setup some constants (!!! move these to settings file, or set dynamcally if possible)
-    recognized_headers = [
-        'PLETHYSMOGRAPHY COMMAND CENTER DATA FILE',
-        'file may contain mutliple sessions, session marker : $$$$$',
-        'file created',
-        '$$$$$ DATA SESSION -----',
-        'SESSION STARTED',
-        'baseline flow:',
-        'thresh flow:',
-        'baseline_ecg:',
-        'absthresh_ecg',
-        'thresh_ecg1:',
-        'thresh_ecg2:',
-        'noise_ecg:',
-        'HR_recovery_thresh:',
-        'minimum_resus_time',
-        'SLB_Trigger:',
-        'CALL_DEATH_Trigger',
-        'QB_minimum_duration',
-        'filt_crit_Dict:'
-        ]
-    
-   
-    
-    #%% extract the file
-    signal_blocks = extract_header_locations(input_file,header_text_fragment="$$$",local_logger=logger)
-    try:
-        signal_data_pieces = read_exported_labchart_file(
-            input_file,
-            signal_blocks[1:],
-            header_tuples=[
-                ('time',float),
-                ('FLOW',float),
-                ('ECG',float),
-                ('BT',float),
-                ('RH',float),
-                ('O2',float),
-                ('CO2',float),
-                ('labjack_temp',float),
-                ('mode_block',str),
-                ('parameter',str),
-                ('arduino_comments',str)
-                ],
-            rows_to_skip = 16)
-    except Exception as e:
-        logger.exception(
-            f'error processing file {input_file} - {e}...attempting repair of split comments',
-            exc_info=True
-            )
-        data = []
-        with open(input_file,'r') as opfi:
-            for line in opfi.readlines():
-               data.append(line)
+    for input_file in input_files:
+        try:
+            # log initial inputs
+            logger.info(f'file selected {input_file}')
+            
+            # setup some constants (!!! move these to settings file, or set dynamcally if possible)
+            recognized_headers = [
+                'PLETHYSMOGRAPHY COMMAND CENTER DATA FILE',
+                'file may contain mutliple sessions, session marker : $$$$$',
+                'file created',
+                '$$$$$ DATA SESSION -----',
+                'SESSION STARTED',
+                'baseline flow:',
+                'thresh flow:',
+                'baseline_ecg:',
+                'absthresh_ecg',
+                'thresh_ecg1:',
+                'thresh_ecg2:',
+                'noise_ecg:',
+                'HR_recovery_thresh:',
+                'minimum_resus_time',
+                'SLB_Trigger:',
+                'CALL_DEATH_Trigger',
+                'QB_minimum_duration',
+                'filt_crit_Dict:'
+                ]
+            
+           
+            
+            #%% extract the file
+            signal_blocks = extract_header_locations(input_file,header_text_fragment="$$$",local_logger=logger)
+            try:
+                signal_data_pieces = read_exported_labchart_file(
+                    input_file,
+                    signal_blocks[1:],
+                    header_tuples=[
+                        ('time',float),
+                        ('FLOW',float),
+                        ('ECG',float),
+                        ('BT',float),
+                        ('RH',float),
+                        ('O2',float),
+                        ('CO2',float),
+                        ('labjack_temp',float),
+                        ('mode_block',str),
+                        ('parameter',str),
+                        ('arduino_comments',str)
+                        ],
+                    rows_to_skip = 16)
+            except Exception as e:
+                logger.exception(
+                    f'error processing file {input_file} - {e}...attempting repair of split comments',
+                    exc_info=True
+                    )
+                data = []
+                with open(input_file,'r') as opfi:
+                    for line in opfi.readlines():
+                       data.append(line)
+                
+                fixed_rows = 0
+                for i in range(len(data)):
+                    row = data[i-fixed_rows]           
+                    if any([h in row for h in recognized_headers]):
+                        continue
+                    if len(row.split('\t'))<10 and row.split('\t')[-1]!='\n':
+                        logger.info(f'bad row found at index {i} - {row}')
+                        data[i-fixed_rows-1] = \
+                            data[i-fixed_rows-1][:-1] + data.pop(i-fixed_rows)
+                        fixed_rows += 1
+                
+                with open(input_file+'_fixed.txt','w') as opfi:
+                    for line in data:
+                        opfi.write(line)
+                
+                signal_data_pieces = read_exported_labchart_file(
+                    input_file+'_fixed.txt',
+                    signal_blocks[1:],
+                    header_tuples=[
+                        ('time',float),
+                        ('FLOW',float),
+                        ('ECG',float),
+                        ('BT',float),
+                        ('RH',float),
+                        ('O2',float),
+                        ('CO2',float),
+                        ('labjack_temp',float),
+                        ('mode_block',str),
+                        ('parameter',str),
+                        ('arduino_comments',str)
+                        ],
+                    rows_to_skip = 16)
+            
+            signal_header_pieces = [
+                pandas.read_csv(
+                    input_file,
+                    sep = '\t',
+                    names=[
+                        'time',
+                        'FLOW',
+                        'ECG',
+                        'BT',
+                        'RH',
+                        'O2',
+                        'CO2',
+                        'labjack_temp',
+                        'mode_block',
+                        'parameters',
+                        'arduino_comments'
+                        ],
+                    skiprows=i,
+                    nrows=17,
+                    dtype = dict([
+                        ('time',str),
+                        ('FLOW',str),
+                        ('ECG',str),
+                        ('BT',str),
+                        ('RH',str),
+                        ('O2',str),
+                        ('CO2',str),
+                        ('labjack_temp',str),
+                        ('mode_block',str),
+                        ('parameter',str),
+                        ('arduino_comments',str)
+                        ])
+                    ) for i in signal_blocks[1:]
+                ]
+            signal_start_pieces = [
+                i.time.iloc[1] for i in signal_header_pieces
+                ]
+            signal_mode_pieces = [
+                i.mode_block.iloc[-1] for i in signal_header_pieces
+                ]
+            
+            
+            recognized_commands_re = [
+                'Starting: Calibrating for 0s',
+                'Finished: Calibrating',
+                'Starting: On Anoxic Air,0,0,Ongoing: On Position ,0, Prefilled for 0s',
+                'Finished: On Position ,0, Prefilled for 0s,Finished: On Anoxic Air',
+                'Starting: On Room Air,0,0,Ongoing: On Position ,0, Gas Off',
+                'Finished: On Room Air',
+                '0'
+                ]    
         
-        fixed_rows = 0
-        for i in range(len(data)):
-            row = data[i-fixed_rows]           
-            if any([h in row for h in recognized_headers]):
-                continue
-            if len(row.split('\t'))<10 and row.split('\t')[-1]!='\n':
-                logger.info(f'bad row found at index {i} - {row}')
-                data[i-fixed_rows-1] = \
-                    data[i-fixed_rows-1][:-1] + data.pop(i-fixed_rows)
-                fixed_rows += 1
         
-        with open(input_file+'_fixed.txt','w') as opfi:
-            for line in data:
-                opfi.write(line)
-        
-        signal_data_pieces = read_exported_labchart_file(
-            input_file+'_fixed.txt',
-            signal_blocks[1:],
-            header_tuples=[
-                ('time',float),
-                ('FLOW',float),
-                ('ECG',float),
-                ('BT',float),
-                ('RH',float),
-                ('O2',float),
-                ('CO2',float),
-                ('labjack_temp',float),
-                ('mode_block',str),
-                ('parameter',str),
-                ('arduino_comments',str)
-                ],
-            rows_to_skip = 16)
-    
-    signal_header_pieces = [
-        pandas.read_csv(
-            input_file,
-            sep = '\t',
-            names=[
+            for i in range(len(signal_data_pieces)):
+                broken_comment_index_1 = 0
+                arduino_comment_list = []
+                logger.info(
+                    f'checking for fragmented commands:\n {i} {signal_mode_pieces[i]}'
+                    )
+                arduino_comment_list = \
+                    signal_data_pieces[i]['arduino_comments'].fillna('')
+                
+                for j in range(len(arduino_comment_list)):
+                    c = arduino_comment_list[j]
+                    if c == '':
+                        continue
+                    re_c = re.sub('[0-9]+','[0-9]+',c)
+                    
+                    if any([re.compile('^'+re_c+'$').search(k) for k in recognized_commands_re]):
+                        logger.info(f'Found: {c}')
+                    else:
+                        logger.info(f'unrecognized arduino com:\n{c}')
+                        for k in recognized_commands_re:
+                            # starts with
+                            if re.compile('^'+re_c).search(k):
+                                broken_comment_index_1 = j
+                                logger.info('--likely beginning fragment of command {j}')
+                            # ends with
+                            elif re.compile(re_c+'$').search(k) and \
+                                    k == arduino_comment_list[
+                                        broken_comment_index_1
+                                        ]+c:
+                                logger.info('--likely ending fragment of command {j}')
+                                arduino_comment_list[broken_comment_index_1] = \
+                                    arduino_comment_list[broken_comment_index_1]+c
+                                arduino_comment_list[j] = ''
+                                logger.info(
+                                    f'FIXED:{arduino_comment_list[broken_comment_index_1]}'
+                                    )
+                            # middle piece
+                            elif re.compile(
+                                    '^'+arduino_comment_list[broken_comment_index_1]+re_c
+                                    ).search(k):
+                                logger.info('--likely mid fragment of command {j}')
+                                arduino_comment_list[broken_comment_index_1] = \
+                                    arduino_comment_list[broken_comment_index_1]+c
+                                logger.info(
+                                    f'attempting repair:{arduino_comment_list[broken_comment_index_1]}'
+                                    )
+                                arduino_comment_list[j] = ''
+                            # full but with gap
+                            elif re.compile(
+                                    '^'+arduino_comment_list[broken_comment_index_1]
+                                    ).search(k) \
+                                    and \
+                                    re.compile(re_c+'$').search(k):
+                                        logger.info(
+                                            'likely ending of fragment with middle gap {j}'
+                                            )
+                                        gap_finder = re.compile(
+                                            '^(?P<frag1>'+ \
+                                            arduino_comment_list[broken_comment_index_1]+\
+                                            ')(?P<gap>.*)(?P<frag2>'+\
+                                            re_c+\
+                                            ')$')
+                                        gap_search = gap_finder.search(k)
+                                        gap_contents = gap_search.group('gap')
+                                        arduino_comment_list[broken_comment_index_1] = \
+                                            arduino_comment_list[broken_comment_index_1]+\
+                                            gap_contents+\
+                                            c
+                                        arduino_comment_list[j] = ''
+                                        logger.info(
+                                            f'Fixed: {arduino_comment_list[broken_comment_index_1]}{c}\nAs:{arduino_comment_list[broken_comment_index_1]}'
+                                            )
+                                    
+                                    
+                signal_data_pieces[i].loc[:,'arduino_comments'] = arduino_comment_list
+                            
+                
+            
+            # add block timestamp column
+            # set on a copy warning triggered by this. not sure why
+            for i in range(len(signal_data_pieces)):
+                signal_data_pieces[i].loc[:,'timestamp_comment'] = ''
+                signal_data_pieces[i].loc[:,'timestamp_starttime'] = ''
+                signal_data_pieces[i]['timestamp_comment'].iloc[0] = \
+                    signal_mode_pieces[i]
+                signal_data_pieces[i]['timestamp_starttime'].iloc[0] = \
+                    signal_start_pieces[i]
+                signal_data_pieces[i].loc[:,'all_comments'] = \
+                    signal_data_pieces[i]['timestamp_comment'].fillna('') + \
+                    signal_data_pieces[i]['arduino_comments'].fillna('')
+            
+            # fix cases where serial com was missed
+            
+            for i in range(len(signal_data_pieces)):
+                signal_data_pieces[i].loc[
+                    signal_data_pieces[i]['all_comments'] != '',
+                    'all_comments'
+                    ] = '#* ' + signal_data_pieces[i].loc[
+                        signal_data_pieces[i]['all_comments'] != '','all_comments'
+                        ]
+                
+            
+         
+            #%% export data as csv
+            
+            columns_for_export = [
                 'time',
                 'FLOW',
                 'ECG',
-                'BT',
-                'RH',
-                'O2',
-                'CO2',
-                'labjack_temp',
-                'mode_block',
-                'parameters',
-                'arduino_comments'
-                ],
-            skiprows=i,
-            nrows=17,
-            dtype = dict([
-                ('time',str),
-                ('FLOW',str),
-                ('ECG',str),
-                ('BT',str),
-                ('RH',str),
-                ('O2',str),
-                ('CO2',str),
-                ('labjack_temp',str),
-                ('mode_block',str),
-                ('parameter',str),
-                ('arduino_comments',str)
-                ])
-            ) for i in signal_blocks[1:]
-        ]
-    signal_start_pieces = [
-        i.time.iloc[1] for i in signal_header_pieces
-        ]
-    signal_mode_pieces = [
-        i.mode_block.iloc[-1] for i in signal_header_pieces
-        ]
-    
-    
-    recognized_commands_re = [
-        'Starting: Calibrating for 0s',
-        'Finished: Calibrating',
-        'Starting: On Anoxic Air,0,0,Ongoing: On Position ,0, Prefilled for 0s',
-        'Finished: On Position ,0, Prefilled for 0s,Finished: On Anoxic Air',
-        'Starting: On Room Air,0,0,Ongoing: On Position ,0, Gas Off',
-        'Finished: On Room Air',
-        '0'
-        ]    
-
-
-    for i in range(len(signal_data_pieces)):
-        broken_comment_index_1 = 0
-        arduino_comment_list = []
-        logger.info(
-            f'checking for fragmented commands:\n {i} {signal_mode_pieces[i]}'
-            )
-        arduino_comment_list = \
-            signal_data_pieces[i]['arduino_comments'].fillna('')
-        
-        for j in range(len(arduino_comment_list)):
-            c = arduino_comment_list[j]
-            if c == '':
-                continue
-            re_c = re.sub('[0-9]+','[0-9]+',c)
+                'all_comments'
+                ]
             
-            if any([re.compile('^'+re_c+'$').search(k) for k in recognized_commands_re]):
-                logger.info(f'Found: {c}')
-            else:
-                logger.info(f'unrecognized arduino com:\n{c}')
-                for k in recognized_commands_re:
-                    # starts with
-                    if re.compile('^'+re_c).search(k):
-                        broken_comment_index_1 = j
-                        logger.info('--likely beginning fragment of command {j}')
-                    # ends with
-                    elif re.compile(re_c+'$').search(k) and \
-                            k == arduino_comment_list[
-                                broken_comment_index_1
-                                ]+c:
-                        logger.info('--likely ending fragment of command {j}')
-                        arduino_comment_list[broken_comment_index_1] = \
-                            arduino_comment_list[broken_comment_index_1]+c
-                        arduino_comment_list[j] = ''
-                        logger.info(
-                            f'FIXED:{arduino_comment_list[broken_comment_index_1]}'
-                            )
-                    # middle piece
-                    elif re.compile(
-                            '^'+arduino_comment_list[broken_comment_index_1]+re_c
-                            ).search(k):
-                        logger.info('--likely mid fragment of command {j}')
-                        logger.info(
-                            f'attempting repair:{arduino_comment_list[broken_comment_index_1]}'
-                            )
-                        arduino_comment_list[broken_comment_index_1] = \
-                            arduino_comment_list[broken_comment_index_1]+c
-                        arduino_comment_list[j] = ''
-                    # full but with gap
-                    elif re.compile(
-                            '^'+arduino_comment_list[broken_comment_index_1]
-                            ).search(k) \
-                            and \
-                            re.compile(re_c+'$').search(k):
-                                logger.info(
-                                    'likely ending of fragment with middle gap {j}'
-                                    )
-                                gap_finder = re.compile(
-                                    '^(?P<frag1>'+ \
-                                    arduino_comment_list[broken_comment_index_1]+\
-                                    ')(?P<gap>.*)(?P<frag2>'+\
-                                    re_c+\
-                                    ')$')
-                                gap_search = gap_finder.search(k)
-                                gap_contents = gap_search.group('gap')
-                                arduino_comment_list[broken_comment_index_1] = \
-                                    arduino_comment_list[broken_comment_index_1]+\
-                                    gap_contents+\
-                                    c
-                                arduino_comment_list[j] = ''
-                                logger.info(
-                                    f'Fixed: {arduino_comment_list[broken_comment_index_1]}{c}\nAs:{arduino_comment_list[broken_comment_index_1]}'
-                                    )
-                            
-                            
-        signal_data_pieces[i].loc[:,'arduino_comments'] = arduino_comment_list
+            #
+            
+            
+            
+            experiment_time = 0
+            sampling_interval = \
+                signal_data_pieces[0]['time'].iloc[1] - \
+                    signal_data_pieces[0]['time'].iloc[0]
+            
+            
+            #
+            with open(input_file[:-4]+"all.txt",'w') as lcf:
+                lcf.write('\n'.join([
+                    'Interval= 0.001 s',
+                    'TimeFormat= StartofBlock',
+                    'ChannelTitle= \tFLOW\tECG\t',
+                    'Range= \t10.000V\t10.000V\t\n'                                 
+                    ]
+                    )
+                    )
+        
+        
+            
+            for i in range(len(signal_data_pieces)):
+                logger.info(f'Exporting Block {i} : {signal_mode_pieces[i]}')
+                
+                with open(input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",'w') as lcf:
+                    lcf.write('\n'.join([
+                        'Interval= 0.001 s',
+                        'TimeFormat= StartofBlock',
+                        'ChannelTitle= \tFLOW\tECG\t',
+                        'Range= \t10.000V\t10.000V\t\n'                                 
+                        ]
+                        )
+                        )
+                
+                signal_data_pieces[i][columns_for_export].to_csv(
+                    input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",
+                    index=False,
+                    header=False,
+                    sep='\t',
+                    mode = 'a'
+                    )
+                
+                signal_data_pieces[i][columns_for_export].to_csv(
+                    input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.csv",
+                    index=False
+                    )
+        
+                # adjust timing so it doesn't reset to 0 between blocks
+                signal_data_pieces[i].loc[:,'time'] += experiment_time
+                
+                experiment_time = \
+                    signal_data_pieces[i]['time'].iloc[-1] + sampling_interval
+                
+                if i == 0:
+                    signal_data_pieces[i][columns_for_export].to_csv(
+                        input_file[:-4]+"all.csv",
+                        index=False,
+                        mode='w',
+                        header=True
+                        )
+                else:
+                    signal_data_pieces[i][columns_for_export].to_csv(
+                        input_file[:-4]+"all.csv",
+                        index=False,
+                        mode='a',
+                        header=False
+                        )
                     
-        
-    
-    # add block timestamp column
-    # set on a copy warning triggered by this. not sure why
-    for i in range(len(signal_data_pieces)):
-        signal_data_pieces[i].loc[:,'timestamp_comment'] = ''
-        signal_data_pieces[i].loc[:,'timestamp_starttime'] = ''
-        signal_data_pieces[i]['timestamp_comment'].iloc[0] = \
-            signal_mode_pieces[i]
-        signal_data_pieces[i]['timestamp_starttime'].iloc[0] = \
-            signal_start_pieces[i]
-        signal_data_pieces[i].loc[:,'all_comments'] = \
-            signal_data_pieces[i]['timestamp_comment'].fillna('') + \
-            signal_data_pieces[i]['arduino_comments'].fillna('')
-    
-    # fix cases where serial com was missed
-    
-    for i in range(len(signal_data_pieces)):
-        signal_data_pieces[i].loc[
-            signal_data_pieces[i]['all_comments'] != '',
-            'all_comments'
-            ] = '#* ' + signal_data_pieces[i].loc[
-                signal_data_pieces[i]['all_comments'] != '','all_comments'
-                ]
-        
-    
- 
-    #%% export data as csv
-    
-    columns_for_export = [
-        'time',
-        'FLOW',
-        'ECG',
-        'all_comments'
-        ]
-    
-    #
-    
-    
-    
-    experiment_time = 0
-    sampling_interval = \
-        signal_data_pieces[0]['time'].iloc[1] - \
-            signal_data_pieces[0]['time'].iloc[0]
-    
-    
-    #
-    with open(input_file[:-4]+"all.txt",'w') as lcf:
-        lcf.write('\n'.join([
-            'Interval= 0.001 s',
-            'TimeFormat= StartofBlock',
-            'ChannelTitle= \tFLOW\tECG\t',
-            'Range= \t10.000V\t10.000V\t\n'                                 
-            ]
-            )
-            )
-
-
-    
-    for i in range(len(signal_data_pieces)):
-        logger.info(f'Exporting Block {i} : {signal_mode_pieces[i]}')
-        
-        with open(input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",'w') as lcf:
-            lcf.write('\n'.join([
-                'Interval= 0.001 s',
-                'TimeFormat= StartofBlock',
-                'ChannelTitle= \tFLOW\tECG\t',
-                'Range= \t10.000V\t10.000V\t\n'                                 
-                ]
+                signal_data_pieces[i][columns_for_export].to_csv(
+                    input_file[:-4]+"all.txt",
+                    index=False,
+                    header=False,
+                    sep='\t',
+                    mode = 'a'
+                    )
+        except Exception as e:
+            logger.exception(
+                f'Unable to process {input_file}\n***{e}',
+                exc_info=True
                 )
-                )
-        
-        signal_data_pieces[i][columns_for_export].to_csv(
-            input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",
-            index=False,
-            header=False,
-            sep='\t',
-            mode = 'a'
-            )
-        
-        signal_data_pieces[i][columns_for_export].to_csv(
-            input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.csv",
-            index=False
-            )
-
-        # adjust timing so it doesn't reset to 0 between blocks
-        signal_data_pieces[i].loc[:,'time'] += experiment_time
-        
-        experiment_time = \
-            signal_data_pieces[i]['time'].iloc[-1] + sampling_interval
-        
-        if i == 0:
-            signal_data_pieces[i][columns_for_export].to_csv(
-                input_file[:-4]+"all.csv",
-                index=False,
-                mode='w',
-                header=True
-                )
-        else:
-            signal_data_pieces[i][columns_for_export].to_csv(
-                input_file[:-4]+"all.csv",
-                index=False,
-                mode='a',
-                header=False
-                )
-            
-        signal_data_pieces[i][columns_for_export].to_csv(
-            input_file[:-4]+"all.txt",
-            index=False,
-            header=False,
-            sep='\t',
-            mode = 'a'
-            )
-    
 
 
 #%% run main
