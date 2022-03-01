@@ -215,6 +215,41 @@ def guiOpenFileName(kwargs={}):
     "initialfile":"","multiple":"","message":"","parent":"","title":""}
     .....
     """
+    root=tkinter.Tk()
+    outputtext=tkinter.filedialog.askopenfilename(
+        **kwargs)
+    root.destroy()
+    return outputtext
+
+def guiGetFloat(title,text,default_if_canceled):
+    """Returns a float based on the users entry
+    *Function calls on tkinter.simpledialog and uses those arguments
+    .....
+    declare as a dictionairy)
+    {"title":"","minvalue":"","maxvalue":""}
+    .....
+    """
+    root=tkinter.Tk().withdraw()
+    outputfloat=tkinter.simpledialog.askfloat(title,text)
+    if outputfloat is None:
+        try:
+            root.destroy()
+        except: pass
+        return default_if_canceled
+    else:
+        try:
+            root.destroy()
+        except: pass
+        return outputfloat
+
+def guiGetText(title,text,default_if_canceled):
+    """Returns text based on the users entry
+    *Function calls on tkinter.simpledialog and uses those arguments
+    .....
+    declare as a dictionairy)
+    {"title":"","minvalue":"","maxvalue":""}
+    .....
+    """
     root=tkinter.Tk().withdraw()
     outputtext=tkinter.simpledialog.askstring(title,text)
     if outputtext is None:
@@ -227,6 +262,7 @@ def guiOpenFileName(kwargs={}):
             root.destroy()
         except: pass
         return outputtext
+
 
 # class OptionPanel:
 #     def __init__(self,panel_title, option_dict):
