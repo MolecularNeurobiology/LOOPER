@@ -18,20 +18,21 @@ from gpiozero import CPUTemperature
 
 
 
+##
 #%% define constants/buffers/status-tags/customization-parameters
 Mode_dict={0:'startup',
            1:'standby',
            2:'Signal Preview 1',
            3:'calibration',
            4:'Signal Preview 2',
-           5:'Habituation',
+           5:'Habituation-1',
            6:'Signal Preview 3',
            7:'Pre-Inject',
            8:'Inject',
-           9:'Baseline',
-           10:'Challenge',
-           11:'Finished'}
-           
+           9:'Habituation-2',
+           10:'Baseline',
+           11:'Challenge',
+           12:'Finished'}
 Mode_timing={0:-1,
              1:-1,
              2:-1,
@@ -42,10 +43,18 @@ Mode_timing={0:-1,
              7:10*60,
              8:-1,
              9:15*60,
-             10:-1,
-             11:-1}
+             10:10*60,
+             11:-1,
+             12:-1}
 
-savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
+savable_modes=[
+    'calibration',
+    'Habituation-1',
+    'Pre-Inject',
+    'Habituation-2',
+    'Baseline',
+    'Challenge'
+    ]
 
 
 Current_Mode=0 # start in first mode
@@ -163,8 +172,11 @@ Position_RA_xySize=(200,25)
 Position_Gas_xySize=(200,25)
 Duration_Cal_xySize=(200,25)
 Duration_Prefill_xySize=(200,25)
+Duration_Challenge_Delay_xySize=(200,25)
+Text_Challenge_Phrase_xySize=(200,25)
 
 Serial_Abort_xySize=(100,50)
+Serial_Rec_OR_xySize=(100,50)
 Serial_ShutDown_xySize=(100,50)
 finish_startup_xySize=(200,50)
 SerialOutTester_xySize=(200,50)
@@ -181,14 +193,20 @@ Arduino_Function_Constants={
     'Duration_Prefill':60
     }
 
-Position_RA_TL=(700,250)
-Position_Gas_TL=(700,275)
-Duration_Cal_TL=(700,300)
-Duration_Prefill_TL=(700,325)
+Challenge_phrase='Finished: On Anoxic'
+Challenge_Timer=datetime.now()
+Challenge_Delay=5
 
+Position_RA_TL=(700,200)
+Position_Gas_TL=(700,225)
+Duration_Cal_TL=(700,250)
+Duration_Prefill_TL=(700,275)
+Position_Challenge_Delay_TL=(700,300)
+Position_Challenge_Phrase_TL=(700,325)
 
-Serial_Abort_TL=(700,350)
-Serial_ShutDown_TL=(800,350)
+Serial_Abort_TL=(650,350)
+Serial_Rec_OR_TL=(750,350)
+Serial_ShutDown_TL=(850,350)
 finish_startup_TL=(700,400)
 
 SerialOutTester_TL=(700,450)
@@ -227,11 +245,11 @@ absthresh_ecg_TL=(40,700)
 thresh_ecg1_TL=(450,700)
 thresh_ecg2_TL=(450,770)
 
-INVERT_FLOW_TL=(950,300)
-PLETHFILT_TL=(950,325)
+INVERT_FLOW_TL=(200,880)
+PLETHFILT_TL=(200,905)
 
-ECGFILT_TL=(950,360)
-INVERT_ECG_TL=(950,385)#
+ECGFILT_TL=(400,905)
+INVERT_ECG_TL=(400,880)
 
 HR_recovery_thresh_TL=(950,420)
 BPM_recovery_thresh_TL=(950,450)
@@ -339,3 +357,24 @@ filt_crit_Dict={
             'BSD':0.25,
             'DVTV':0.75
             }
+
+#%%
+now=datetime.now()
+cur_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibration':0,'challenge air':0,'challenge gas':0,
+                 'pulse':{
+                         'calibration':{'state':0,'start':now,'pin':1},
+                         'challenge air':{'state':0,'start':now,'pin':3},
+                         'challenge gas':{'state':0,'start':now,'pin':2}
+                         },
+                 'startup_ready':0
+                 }
+old_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibration':0,'challenge air':0,'challenge gas':0,
+                 'pulse':{
+                         'calibration':{'state':0,'start':now,'pin':1},
+                         'challenge air':{'state':0,'start':now,'pin':3},
+                         'challenge gas':{'state':0,'start':now,'pin':2}
+                         },
+                 'startup_ready':0
+                 }
+
+##

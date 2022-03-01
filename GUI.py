@@ -527,10 +527,10 @@ box_stream_lag=labeledbutton(BACKGROUND_COLOR,RED,
                              150,25,
                              '{:#.3F}'.format(stream_lag),
                                  (ScreenSize[0]-150,ScreenSize[1]-25))
-PLETHFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER PLETH',PLETHFILT_TL)
-ECGFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER ECG',ECGFILT_TL)
-INVERT_FLOW_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert Flow:{}'.format(INVERT_FLOW),INVERT_FLOW_TL)
-INVERT_ECG_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert ECG:{}'.format(INVERT_ECG),INVERT_ECG_TL)
+PLETHFILT_TOGGLE=labeledbutton(RED,BLACK,200,25,'FILT FLOW',PLETHFILT_TL)
+ECGFILT_TOGGLE=labeledbutton(RED,BLACK,200,25,'FILT ECG',ECGFILT_TL)
+INVERT_FLOW_TOGGLE=labeledbutton(WHITE,BLACK,200,25,'Inv Flow:{}'.format(INVERT_FLOW),INVERT_FLOW_TL)
+INVERT_ECG_TOGGLE=labeledbutton(WHITE,BLACK,200,25,'Inv ECG:{}'.format(INVERT_ECG),INVERT_ECG_TL)
 
 box_minimum_resus_time=labeledbutton(WHITE,BLACK,300,25,'RECOVERY:{:d}/{:d})'.format(int(current_recovery),int(minimum_resus_time)),minimum_resus_time_TL)
 
@@ -602,9 +602,17 @@ Duration_Cal=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySiz
 Duration_Prefill=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySize[1],
                                'Prefill dur: {}'.format(Arduino_Function_Constants['Duration_Prefill']),
                                Duration_Prefill_TL)
+Duration_Challenge_Delay=labeledbutton(BLACK,WHITE,Duration_Challenge_Delay_xySize[0],Duration_Challenge_Delay_xySize[1],
+                                       'Challenge Delay: {}'.format(Challenge_Delay),
+                                       Position_Challenge_Delay_TL)
+Text_Challenge_Phrase=labeledbutton(BLACK,WHITE,Text_Challenge_Phrase_xySize[0],Text_Challenge_Phrase_xySize[1],
+                                    'Phrase: {}'.format(Challenge_phrase),
+                                    Position_Challenge_Phrase_TL)
 
 Serial_Abort=labeledbutton(RED,BLACK,Serial_Abort_xySize[0],Serial_Abort_xySize[1],
                            'ABORT!',Serial_Abort_TL)
+Serial_Rec_OR=labeledbutton(GREEN,BLACK,Serial_Rec_OR_xySize[0],Serial_Rec_OR_xySize[1],
+                            'ORide!',Serial_Rec_OR_TL)
 Serial_ShutDown=labeledbutton(BLACK,WHITE,Serial_ShutDown_xySize[0],Serial_ShutDown_xySize[1],
                               'ShutDown',Serial_ShutDown_TL)
 
@@ -793,11 +801,14 @@ sprite_list.add(Position_RA)
 sprite_list.add(Position_Gas)
 sprite_list.add(Duration_Cal)
 sprite_list.add(Duration_Prefill)
+sprite_list.add(Duration_Challenge_Delay)
+sprite_list.add(Text_Challenge_Phrase)
 sprite_list.add(SLB_Trigger_Setter)
 sprite_list.add(Challenge_Counter)
 sprite_list.add(CurrentChallengeCO2_Timer)
 sprite_list.add(CurrentChallengeRecovery_Timer)
 sprite_list.add(Serial_Abort)
+sprite_list.add(Serial_Rec_OR)
 sprite_list.add(Serial_ShutDown)
 sprite_list.add(SerialOutTester)
 sprite_list.add(SO1)

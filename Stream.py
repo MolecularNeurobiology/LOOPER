@@ -6,6 +6,7 @@ import threading
 from copy import deepcopy
 from datetime import datetime
 
+## try streaming arduino data
 class StreamArduino(object):
     def __init__(self,device):
         self.device=device
