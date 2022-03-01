@@ -386,9 +386,7 @@ def main():
         'time',
         'FLOW',
         'ECG',
-        'arduino_comments',
-        'timestamp_comment',
-        'timestamp_starttime'
+        'arduino_comments'
         ]
     
     #
@@ -404,6 +402,24 @@ def main():
     #    
     for i in range(len(signal_data_pieces)):
         logger.info(f'Exporting Block {i} : {signal_mode_pieces[i]}')
+        
+        with open(input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",'w') as lcf:
+            lcf.write('\n'.join([
+                'Interval= 0.001 s',
+                'TimeFormat= StartofBlock',
+                'ChannelTitle= \tFLOW\tECG\t',
+                'Range= \t10.000V\t10.000V\t\n'                                 
+                ]
+                )
+                )
+        
+        signal_data_pieces[i][columns_for_export].to_csv(
+            input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.txt",
+            index=False,
+            header=False,
+            sep='\t',
+            mode = 'a'
+            )
         
         signal_data_pieces[i][columns_for_export].to_csv(
             input_file[:-4]+f"_{i}_{signal_mode_pieces[i]}.csv",

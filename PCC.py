@@ -229,6 +229,49 @@ def guiOpenFileName(kwargs={}):
             root.destroy()
         except: pass
         return outputtext
+
+# class OptionPanel:
+#     def __init__(self,panel_title, option_dict):
+#         root = tkinter.Tk()
+#         root.title = panel_title
+#         self.Buttons = {}
+#         for k in option_dict:
+#             self.Buttons[k] = tkinter.Button(
+#                 root,
+#                 text = option_dict[k]['text'],
+#                 value = option_dict[k]['value'],
+#                 command = option_dict[k]['command'],
+#                 bg = option_dict[k]['bg_color'],
+#                 height = option_dict[k]['height'],
+#                 width = option_dict[k]['width']
+#                 )
+#             self.Buttons[k].grid(sticky ='S')
+    
+
+# #%% option panel test
+# TestPanel = OptionPanel(
+#     'this is just a test',
+#     {'button1':
+#      {
+#       'text':'button1',
+#       'command':guiGetText('test1','test1 text','default'),
+#       'bg_color':'green',
+#       'height':10,
+#       'width':40
+#       },
+#      'button2':
+#       {
+#        'text':'button2',
+#        'command':guiGetText('test2','test2 text','default'),
+#        'bg_color':'red',
+#        'height':10,
+#        'width':40
+#        }
+#      }
+#         )
+                        
+
+
 #%%
 def emailnotification(emailsettingslocation,dev):
     with open(emailsettingslocation,'r') as oif:
@@ -586,7 +629,6 @@ old_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibr
 
 ##
 
-
 sprite_list.draw(DISPLAYSURF)
 
 
@@ -612,6 +654,12 @@ Requests=0
 d = u6.U6()
 # For applying the proper calibration to readings.
 d.getCalibrationData()
+
+try:
+    d.streamStop()
+    print('stream found running - now stopped')
+except:
+    print('labjack pre-stream checked')
 ##
 
 #"""
@@ -1585,7 +1633,11 @@ try:
             box_qual_bouts.update(YELLOW,BLACK,'bouts:{}'.format(QB_Counter))
             box_qual_dur.update(YELLOW,BLACK,'duration:{:#.1F}'.format(QB_duration))                   
             # updated unused boxes for demo video
-            box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            try:
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            except:
+                # print('unable to get RPi CPU Temp - or other error, expected if testing on device other than RPi')
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{}'.format(CT_value,'unk')) #see note abot regarding labjack internal temp
             box_BT.update(RED,BLACK,'CT: {:#.1F}C'.format(1000*numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])))
             box_RH.update(BLACK,BLACK,'RH: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['RH'])])))
             box_O2.update(BLACK,BLACK,'O2: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['O2'])])))
@@ -1685,13 +1737,7 @@ try:
 except Exception as e:
     print(e)
     traceback.print_exc()
-    # Close the device
-    d.setDIOState(0,0)
-    d.setDIOState(1,0)
-    d.setDIOState(2,0)
-    d.setDIOState(3,0)
 
-d.close()
 print('exit received')
 #% Wait for the stream thread to stop
 try:
@@ -1700,10 +1746,18 @@ try:
 except:
     print('no loose thread found')
 # Close the device
-##d.setDIOState(0,0)
-##d.setDIOState(1,0)
-##d.setDIOState(2,0)
-##d.setDIOState(3,0)
+try:
+    d.streamStop()
+    print('stream stopped')
+except:
+    print('no remaining stream found')
+    
+
+
+d.setDIOState(0,0)
+d.setDIOState(1,0)
+d.setDIOState(2,0)
+d.setDIOState(3,0)
 
 d.close()
     
