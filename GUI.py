@@ -1,3 +1,12 @@
+"""
+GUI.py
+
+Setup for the GUI for PCC. Adds all the sprites and initilizes the display
+
+
+"""
+
+
 import pygame
 
 #Import constants from CONSTANTS.PY

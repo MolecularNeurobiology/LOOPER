@@ -124,6 +124,9 @@ from CONSTANTS import *
 #GET GUI classes from GUI.py
 from GUI import *
 
+#Import Stream classes fro Strem.py
+from Stream import *
+
 ##
 #%%
 # prep serial connection to arduino
@@ -153,19 +156,15 @@ try:
 except Exception as e:
     print('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
-    
+   
 ##
 #%% define functions
 ##LOGGING SETUPn
-#Set to one if debug mode should be on
-debug_on = 0
 
-##
-
-def setup_logging(filename, debug = 0):
+def setup_logging(filename, debug = 1):
     log_format = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
     logger = logging.getLogger(__name__)
-    if debug_on:
+    if debug:
         c_handler = logging.StreamHandler()
         c_handler.setLevel(logging.DEBUG)
     else:
@@ -184,6 +183,14 @@ def setup_logging(filename, debug = 0):
                         hour=now.hour, minute=now.minute, second=now.second))
     return logger
 
+def log_to_file(logger, message):
+    logger.warning(message)
+
+def log_to_console(logger, message):
+    logger.debug(message)
+
+logger = logging.getLogger(__name__)
+##
 
     
 def guiSaveFileName(kwargs={}):
@@ -552,91 +559,12 @@ def processStatus(status,device,serial_connection,ADC):
 
 #%% set-up class for streaming data
 ## try streaming arduino data
-class StreamArduino(object):
-    def __init__(self,device):
-        self.device=device
-        self.data=Queue.Queue()
-        self.finished = False
 
-    def readStreamData(self):
-        while not self.finished:
-            self.finished = False
-            returnText=self.device.read(1000)
-            self.data.put_nowait(deepcopy(returnText))
-
-
-        
-##
-        
-class StreamDataReader(object):
-    def __init__(self, device):
-        self.device = device
-        self.data = Queue.Queue()
-        self.readCount = 0
-        self.missed = 0
-        self.finished = True
-        self.start=0
-        self.current=0
-        self.duration=0.0
-        self.captured_time=0
-        self.SCAN_FREQUENCY=0
-        self.NUM_CHANNELS=0
-        self.lag=0
-        
-    def readStreamData(self):
-        self.finished = False
-        
-        print("Start stream.")
-        
-        try:
-            # Try to stop stream mode. Ignore exception if it fails.
-            self.device.streamStop()
-            print('Prior Stream Terminated')
-        except:
-            print('No Prior Stream')
-        
-        try:
-            self.start = datetime.now()
-            self.readCount=0
-            self.device.streamStart()
-            
-            while not self.finished:
-                # Calling with convert = False, because we are going to convert in
-                # the main thread.
-                returnDict = next(self.device.streamData(convert=False))
-                if returnDict is None:
-                    print("No stream data")
-                    continue
-
-                self.data.put_nowait(deepcopy(returnDict))
-
-                self.missed += returnDict["missed"]
-                self.readCount += 1
-                self.current=datetime.now()
-
-            
-            print("Stream stopped.\n")
-            self.device.streamStop()
-            
-        except Exception:
-            try:
-                # Try to stop stream mode. Ignore exception if it fails.
-                self.device.streamStop()
-            except:
-                pass
-            self.finished = True
-            e = sys.exc_info()[1]
-            print("readStreamData exception: %s %s" % (type(e), e))
-
-    def stopStreamData(self):
-        try:
-            # Try to stop stream mode. Ignore exception if it fails.
-            self.finished = True
-        except:
-            pass
 ##
 
-#Moves cosntants to another file
+#Moved cosntants to another file
+
+        
 #%%
 now=datetime.now()
 cur_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibration':0,'challenge air':0,'challenge gas':0,
@@ -751,15 +679,9 @@ Arduino_Dump_Toggle=0
 Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
 
+
+
 ##
-
-def log_to_file(logger, message):
-    logger.warning(message)
-
-def log_to_console_and_file(logger, message):
-    logger.info(message)
-
-logger = logging.getLogger(__name__)
 try:
     while running==True: # the main game loop
         #read serial i/o from arduino
@@ -854,8 +776,9 @@ try:
         #process status changes
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
-            print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
-            #logger.info('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            #print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            log_to_file(logger, 'change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            log_to_console(logger, "only console")
         #%%
 
         if old_STATUS_Dict['startup_ready']==1:

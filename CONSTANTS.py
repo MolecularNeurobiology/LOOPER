@@ -1,7 +1,22 @@
+"""
+CONSTANTS.py
+
+File containing all the constants defined for PCC, GUI and other python classes in this module
+Divided by where they are used
+
+"""
+
+
+
 import pygame
 from datetime import datetime
 
 from gpiozero import CPUTemperature
+
+
+
+
+
 
 #%% define constants/buffers/status-tags/customization-parameters
 Mode_dict={0:'startup',
