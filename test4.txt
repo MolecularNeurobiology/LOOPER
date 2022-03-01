@@ -1,3 +1,0 @@
-PLETHYSMOGRAPHY COMMAND CENTER DATA FILE
-file may contain mutliple sessions, session marker : $$$$$
-file created 2022-03-01 12:58:02
