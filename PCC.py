@@ -784,7 +784,7 @@ def send(msg, event=None):  # event is passed by binders.
 
         client_socket.close()
  
-
+"""
 HOST = "SMMacbook.local"
 PORT = 33000
 BUFSIZ = 1024
@@ -803,7 +803,7 @@ receive_thread = threading.Thread(target=receive)
 
 receive_thread.start()
 
-
+"""
 
 #%%   
 #% main loop
