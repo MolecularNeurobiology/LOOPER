@@ -883,7 +883,14 @@ try:
                     print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
                     Challenge_Toggle=0
                     #print('air mode')
-                elif SinceLastBreath<=SLB_Trigger and 60/avgTT>=baseBPM*BPM_recovery_thresh/100 and current_recovery>=minimum_resus_time and cur_STATUS_Dict['challenge air']==1 and (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
+                # test for animal being recovered
+                # !!! added condition for sustained recovery and use of incrementable recovery timer
+                elif SinceLastBreath<=SLB_Trigger and \
+                        60/avgTT>=baseBPM*BPM_recovery_thresh/100 and \
+                        current_recovery>=current_minimum_resus_time and \
+                        cur_STATUS_Dict['challenge air']==1 and \
+                        sustained_recovery>=minimum_sustained_recovery and \
+                        (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
                     slb_COLOR2=BLACK
@@ -1455,6 +1462,7 @@ try:
                     'noise_ecg:{}'.format(noise_ecg),
                     'HR_recovery_thresh:{}'.format(HR_recovery_thresh),
                     'minimum_resus_time:{}'.format(minimum_resus_time),
+                    'recovery_increment:{}'.format(recovery_increment),
                     'SLB_Trigger:{}'.format(SLB_Trigger),
                     'CALL_DEATH_Trigger:{}'.format(CALL_DEATH_trigger),
                     'QB_minimum_duration:{}'.format(QB_minimum_duration),
@@ -1683,6 +1691,8 @@ try:
                         QB_Counter+=1
                         QB_duration+=REL_TIMER-QB_TIMER
                     
+                    
+            
                 
                 for i in BL:
                     if 'TE' in BreathCalls[i].keys():
@@ -1741,21 +1751,46 @@ try:
                 if cur_STATUS_Dict['challenge air']==1:
                     rec_duration=cur_time-cur_STATUS_Dict['pulse']['challenge air']['start']
                     current_recovery=rec_duration.seconds
-                elif cur_STATUS_Dict['challenge gas']==1:
-                    current_recovery=float(minimum_resus_time)
+                    
+                    # !!! check for sustained recovery !!!
+                    if SinceLastBreath<=SLB_Trigger and \
+                            60/avgTT>=baseBPM*BPM_recovery_thresh/100 and \
+                            (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
+                        if sustained_recovery_flag == 0:
+                            sustained_recovery_flag = 1
+                            sustained_recovery_start = datetime.now()
+                        sustained_recovery = (datetime.now()-sustained_recovery_start).seconds
                         
+                    else:
+                        sustained_recovery_flag = 0
+                    
+                    # !!! increment minimum recovery if mouse not in sustained recovery
+                    if current_recovery >= current_minimum_resus_time and \
+                            sustained_recovery < minimum_sustained_recovery:
+                        current_minimum_resus_time += recovery_increment
+                        serial_list.append('animal not in sustained recovery. {} seconds added.'.format(recovery_increment))
+                        
+                elif cur_STATUS_Dict['challenge gas']==1:
+                    current_recovery = float(minimum_resus_time)
+                    current_minimum_resus_time = float(minimum_resus_time)
+                    sustained_recovery = float(minimum_sustained_recovery)
+                    
             else:
                 current_recovery=float(minimum_resus_time)
-                
+                current_minimum_resus_time = float(minimum_resus_time)
+                sustained_recovery = float(minimum_sustained_recovery)
             
-            if current_recovery>=minimum_resus_time:
+            if current_recovery>=current_minimum_resus_time:
                 MRT_color=GREEN
-            elif current_recovery>=minimum_resus_time-10:
+            elif current_recovery>=current_minimum_resus_time-10:
                 MRT_color=YELLOW
             else:
                 MRT_color=RED
             
-            box_minimum_resus_time.update(MRT_color,BLACK,'RECOVERY:{:#d}/{:#d})'.format(int(current_recovery),int(minimum_resus_time)))
+
+            
+            
+            box_minimum_resus_time.update(MRT_color,BLACK,'RECOVERY:{:#d}/{:#d})'.format(int(current_recovery),int(current_minimum_resus_time)))
             
             box_qual_bouts.update(YELLOW,BLACK,'bouts:{}'.format(QB_Counter))
             box_qual_dur.update(YELLOW,BLACK,'duration:{:#.1F}'.format(QB_duration))                   
