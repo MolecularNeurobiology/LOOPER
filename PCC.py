@@ -1766,7 +1766,7 @@ try:
                     
                     # !!! increment minimum recovery if mouse not in sustained recovery
                     if current_recovery >= current_minimum_resus_time and \
-                            sustained_recovery < minimum_sustained_recovery:
+                            sustained_recovery <= minimum_sustained_recovery:
                         current_minimum_resus_time += recovery_increment
                         serial_list.append('animal not in sustained recovery. {} seconds added.'.format(recovery_increment))
                         
