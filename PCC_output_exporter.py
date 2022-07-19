@@ -39,96 +39,97 @@ def gui_open_filenames(kwargs={}):
     return output_text
 
 
-def load_signal_data(filename, local_logger):
-    """
-    creates a dataframe containing plethysmography signal data
-    includes calls to several other functions that are required for proper
-    parsing of an exported lab chart signal file
+# def load_signal_data(filename, local_logger):
+#     """
+#     creates a dataframe containing plethysmography signal data
+#     includes calls to several other functions that are required for proper
+#     parsing of an exported lab chart signal file
 
-    Parameters
-    ----------
-    filename : string
-        path to file containing signal data
-    local_logger : instance of logging.logger
+#     Parameters
+#     ----------
+#     filename : string
+#         path to file containing signal data
+#     local_logger : instance of logging.logger
 
 
-    Returns
-    -------
-    signal_data_assembled : pandas.DataFrame
-        dataframe containing contents of signal file (merged into a single
-        dataframe if multiple blocks are present)
-    """
+#     Returns
+#     -------
+#     signal_data_assembled : pandas.DataFrame
+#         dataframe containing contents of signal file (merged into a single
+#         dataframe if multiple blocks are present)
+#     """
     
-    Header_Tuples = extract_header_type(filename)
-    header_locations = extract_header_locations(
-        filename,
-        local_logger=local_logger
-        )
-    signal_data_pieces = read_exported_labchart_file(
-        filename,
-        header_locations,
-        header_tuples=Header_Tuples
-        )
-    signal_data_assembled = merge_signal_data_pieces(signal_data_pieces)
-    return signal_data_assembled
+#     Header_Tuples = extract_header_type(filename)
+#     header_locations = extract_header_locations(
+#         filename,
+#         local_logger=local_logger
+#         )
+#     signal_data_pieces = read_exported_labchart_file(
+#         filename,
+#         header_locations,
+#         header_tuples=Header_Tuples
+#         )
+#     signal_data_assembled = merge_signal_data_pieces(signal_data_pieces)
+#     return signal_data_assembled
 
 
-def extract_header_type(filename):
-    """
-    gathers information regarding the header format/column contents present
-    in an exported lab chart signal file (assumes set-up is in line with
-    Ray Lab specifications)
+# def extract_header_type(filename):
+#     """
+#     gathers information regarding the header format/column contents present
+#     in an exported lab chart signal file (assumes set-up is in line with
+#     Ray Lab specifications)
 
-    Parameters
-    ----------
-    filename : string
-        path for file containing signal data
+#     Parameters
+#     ----------
+#     filename : string
+#         path for file containing signal data
 
-    Returns
-    -------
-    header_tuples : list of tuples
-        list of tuples specifying ([column name],[datatype])
-    """
+#     Returns
+#     -------
+#     header_tuples : list of tuples
+#         list of tuples specifying ([column name],[datatype])
+#     """
     
-    with open(filename) as opfi:
-        # check 1st ten rows to see if header is expected to include
-        # date column with data
-        for i in range(10):
-            if "DateFormat=	M/d/yyyy" in opfi.readline():
-                header_tuples = [
-                   ('ts', float),
-                   ('date', str),
-                   ('vol', float),
-                   ('o2', float),
-                   ('co2', float),
-                   ('temp', float),
-                   ('ch5', float),
-                   ('ch6', float),
-                   ('ch7', float),
-                   ('ch8', float),
-                   ('comment', str)
-                   ]
-                break
-            else:
-                header_tuples = [
-                   ('ts', float),
-                   ('vol', float),
-                   ('o2', float),
-                   ('co2', float),
-                   ('temp', float),
-                   ('ch5', float),
-                   ('ch6', float),
-                   ('ch7', float),
-                   ('ch8', float),
-                   ('comment', str)
-                   ]
-    return header_tuples
+#     with open(filename) as opfi:
+#         # check 1st ten rows to see if header is expected to include
+#         # date column with data
+#         for i in range(10):
+#             if "DateFormat=	M/d/yyyy" in opfi.readline():
+#                 header_tuples = [
+#                    ('ts', float),
+#                    ('date', str),
+#                    ('vol', float),
+#                    ('o2', float),
+#                    ('co2', float),
+#                    ('temp', float),
+#                    ('ch5', float),
+#                    ('ch6', float),
+#                    ('ch7', float),
+#                    ('ch8', float),
+#                    ('comment', str)
+#                    ]
+#                 break
+#             else:
+#                 header_tuples = [
+#                    ('ts', float),
+#                    ('vol', float),
+#                    ('o2', float),
+#                    ('co2', float),
+#                    ('temp', float),
+#                    ('ch5', float),
+#                    ('ch6', float),
+#                    ('ch7', float),
+#                    ('ch8', float),
+#                    ('comment', str)
+#                    ]
+#     return header_tuples
 
 
 def extract_header_locations(
         filename,
-        header_text_fragment='Interval=',
-        local_logger=None):
+        header_text_firstline_fragment = '$$$',
+        header_text_lastline_fragment = 'statuscodes',
+        local_logger = None):
     """
     gathers information regarding the locations of header information
     throughout a signal file - needed if files may contain multiple recording
@@ -138,28 +139,42 @@ def extract_header_locations(
     ----------
     filename : string
         path to file containing signal data
-    header_text_fragment : string, optional
-        string that is present in header lines. The default is 'Interval='.
+    header_text_firstline_fragment : string, optional
+        string that is present at beginning of header lines. The default is '$$$'.
+    header_text_lastline_fragment : string, optional
+        string that is present at end of header lines. The default is 'status_codes'.
     local_logger : instance of logging.logger, optional
         The default is None (i.e. no logging)
 
     Returns
     -------
-    headers : list
-        list of rows in the datafile that indicate header content present
+    headers_firstlines : list
+        list of rows in the datafile that indicate header content present (first line)
+    headers_lastlines : list
+        list of rows in the datafile that indicate header content present (last line)
+        
     """
     
-    headers = []
+    headers_firstlines = []
+    headers_lastlines = []
     i = 0
     with open(filename, 'r') as opfi:
         for line in opfi:
-            if header_text_fragment in line:
+            if header_text_firstline_fragment in line:
                 if local_logger != None:
                     local_logger.info(
-                        'Signal File has HEADER AT LINE: {}'.format(i)
+                        'Signal File has FL HEADER AT LINE: {}'.format(i)
                         )
-                headers.append(i)
+                headers_firstlines.append(i)
+            if header_text_lastline_fragment in line:
+                if local_logger != None:
+                    local_logger.info(
+                        'Signal File has LL HEADER AT LINE: {}'.format(i)
+                        )
+                headers_lastlines.append(i)
             i += 1
+            
+        headers = [(headers_firstlines[j+1],headers_lastlines[j]) for j in range(len(headers_lastlines))]
     return headers
 
 
@@ -224,7 +239,7 @@ def read_exported_labchart_file(
                         sep=delim,
                         names=[i[0] for i in header_tuples],
                         skiprows=rows_to_skip+header_locations[i],
-                        nrows=header_locations[i+1]-header_locations[i]-16,
+                        nrows=header_locations[i+1]-header_locations[i]-rows_to_skip,
                         dtype=dict(header_tuples)
                         )
                     )
@@ -280,6 +295,8 @@ def merge_signal_data_pieces(df_list):
     return merged_data
 
 
+
+
 #%% main
 ##
 
@@ -312,35 +329,36 @@ def main():
             logger.info(f'file selected {input_file}')
             
             # setup some constants (!!! move these to settings file, or set dynamcally if possible)
-            recognized_headers = [
-                'PLETHYSMOGRAPHY COMMAND CENTER DATA FILE',
-                'file may contain mutliple sessions, session marker : $$$$$',
-                'file created',
-                '$$$$$ DATA SESSION -----',
-                'SESSION STARTED',
-                'baseline flow:',
-                'thresh flow:',
-                'baseline_ecg:',
-                'absthresh_ecg',
-                'thresh_ecg1:',
-                'thresh_ecg2:',
-                'noise_ecg:',
-                'HR_recovery_thresh:',
-                'minimum_resus_time',
-                'SLB_Trigger:',
-                'CALL_DEATH_Trigger',
-                'QB_minimum_duration',
-                'filt_crit_Dict:'
-                ]
+            # recognized_headers = [
+            #     'PLETHYSMOGRAPHY COMMAND CENTER DATA FILE',
+            #     'file may contain mutliple sessions, session marker : $$$$$',
+            #     'file created',
+            #     '$$$$$ DATA SESSION -----',
+            #     'SESSION STARTED',
+            #     'baseline flow:',
+            #     'thresh flow:',
+            #     'baseline_ecg:',
+            #     'absthresh_ecg',
+            #     'thresh_ecg1:',
+            #     'thresh_ecg2:',
+            #     'noise_ecg:',
+            #     'HR_recovery_thresh:',
+            #     'minimum_resus_time',
+            #     'recovery_increment',
+            #     'SLB_Trigger:',
+            #     'CALL_DEATH_Trigger',
+            #     'QB_minimum_duration',
+            #     'filt_crit_Dict:'
+            #     ]
             
            
             
             #%% extract the file
-            signal_blocks = extract_header_locations(input_file,header_text_fragment="$$$",local_logger=logger)
+            signal_blocks = extract_header_locations(input_file,local_logger=logger)
             try:
                 signal_data_pieces = read_exported_labchart_file(
                     input_file,
-                    signal_blocks[1:],
+                    [i[0] for i in signal_blocks],
                     header_tuples=[
                         ('time',float),
                         ('FLOW',float),
@@ -354,7 +372,8 @@ def main():
                         ('parameter',str),
                         ('arduino_comments',str)
                         ],
-                    rows_to_skip = 16)
+                    rows_to_skip = signal_blocks[0][1]-signal_blocks[0][0]+1
+                    )
             except Exception as e:
                 logger.exception(
                     f'error processing file {input_file} - {e}...attempting repair of split comments',
@@ -382,7 +401,7 @@ def main():
                 
                 signal_data_pieces = read_exported_labchart_file(
                     input_file+'_fixed.txt',
-                    signal_blocks[1:],
+                    [i[0] for i in signal_blocks],
                     header_tuples=[
                         ('time',float),
                         ('FLOW',float),
@@ -396,7 +415,8 @@ def main():
                         ('parameter',str),
                         ('arduino_comments',str)
                         ],
-                    rows_to_skip = 16)
+                    rows_to_skip = signal_blocks[0][1]-signal_blocks[0][0]+1
+                    )
             
             signal_header_pieces = [
                 pandas.read_csv(
@@ -415,8 +435,8 @@ def main():
                         'parameters',
                         'arduino_comments'
                         ],
-                    skiprows=i,
-                    nrows=17,
+                    skiprows=i[0],
+                    nrows=i[1]-i[0]+2,
                     dtype = dict([
                         ('time',str),
                         ('FLOW',str),
@@ -430,7 +450,7 @@ def main():
                         ('parameter',str),
                         ('arduino_comments',str)
                         ])
-                    ) for i in signal_blocks[1:]
+                    ) for i in signal_blocks
                 ]
             signal_start_pieces = [
                 i.time.iloc[1] for i in signal_header_pieces
@@ -444,9 +464,13 @@ def main():
                 'Starting: Calibrating for 0s',
                 'Finished: Calibrating',
                 'Starting: On Anoxic Air,0,0,Ongoing: On Position ,0, Prefilled for 0s',
+                'Starting: On Anoxic Air,Prefill for 0s,Ongoing: On Position 0, Prefilled for 0s',
                 'Finished: On Position ,0, Prefilled for 0s,Finished: On Anoxic Air',
+                'Finished: On Position 0, Prefilled for 0s,Finished: On Anoxic Air',
                 'Starting: On Room Air,0,0,Ongoing: On Position ,0, Gas Off',
+                'Starting: On Room Air,Prefill for 0s,Ongoing: On Position 0, Gas Off',
                 'Finished: On Room Air',
+                'Finished: On Room Air,ABORTED'
                 '0'
                 ]    
         
@@ -461,9 +485,11 @@ def main():
                     signal_data_pieces[i]['arduino_comments'].fillna('')
                 
                 for j in range(len(arduino_comment_list)):
+                    
                     c = arduino_comment_list[j]
                     if c == '':
                         continue
+                    # adjust arduino comment list to accomodate custom timings
                     re_c = re.sub('[0-9]+','[0-9]+',c)
                     
                     if any([re.compile('^'+re_c+'$').search(k) for k in recognized_commands_re]):
@@ -474,13 +500,17 @@ def main():
                             # starts with
                             if re.compile('^'+re_c).search(k):
                                 broken_comment_index_1 = j
-                                logger.info('--likely beginning fragment of command {j}')
+                                logger.info(f'--likely beginning fragment of command {j}')
                             # ends with
                             elif re.compile(re_c+'$').search(k) and \
-                                    k == arduino_comment_list[
-                                        broken_comment_index_1
-                                        ]+c:
-                                logger.info('--likely ending fragment of command {j}')
+                                    re.sub(
+                                            '[0-9]+','[0-9]+',
+                                            arduino_comment_list[
+                                                broken_comment_index_1
+                                                ]+c
+                                            ) == \
+                                        re.sub('[0-9]+','[0-9]+',k):
+                                logger.info(f'--likely ending fragment of command {j}')
                                 arduino_comment_list[broken_comment_index_1] = \
                                     arduino_comment_list[broken_comment_index_1]+c
                                 arduino_comment_list[j] = ''
@@ -489,9 +519,9 @@ def main():
                                     )
                             # middle piece
                             elif re.compile(
-                                    '^'+arduino_comment_list[broken_comment_index_1]+re_c
+                                    '^'+re.sub('[0-9]+','[0-9]+',arduino_comment_list[broken_comment_index_1])+re_c
                                     ).search(k):
-                                logger.info('--likely mid fragment of command {j}')
+                                logger.info(f'--likely mid fragment of command {j}')
                                 arduino_comment_list[broken_comment_index_1] = \
                                     arduino_comment_list[broken_comment_index_1]+c
                                 logger.info(
@@ -500,12 +530,12 @@ def main():
                                 arduino_comment_list[j] = ''
                             # full but with gap
                             elif re.compile(
-                                    '^'+arduino_comment_list[broken_comment_index_1]
+                                    '^'+re.sub('[0-9]+','[0-9]+',arduino_comment_list[broken_comment_index_1])
                                     ).search(k) \
                                     and \
                                     re.compile(re_c+'$').search(k):
                                         logger.info(
-                                            'likely ending of fragment with middle gap {j}'
+                                            f'likely ending of fragment with middle gap {j}'
                                             )
                                         gap_finder = re.compile(
                                             '^(?P<frag1>'+ \
@@ -523,6 +553,8 @@ def main():
                                         logger.info(
                                             f'Fixed: {arduino_comment_list[broken_comment_index_1]}{c}\nAs:{arduino_comment_list[broken_comment_index_1]}'
                                             )
+                            #else:
+                            #   logger.info(f'unmatchable comment: {c}')
                                     
                                     
                 signal_data_pieces[i].loc[:,'arduino_comments'] = arduino_comment_list
@@ -532,19 +564,27 @@ def main():
             # add block timestamp column
             # set on a copy warning triggered by this. not sure why
             for i in range(len(signal_data_pieces)):
+                # creates timestamp comment column
                 signal_data_pieces[i].loc[:,'timestamp_comment'] = ''
+                # creates timestamp starttime column
                 signal_data_pieces[i].loc[:,'timestamp_starttime'] = ''
+                # repopulates timestamp comment column
                 signal_data_pieces[i]['timestamp_comment'].iloc[0] = \
                     signal_mode_pieces[i]
+                # repopulates timestamp starttime column
                 signal_data_pieces[i]['timestamp_starttime'].iloc[0] = \
                     signal_start_pieces[i]
+                # create all_comment column from timestamp and arduino comments
                 signal_data_pieces[i].loc[:,'all_comments'] = \
                     signal_data_pieces[i]['timestamp_comment'].fillna('') + \
                     signal_data_pieces[i]['arduino_comments'].fillna('')
             
-            # fix cases where serial com was missed
+            # fix cases where serial com was missed - add labchart prefix
             
+            # iterates through entries in signal_data_pieces
             for i in range(len(signal_data_pieces)):
+                # use loc to isolate all_comments entries that are not empty
+                # add labchart prefix to those entries
                 signal_data_pieces[i].loc[
                     signal_data_pieces[i]['all_comments'] != '',
                     'all_comments'
