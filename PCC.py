@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.0.2'
+__VERSION__ = '42.1.0'
 
 """
 
@@ -79,6 +79,42 @@ related but slightly seperate
     (i.e. central workstation communicates to rigs running PCC for set-up and 
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
+
+
+!!! v42.1.0 !!!
+1.	Fix baseline establishment criteria to be more lenient [described - awaiting new recommend defaults]
+        (and provide a description of the current requirements) -
+            'avgBPM':250, - average breathing frequency is less than 250 breaths per minute
+            'cvTT':0.5, - average coefficient of variation (SD/mean) for breath cycle duration is less than 0.5
+            'avgHR':700, - average heart rate is less than 700 beats per minute
+            'avgRR':999, - average R to R interval (time between heart beats) is less than 999ms
+            'cvRR':0.5, - average coefficient of variation (SD/mean) for R to R interval is less than 0.5
+            'BSD':0.25, - baseline drift (i.e. average of absolute value of voltage signal) is less then 0.25V
+            'DVTV':0.75 – disagreement in volume of inhaled vs exhaled tidal volume |iTV-eTV|/avg(iTV,eTV) is less than 0.75
+
+        Each of the above parameters is calculated based on the preceding 5 seconds. And a minimum bout duration of 5 seconds is required for inclusion into the values to use for calculation of baseline.
+        
+        As the animals accumulate bouts of quiet calm breathing QB_counter and QB_duration values should increase, and an average should be generated if any bouts were observed (but this apparently isn’t reliable working)
+        
+        The green/red indicator should be green if all criteria are met, and will be red with text indicating criteria that are not being met.
+
+2.	Put a stop in after baseline that if baseline does not establish, 
+        the challenge period does not begin and instead cycles back to 
+        baseline** - 
+            baseline_increment = 5*60
+            minimum_cummulative_QB_duration = 60
+3.	Permit manual setting of baseline values
+
+4.	With recovery there would be two versions made:
+    a.	Standard 5 minutes of recovery no matter what
+            -set recovery thresholds to 0
+    b.	Recovery met if 30 total seconds meet recovery criteria within the last
+        minute of the 5 minutes recovery period (not consecutive 30 seconds)
+            -revised implementation of sustained recovery check to permit 
+            sustained recovery based on having a maximum of the munimum
+            sustained duration within the recovery interval
+
+
 
 !!! v42.0.0 goals CW !!!
 *migrate settings to external file
@@ -847,7 +883,7 @@ try:
                         60/avgTT>=baseBPM*BPM_recovery_thresh/100 and \
                         current_recovery>=current_minimum_resus_time and \
                         cur_STATUS_Dict['challenge air']==1 and \
-                        sustained_recovery>=minimum_sustained_recovery and \
+                        current_maximum_sustained_recovery_bout>=minimum_sustained_recovery and \ 
                         (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
@@ -901,7 +937,17 @@ try:
             if cur_STATUS_Dict['pulse'][i]['state']==1:
                 cur_STATUS_Dict['pulse'][i]['state']=pulse_ender(d,cur_STATUS_Dict['pulse'][i]['pin'],cur_STATUS_Dict['pulse'][i]['start'],pulse_duration)
        
-        #%%
+        #%% adjust Current_Mode timer if more baseline is needed - added for v42.1.0
+        if Mode_dict[Current_Mode+1]=='Challenge' and \
+                Mode_timing[Current_Mode]<=REL_TIMER:
+            current_QB_duration = float(QB_duration)
+            if quality_test==1 and REL_TIMER-QB_TIMER>=QB_minimum_duration:
+                current_QB_duration += REL_TIMER-QB_TIMER
+            if minimum_cummulative_QB_duration > current_QB_duration:
+                Mode_timing[Current_Mode] += baseline_increment
+                    
+            
+            
         # check for auto advance
         
         if cur_STATUS_Dict['ready to save']==1 or Current_Mode<2: # !!! update needed when shift to config file addressing 'save lock'
@@ -1718,21 +1764,22 @@ try:
                             sustained_recovery_flag = 1
                             sustained_recovery_start = datetime.now()
                         sustained_recovery = (datetime.now()-sustained_recovery_start).seconds
-                        
+                        if current_maximum_sustained_recovery_bout < sustained_recovery:
+                            current_maximum_sustained_recovery_bout = sustained_recovery
                     else:
                         sustained_recovery_flag = 0
                     
                     # !!! increment minimum recovery if mouse not in sustained recovery
                     if current_recovery >= current_minimum_resus_time and \
-                            sustained_recovery <= minimum_sustained_recovery:
+                            current_maximum_sustained_recovery_bout <= minimum_sustained_recovery:
                         current_minimum_resus_time += recovery_increment
                         serial_list.append('animal not in sustained recovery. {} seconds added.'.format(recovery_increment))
-                        
+                        logger.warning('animal not yet reached sustained recovery. {} seconds added.'.format(recovery_increment))
                 elif cur_STATUS_Dict['challenge gas']==1:
                     current_recovery = float(minimum_resus_time)
                     current_minimum_resus_time = float(minimum_resus_time)
                     sustained_recovery = float(minimum_sustained_recovery)
-                    
+                    current_maximum_sustained_recovery_bout = 0
             else:
                 current_recovery=float(minimum_resus_time)
                 current_minimum_resus_time = float(minimum_resus_time)

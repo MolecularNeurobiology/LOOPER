@@ -306,8 +306,15 @@ QB_duration=0
 SinceLastBreath=0
 SLB_Trigger=5
 CALL_DEATH_trigger=10*60
+
+baseline_increment = 5*60
+baseline_override = 0
+minimum_cummulative_QB_duration = 60
+current_maximum_sustained_recovery_bout = 0
+
 minimum_resus_time=5*60
 current_minimum_resus_time=5*60
+
 current_recovery=300
 recovery_increment = 5*60
 sustained_recovery = 60
