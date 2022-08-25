@@ -1337,7 +1337,21 @@ try:
                     filt_crit_Dict['DVTV']=guiGetFloat('DVTV threshold','DVTV threshold',filt_crit_Dict['DVTV'])
                 elif box_QB_duration.rect.collidepoint(event.pos) and 'Signal Preview' in Mode_dict[Current_Mode]:
                     QB_minimum_duration=guiGetFloat('Quality Bout minimum duration','Quality Bout minimum duration',QB_minimum_duration)
-                    
+                
+                elif box_baseBPM.rect.collidepoint(event.pos):
+                    baseBPM = guiGetFloat(
+                        'Manually Set Baseline BPM', 
+                        'Manually Set Baseline BPM', 
+                        baseBPM
+                        )
+                    box_baseBPM.update(GREEN,BLACK,'base BPM:{:#.1F}'.format(baseBPM))
+                elif box_baseHR.rect.collidepoint(event.pos):
+                    baseHR = guiGetFloat(
+                        'Manually Set Baseline HR',
+                        'Manually Set Baseline HR',
+                        baseHR
+                        )
+                
                 else: pass
                 
             if event.type==pygame.QUIT:
