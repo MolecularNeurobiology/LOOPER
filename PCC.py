@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.1.0'
+__VERSION__ = '42.1.1'
 
 """
 
@@ -883,7 +883,7 @@ try:
                         60/avgTT>=baseBPM*BPM_recovery_thresh/100 and \
                         current_recovery>=current_minimum_resus_time and \
                         cur_STATUS_Dict['challenge air']==1 and \
-                        current_maximum_sustained_recovery_bout>=minimum_sustained_recovery and \ 
+                        current_maximum_sustained_recovery_bout>=minimum_sustained_recovery and \
                         (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
@@ -1351,6 +1351,7 @@ try:
                         'Manually Set Baseline HR',
                         baseHR
                         )
+                    box_baseHR.update(GREEN,BLACK,'base HR:{:#.1F}'.format(baseHR))
                 
                 else: pass
                 

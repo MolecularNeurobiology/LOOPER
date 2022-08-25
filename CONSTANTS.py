@@ -307,6 +307,11 @@ SinceLastBreath=0
 SLB_Trigger=5
 CALL_DEATH_trigger=10*60
 
+baseTT='N/A'
+baseBPM='N/A'
+baseRR='N/A'
+baseHR='N/A'            
+
 baseline_increment = 5*60
 baseline_override = 0
 minimum_cummulative_QB_duration = 60
