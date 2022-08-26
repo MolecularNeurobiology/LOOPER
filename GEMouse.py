@@ -52,17 +52,22 @@ except:
         simulated = True
         
         def setmode(a):
-           print(a)
+           #print(a)
+           pass
         def setup(a, b):
-           print(a)
+           #print(a)
+           pass
         def input(a):
             return 0
         def output(a, b):
-           print(a)
+           #print(a)
+           pass
         def cleanup():
-           print('a')
+           #print('a')
+           pass
         def setwarnings(flag):
-           print('False')
+           #print('False')
+           pass
 
 
 
@@ -78,7 +83,7 @@ GPIO.setup(7, GPIO.IN)
 #%% functions
 
 def cycler_prep(instance,label):
-    print(f'cycler_prep : {label}')
+    #print(f'cycler_prep : {label}')
     VF = float(getattr(instance,f'{label}_VF'))
     VF_IS = float(getattr(instance,f'{label}_VF_IS'))
     HR = float(getattr(instance,f'{label}_HR'))
@@ -102,22 +107,22 @@ def cycler_prep(instance,label):
         RR = int(60/float(HR)*1000)
         
     if float(VF) == 0:
-        TT_on = 10
+        TT_on = 20
         TT_2 = 0
-        TT_2_on = 10
+        TT_2_on = 20
     else:
         TT_on = int(TT/2)
         TT_2 = int(TT+TT*float(VF_IS))
         TT_2_on = int(TT_2/2)
         
     if float(HR) == 0:
-        RR_on = 10
+        RR_on = 20
         RR_2 = 0
-        RR_2_on = 10
+        RR_2_on = 20
     else:    
-        RR_on = 10
+        RR_on = 20
         RR_2 = int(RR+RR*float(HR_IS))
-        RR_2_on = 10
+        RR_2_on = 20
             
     return {
         'TT':{
@@ -144,7 +149,7 @@ def cycler_prep(instance,label):
 
 
 
-def pulse(pulse_timer,timings_dict,pulse_toggle,pin = None):
+def pulse(instance,borh,pulse_timer,timings_dict,pulse_toggle,pin = None):
     pulse_timer += 1
     on_limit = timings_dict[pulse_toggle]['on_limit']
     beat_limit = timings_dict[pulse_toggle]['beat_limit']
@@ -152,19 +157,16 @@ def pulse(pulse_timer,timings_dict,pulse_toggle,pin = None):
     
     
     if pulse_timer == 1:
-        if hasattr(GPIO,'simulated'):
-            print(f'{pin} - ON')
-        else:
-            GPIO.output(pin,GPIO.HIGH)
+        getattr(instance,borh).setStyleSheet("background-color: red")
+        GPIO.output(pin,GPIO.HIGH)
             
     elif pulse_timer == on_limit:
-        if hasattr(GPIO,'simulated'):
-            print(f'{pin} - OFF')
-        else:
-            GPIO.output(pin,GPIO.LOW)
+        getattr(instance,borh).setStyleSheet("background-color: black")
+        GPIO.output(pin,GPIO.LOW)
     elif pulse_timer == beat_limit:
         pulse_timer = 0
         pulse_toggle = int(not(bool(pulse_toggle)))
+        
     return pulse_timer,pulse_toggle
 
 
@@ -217,7 +219,7 @@ def widget_builder(
     
     for metric in metrics:
         label = f'{state}_{metric}'
-        print(label)
+        
         row += 1
         position = (start_position[0],start_position[1]+row*row_increment) 
         
@@ -242,7 +244,7 @@ def widget_builder(
         
         
 def widget_action(instance,state,metrics):
-    print(instance,state)
+    
     for metric in metrics:
         label = f'{state}_{metric}'
         print(f'\t{metric}',getattr(instance,label),'->')
@@ -406,7 +408,10 @@ class MainWindow(QMainWindow):
         self.OFF = QPushButton('OFF', parent = self)
         self.CHB_RHAR_cycle = QPushButton('Cycle [CHB_RHAR]', parent = self)
         self.RHAR_cycle = QPushButton('Cycle [RHAR]', parent = self)
-        
+        self.breathing = QPushButton('Breathing', parent = self)
+        self.heartbeat = QPushButton('Heart Beat', parent = self)
+        self.oride_breathing = QPushButton("O'Ride Breath", parent = self)
+        self.oride_heartbeat = QPushButton("O'Ride Heart", parent = self)
         
         self.Calibration_Hold.setFixedSize(150,25)
         self.Habituation_Hold.setFixedSize(150,25)
@@ -418,6 +423,10 @@ class MainWindow(QMainWindow):
         self.OFF.setFixedSize(150,25)
         self.CHB_RHAR_cycle.setFixedSize(150,25)
         self.RHAR_cycle.setFixedSize(150,25)
+        self.breathing.setFixedSize(100,50)
+        self.heartbeat.setFixedSize(100,50) 
+        self.oride_breathing.setFixedSize(100,50) 
+        self.oride_heartbeat.setFixedSize(100,50) 
         
         self.Calibration_Hold.move(250,500)
         self.Habituation_Hold.move(250,525)
@@ -432,6 +441,14 @@ class MainWindow(QMainWindow):
         self.CHB_RHAR_cycle.move(250,625)
         self.RHAR_cycle.move(425,625)
         
+        self.breathing.move(575,650)
+        self.heartbeat.move(575,700) 
+        self.oride_breathing.move(0,650) 
+        self.oride_heartbeat.move(0,700)
+        
+        self.breathing.setStyleSheet("background-color: black")
+        self.heartbeat.setStyleSheet("background-color: black")
+        
         self.Calibration_Hold.clicked.connect(self.Calibration_Hold_action)
         self.Habituation_Hold.clicked.connect(self.Habituation_Hold_action)
         self.Baseline_Hold.clicked.connect(self.Baseline_Hold_action)
@@ -442,9 +459,33 @@ class MainWindow(QMainWindow):
         self.CHB_RHAR_cycle.clicked.connect(self.CHB_RHAR_cycle_action)
         self.RHAR_cycle.clicked.connect(self.RHAR_cycle_action)
         self.OFF.clicked.connect(self.OFF_action)
+        self.oride_breathing.pressed.connect(self.oride_breathing_clicked)
+        self.oride_heartbeat.pressed.connect(self.oride_heartbeat_clicked)
+        self.oride_breathing.released.connect(self.oride_breathing_released)
+        self.oride_heartbeat.released.connect(self.oride_heartbeat_released)
         
     
     
+    def oride_breathing_clicked(self):
+        self.breathing.setStyleSheet("background-color: red")
+        GPIO.output(3,GPIO.HIGH)
+        self.OFF_action()
+
+    def oride_heartbeat_clicked(self):
+        self.heartbeat.setStyleSheet("background-color: red")
+        GPIO.output(5,GPIO.HIGH)
+        self.OFF_action()
+        
+    def oride_breathing_released(self):
+        self.breathing.setStyleSheet("background-color: black")
+        GPIO.output(3,GPIO.HIGH)
+        self.OFF_action()
+        
+    def oride_heartbeat_released(self):
+        self.heartbeat.setStyleSheet("background-color: black")
+        GPIO.output(5,GPIO.HIGH)
+        self.OFF_action()
+        
     def reset_timers(self, label, hold = False):
         self.running = 1
         
@@ -472,7 +513,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Calibration_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Calibration_Hold')
+        #print('Calibration_Hold')
         self.reset_timers('calibration', hold = True)
         self.state = 'calibration'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -482,7 +523,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Habituation_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Habituation_Hold')
+        #print('Habituation_Hold')
         self.reset_timers('habituation', hold = True)
         self.state = 'habituation'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -492,7 +533,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Baseline_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Baseline Hold')
+        #print('Baseline Hold')
         self.reset_timers('baseline', hold = True)
         self.state = 'baseline'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -502,7 +543,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Hypervent_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Hypervent_Hold')
+        #print('Hypervent_Hold')
         self.reset_timers('hypervent', hold = True)
         self.state = 'hypervent'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -512,7 +553,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Apnea_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Apnea_Hold')
+        #print('Apnea_Hold')
         self.reset_timers('apnea', hold = True)
         self.state = 'apnea'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -522,7 +563,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Recovery_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Recovery_Hold')
+        #print('Recovery_Hold')
         self.reset_timers('recovery', hold = True)
         self.state = 'recovery'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -532,7 +573,7 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def Ready_Hold_action(self):
         self.singleshot_timer.stop()
-        print('Ready_Hold')
+        #print('Ready_Hold')
         self.reset_timers('ready', hold = True)
         self.state = 'ready'
         self.state_label.setText(f'<h1>{self.state}</h1>')
@@ -568,8 +609,8 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def timed_run(self):
         if int(self.repeat_challenges) < int(self.recovery_rounds):
-            print(self.state)
-            print(self.repeat_challenges,self.recovery_rounds)
+            #print(self.state)
+            #print(self.repeat_challenges,self.recovery_rounds)
             self.reset_timers(self.state)
             self.looptimer.start()
             if self.state == 'delay':
@@ -587,7 +628,10 @@ class MainWindow(QMainWindow):
         
         else:
             self.singleshot_timer.stop()
+            self.state = 'off'
+            self.state_label.setText(f'<h1>{self.state}</h1>')
             print('Finished')
+            
         
         
     
@@ -622,6 +666,8 @@ class MainWindow(QMainWindow):
         
         # VF pulse
         self.TT_timer,self.TT_1v2_toggle = pulse(
+            self,
+            'breathing',
             self.TT_timer,
             self.TT_RR_timings['TT'],
             self.TT_1v2_toggle,
@@ -629,6 +675,8 @@ class MainWindow(QMainWindow):
         
         # HR pulse
         self.RR_timer,self.RR_1v2_toggle = pulse(
+            self,
+            'heartbeat',
             self.RR_timer,
             self.TT_RR_timings['RR'],
             self.RR_1v2_toggle,
@@ -657,7 +705,7 @@ class MainWindow(QMainWindow):
         self.singleshot_timer.stop()
         self.repeat_challenges = int(self.recovery_rounds)
         pin_reset([3,5])
-        print('off')
+        
         
         
     

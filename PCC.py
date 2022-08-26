@@ -1606,7 +1606,7 @@ try:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
                 # change marks to red when thresh 2 in use
                 Annot_Color=RED
-            elif cur_STATUS_Dict['challenge air']==1 and gasp_detected==0:
+            elif cur_STATUS_Dict['challenge air']==1 and gasp_detected==0 and current_recovery >SLB_Trigger:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
                 # change marks to red when thresh 2 in use
                 Annot_Color=RED
