@@ -15,9 +15,19 @@ Features include
 *listening to RPi pin-in for trigger signal (indicating gas challenge)
 *GUI for customizing settings, buttons for hold mode or 'emouse' challenge runs
 
+
+updates
+v1.0.1
+* adjust spacing to address font cut off issue of header and labels
+* shift button placement to reduce window size
+* add indicator of current mode
+* add indicator of textedits that have been edited and need set confirmed
+* adjust duration timer so that it won't trigger re-entry to cycling (assign to
+  variable and use .stop method)
+
 """
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 #%% import libraries
 
@@ -25,6 +35,7 @@ from PyQt5.QtCore import pyqtSlot, Qt,  QThreadPool, QTimer
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton 
 from PyQt5.QtWidgets import QTextEdit
 import sys
+import re
 
 
 try:
@@ -173,46 +184,78 @@ def pin_reset(pin_list):
 
 def widget_builder(
         instance,
-        label,
-        size = [(100,25),(75,25)],
-        position = (0,0)
+        state,
+        metrics,
+        size = [(75,25),(50,25)],
+        row_increment = 25,
+        start_position = (0,0)
         ):
     
-    setattr(instance, f'{label}_label', QLabel(label, parent = instance))
-    setattr(instance, f'{label}_edit', QTextEdit(
-        str(getattr(instance,label)), 
-        instance)
+    setattr(instance, f'{state}_label', QLabel(f'<h2>{state}</h2>', parent = instance))
+    getattr(instance, f'{state}_label').setFixedSize(
+        size[0][0]+size[1][0],
+        size[0][1]
         )
+    getattr(instance, f'{state}_label').move(*start_position)
+    getattr(instance, f'{state}_label').setAlignment(Qt.AlignCenter)
     
-    getattr(instance, f'{label}_label').setFixedSize(*size[0])
-    getattr(instance, f'{label}_edit').setFixedSize(*size[1])
-    getattr(instance, f'{label}_label').move(*position)
-    getattr(instance, f'{label}_edit').move(
-        position[0]+size[0][0],
-        position[1]
-        )
-    setattr(instance, f'{label}_set', QPushButton('Set', parent = instance))
-    getattr(instance, f'{label}_set').setFixedSize(50,25)
-    getattr(instance, f'{label}_set').move(
-        position[0]+size[0][0]+size[1][0],
-        position[1]
-        )
-    def widget_action(instance):
-        print(instance,label)
-        print(getattr(instance,label))
-        setattr(instance,label,getattr(instance,f'{label}_edit').toPlainText())
-        print(getattr(instance,label))
     
-    # add an {label}_action method to handle the button click - 
-    # lambda is used to facillitate loading an agument needed for the function 
-    # to associate the correct value for instance
-    setattr(instance, f'{label}_action',lambda: widget_action(instance)) 
-    getattr(instance, f'{label}_set').clicked.connect(
-        getattr(instance,f'{label}_action')
+    setattr(instance, f'{state}_set', QPushButton('Set', parent = instance))
+    getattr(instance, f'{state}_set').setFixedSize(
+        50,
+        row_increment * len(metrics)
         )
+    getattr(instance, f'{state}_set').move(
+        start_position[0]+size[0][0]+size[1][0],
+        start_position[1]+row_increment
+        )
+    getattr(instance, f'{state}_set').clicked.connect(
+        lambda: widget_action(instance,state,metrics)
+        )
+    row = 0
     
+    
+    for metric in metrics:
+        label = f'{state}_{metric}'
+        print(label)
+        row += 1
+        position = (start_position[0],start_position[1]+row*row_increment) 
+        
+        setattr(instance, f'{label}_label', QLabel(metric, parent = instance))
+        setattr(instance, f'{label}_edit', QTextEdit(
+            str(getattr(instance,label)), 
+            instance)
+            )
+        
+        getattr(instance, f'{label}_label').setFixedSize(*size[0])
+        getattr(instance, f'{label}_edit').setFixedSize(*size[1])
+        getattr(instance, f'{label}_label').move(*position)
+        getattr(instance, f'{label}_edit').move(
+            position[0]+size[0][0],
+            position[1]
+            )
+        getattr(instance, f'{label}_edit').textChanged.connect(
+            lambda: widget_flag(instance,state)
+                )
+
 
         
+        
+def widget_action(instance,state,metrics):
+    print(instance,state)
+    for metric in metrics:
+        label = f'{state}_{metric}'
+        print(f'\t{metric}',getattr(instance,label),'->')
+        setattr(instance,label,getattr(instance,f'{label}_edit').toPlainText())
+        print(getattr(instance,label))
+    widget_unflag(instance,state)
+        
+
+def widget_flag(instance,state):
+    getattr(instance, f'{state}_set').setStyleSheet("background-color: red")
+
+def widget_unflag(instance,state):
+    getattr(instance, f'{state}_set').setStyleSheet("background-color: green")
 
 #%% class for gui
 class MainWindow(QMainWindow):
@@ -220,13 +263,13 @@ class MainWindow(QMainWindow):
         super(MainWindow,self).__init__()
 
         self.setWindowTitle('GUI Electronic Mouse - v{}'.format(__version__))
-        self.setGeometry(10,10,1250,750)
+        self.setGeometry(10,10,675,750)
         self.move(100,100)
         self.Label_1=QLabel(
-            '<h1>**GUI Electronic Mouse - v{}**</h1>'.format(__version__),
+            '<h1>GUI Electronic Mouse - v{}</h1>'.format(__version__),
             parent=self
             )
-        self.Label_1.setFixedSize(1250,25)
+        self.Label_1.setFixedSize(675,90)
         self.Label_1.move(0,10)
         self.Label_1.setAlignment(Qt.AlignCenter)
 
@@ -235,12 +278,22 @@ class MainWindow(QMainWindow):
         self.running = 0
         self.repeat_challenges = 0
         
+        self.state = 'off'
+        self.state_label = QLabel(f'<h1>{self.state}</h1>',parent=self)
+        self.state_label.setFixedSize(675,90)
+        self.state_label.move(0,675)
+        self.state_label.setAlignment(Qt.AlignCenter)
+        self.state_label.setText(f'<h1>{self.state}</h1>')
+        
         self.cycle_duration = 0.001
         self.qthreadpool = QThreadPool()
         self.qthreadpool.setMaxThreadCount(1)
 
         self.looptimer = QTimer(self, interval = 1)
         self.looptimer.timeout.connect(self.run)
+        self.singleshot_timer = QTimer(self, interval = 1000)
+        self.singleshot_timer.setSingleShot(True)
+        self.singleshot_timer.timeout.connect(self.advance_state)
         self.duration = 0
         
         self.calibration_VF = 30
@@ -248,11 +301,12 @@ class MainWindow(QMainWindow):
         self.calibration_HR = 60
         self.calibration_HR_IS = 0
         self.calibration_duration = 5
-        widget_builder(self,'calibration_VF',position = (100,100))
-        widget_builder(self,'calibration_VF_IS',position = (100,125))
-        widget_builder(self,'calibration_HR',position = (100,150))
-        widget_builder(self,'calibration_HR_IS',position = (100,175))
-        widget_builder(self,'calibration_duration',position = (100,200))
+        widget_builder(
+            self,
+            'calibration',
+            ['VF','VF_IS','HR','HR_IS','duration'],
+            start_position = (50,100)
+            )
         
         
         self.habituation_VF = 180
@@ -260,11 +314,12 @@ class MainWindow(QMainWindow):
         self.habituation_HR = 500
         self.habituation_HR_IS = 2
         self.habituation_duration = 5
-        widget_builder(self,'habituation_VF',position = (100,300))
-        widget_builder(self,'habituation_VF_IS',position = (100,325))
-        widget_builder(self,'habituation_HR',position = (100,350))
-        widget_builder(self,'habituation_HR_IS',position = (100,375))
-        widget_builder(self,'habituation_duration',position = (100,400))
+        widget_builder(
+            self,
+            'habituation',
+            ['VF','VF_IS','HR','HR_IS','duration'],
+            start_position = (50,300)
+            )
         
         
         self.baseline_VF = 180
@@ -272,11 +327,25 @@ class MainWindow(QMainWindow):
         self.baseline_HR = 500
         self.baseline_HR_IS = 0
         self.baseline_duration = 5
-        widget_builder(self,'baseline_VF',position = (100,500))
-        widget_builder(self,'baseline_VF_IS',position = (100,525))
-        widget_builder(self,'baseline_HR',position = (100,550))
-        widget_builder(self,'baseline_HR_IS',position = (100,575))
-        widget_builder(self,'baseline_duration',position = (100,600))
+        widget_builder(
+            self,
+            'baseline',
+            ['VF','VF_IS','HR','HR_IS','duration'],
+            start_position = (50,475)
+            )
+        
+        
+        self.ready_VF = 180
+        self.ready_VF_IS = 0
+        self.ready_HR = 500
+        self.ready_HR_IS = 0
+        self.ready_duration = 5
+        widget_builder(
+            self,
+            'ready',
+            ['VF','VF_IS','HR','HR_IS','duration'],
+            start_position = (250,100)
+            )
         
         
         self.hypervent_VF = 300
@@ -285,12 +354,12 @@ class MainWindow(QMainWindow):
         self.hypervent_HR_IS = 0
         self.hypervent_delay = 10
         self.hypervent_duration = 5
-        widget_builder(self,'hypervent_VF',position = (400,100))
-        widget_builder(self,'hypervent_VF_IS',position = (400,125))
-        widget_builder(self,'hypervent_HR',position = (400,150))
-        widget_builder(self,'hypervent_HR_IS',position = (400,175))
-        widget_builder(self,'hypervent_delay',position = (400,200))
-        widget_builder(self,'hypervent_duration',position = (400,225))
+        widget_builder(
+            self,
+            'hypervent',
+            ['VF','VF_IS','HR','HR_IS','delay','duration'],
+            start_position = (450,100)
+            )
         
         
         self.apnea_VF = 0
@@ -298,12 +367,12 @@ class MainWindow(QMainWindow):
         self.apnea_HR = 0
         self.apnea_HR_IS = 0
         self.apnea_duration = 5
-        widget_builder(self,'apnea_VF',position = (400,300))
-        widget_builder(self,'apnea_VF_IS',position = (400,325))
-        widget_builder(self,'apnea_HR',position = (400,350))
-        widget_builder(self,'apnea_HR_IS',position = (400,375))
-        widget_builder(self,'apnea_duration',position = (400,400))
-        
+        widget_builder(
+            self,
+            'apnea',
+            ['VF','VF_IS','HR','HR_IS','duration'],
+            start_position = (250,300)
+            )
         
         self.recovery_VF = 120
         self.recovery_VF_IS = 0
@@ -311,25 +380,14 @@ class MainWindow(QMainWindow):
         self.recovery_HR_IS = 0
         self.recovery_duration = 5
         self.recovery_rounds = 10
-        widget_builder(self,'recovery_VF',position = (700,100))
-        widget_builder(self,'recovery_VF_IS',position = (700,125))
-        widget_builder(self,'recovery_HR',position = (700,150))
-        widget_builder(self,'recovery_HR_IS',position = (700,175))
-        widget_builder(self,'recovery_duration',position = (700,200))
-        widget_builder(self,'recovery_rounds',position = (700,225))
+        widget_builder(
+            self,
+            'recovery',
+            ['VF','VF_IS','HR','HR_IS','duration','rounds'],
+            start_position = (450,300)
+            )
         
-        
-        self.ready_VF = 180
-        self.ready_VF_IS = 0
-        self.ready_HR = 500
-        self.ready_HR_IS = 0
-        self.ready_duration = 5
-        widget_builder(self,'ready_VF',position = (700,300))
-        widget_builder(self,'ready_VF_IS',position = (700,325))
-        widget_builder(self,'ready_HR',position = (700,350))
-        widget_builder(self,'ready_HR_IS',position = (700,375))
-        widget_builder(self,'ready_duration',position = (700,400))
-        
+
         
         self.delay_VF = self.ready_VF
         self.delay_VF_IS = self.ready_VF_IS
@@ -350,27 +408,29 @@ class MainWindow(QMainWindow):
         self.RHAR_cycle = QPushButton('Cycle [RHAR]', parent = self)
         
         
-        self.Calibration_Hold.setFixedSize(100,25)
-        self.Habituation_Hold.setFixedSize(100,25)
-        self.Baseline_Hold.setFixedSize(100,25)
-        self.Hypervent_Hold.setFixedSize(100,25)
-        self.Apnea_Hold.setFixedSize(100,25)
-        self.Recovery_Hold.setFixedSize(100,25)
-        self.Ready_Hold.setFixedSize(100,25)
-        self.OFF.setFixedSize(100,25)
-        self.CHB_RHAR_cycle.setFixedSize(100,25)
-        self.RHAR_cycle.setFixedSize(100,25)
+        self.Calibration_Hold.setFixedSize(150,25)
+        self.Habituation_Hold.setFixedSize(150,25)
+        self.Baseline_Hold.setFixedSize(150,25)
+        self.Hypervent_Hold.setFixedSize(150,25)
+        self.Apnea_Hold.setFixedSize(150,25)
+        self.Recovery_Hold.setFixedSize(150,25)
+        self.Ready_Hold.setFixedSize(150,25)
+        self.OFF.setFixedSize(150,25)
+        self.CHB_RHAR_cycle.setFixedSize(150,25)
+        self.RHAR_cycle.setFixedSize(150,25)
         
-        self.Calibration_Hold.move(100,650)
-        self.Habituation_Hold.move(200,650)
-        self.Baseline_Hold.move(300,650)
-        self.Hypervent_Hold.move(100,675)
-        self.Apnea_Hold.move(200,675)
-        self.Recovery_Hold.move(300,675)
-        self.Ready_Hold.move(400,675)
-        self.OFF.move(100,700)
-        self.CHB_RHAR_cycle.move(300,700)
-        self.RHAR_cycle.move(400,700)
+        self.Calibration_Hold.move(250,500)
+        self.Habituation_Hold.move(250,525)
+        self.Baseline_Hold.move(250,550)
+        
+        self.Ready_Hold.move(425,500)
+        self.Hypervent_Hold.move(425,525)
+        self.Apnea_Hold.move(425,550)
+        self.Recovery_Hold.move(425,575)
+        
+        self.OFF.move(250,575)
+        self.CHB_RHAR_cycle.move(250,625)
+        self.RHAR_cycle.move(425,625)
         
         self.Calibration_Hold.clicked.connect(self.Calibration_Hold_action)
         self.Habituation_Hold.clicked.connect(self.Habituation_Hold_action)
@@ -411,60 +471,83 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def Calibration_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Calibration_Hold')
         self.reset_timers('calibration', hold = True)
+        self.state = 'calibration'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
     
     @pyqtSlot()
     def Habituation_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Habituation_Hold')
         self.reset_timers('habituation', hold = True)
+        self.state = 'habituation'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
         
     @pyqtSlot()
     def Baseline_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Baseline Hold')
         self.reset_timers('baseline', hold = True)
+        self.state = 'baseline'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
         
     @pyqtSlot()
     def Hypervent_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Hypervent_Hold')
         self.reset_timers('hypervent', hold = True)
+        self.state = 'hypervent'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
         
     @pyqtSlot()
     def Apnea_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Apnea_Hold')
         self.reset_timers('apnea', hold = True)
+        self.state = 'apnea'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
     
     
     @pyqtSlot()
     def Recovery_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Recovery_Hold')
         self.reset_timers('recovery', hold = True)
+        self.state = 'recovery'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
         
     @pyqtSlot()
     def Ready_Hold_action(self):
+        self.singleshot_timer.stop()
         print('Ready_Hold')
         self.reset_timers('ready', hold = True)
+        self.state = 'ready'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.looptimer.start()
         
         
     @pyqtSlot()
     def CHB_RHAR_cycle_action(self):
+        self.singleshot_timer.stop()
         print('CHB->(RHAR)')
         self.repeat_challenges = 1
         self.delay_duration = self.hypervent_delay
         self.delay_for_trigger = 0
         self.state = 'calibration'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.timed_run()
         
         
@@ -472,11 +555,13 @@ class MainWindow(QMainWindow):
         
     @pyqtSlot()
     def RHAR_cycle_action(self):
+        self.singleshot_timer.stop()
         print('(RHAR)')
         self.repeat_challenges = 1
         self.delay_duration = self.hypervent_delay
         self.delay_for_trigger = 0
         self.state = 'ready'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.timed_run()
         
         
@@ -496,9 +581,12 @@ class MainWindow(QMainWindow):
             
             if self.state == 'recovery':
                 self.repeat_challenges = int(self.repeat_challenges) + 1
-            QTimer.singleShot(int(self.duration*1000),self.advance_state)
+            
+            self.singleshot_timer.setInterval(int(self.duration*1000))
+            self.singleshot_timer.start()
         
         else:
+            self.singleshot_timer.stop()
             print('Finished')
         
         
@@ -523,7 +611,7 @@ class MainWindow(QMainWindow):
             self.state = 'ready'
         elif self.state == 'ready':
             self.state = 'delay'
-        
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.timed_run()
     
     
@@ -549,8 +637,11 @@ class MainWindow(QMainWindow):
         # check for trigger
         self.trigger = trigger_check(pin = 7)
         if self.trigger == 1 and \
-                self.state == 'delay' and \
+                self.state in ['ready','delay','hypervent','recovery'] and \
                 self.delay_for_trigger == 1:
+            # if trigger detected in a 'challenge state' with breathing
+            # reset emouse to begin next challenge round
+            self.state = 'ready'
             self.advance_state()
         
   
@@ -560,7 +651,10 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def OFF_action(self):
         self.reset_timers('ready', hold = True)
+        self.state = 'off'
+        self.state_label.setText(f'<h1>{self.state}</h1>')
         self.running = 0
+        self.singleshot_timer.stop()
         self.repeat_challenges = int(self.recovery_rounds)
         pin_reset([3,5])
         print('off')
