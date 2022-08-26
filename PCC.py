@@ -120,6 +120,13 @@ related but slightly seperate
 *migrate settings to external file
 *add challenge endpoint based on trial number
 *start minor gui improvements
+
+!!! v42.1.2 !!!
+* add commenting for extension of baseline
+* add detection of gasp event and commenting
+* add detection of recovery and commenting
+* add alternate sustained recovery (accumulated rather than consecutive)
+
 """
 
 
@@ -847,7 +854,8 @@ try:
                     slb_COLOR2=BLACK
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
-                    print('first challenge')
+                    #print('first challenge')
+                    logger.warning('first challenge')
 
                 elif (SinceLastBreath>=SLB_Trigger or Abort_Toggle==1) and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -855,35 +863,45 @@ try:
                     Abort_Toggle=0
                     slb_COLOR2=YELLOW
                     value_CurrentChallengeRecovery_Start=datetime.now()
-                    
-                    print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
+                    gasp_detected = 0
+                    recovery_detected
+                    #print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
+                    serial_list.append('apnea detected')
+                    logger.warning('apnea detected')
                     Challenge_Toggle=0
-                    print(value_CurrentChallenge_Timer)
+                    #print(value_CurrentChallenge_Timer)
                     if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
-                        print('Recommend Update to Challenge Thresh!')
+                        #print('Recommend Update to Challenge Thresh!')
                         serial_list+=['!!!','Warning - False Apnea Likely',
                                       'Recommend Update to Threshold2',
                                       '!!!']
+                        logger.warning('Warning - False Apnea Likely. Recommend Update to Threshold2',)
                         WarningColor=RED
                         WarningText='[CLEAR]!!Check Threshold2!!'
 
                 #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
-                elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
-                    cur_STATUS_Dict['challenge air']=1
-                    cur_STATUS_Dict['challenge gas']=0
-                    slb_COLOR2=YELLOW
-                    value_CurrentChallengeRecovery_Start=datetime.now()
+                # elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
+                #     cur_STATUS_Dict['challenge air']=1
+                #     cur_STATUS_Dict['challenge gas']=0
+                #     slb_COLOR2=YELLOW
+                #     value_CurrentChallengeRecovery_Start=datetime.now()
                     
-                    print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
-                    Challenge_Toggle=0
+                #     print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
+                #     Challenge_Toggle=0
                     #print('air mode')
+
                 # test for animal being recovered
                 # !!! added condition for sustained recovery and use of incrementable recovery timer
                 elif SinceLastBreath<=SLB_Trigger and \
                         60/avgTT>=baseBPM*BPM_recovery_thresh/100 and \
                         current_recovery>=current_minimum_resus_time and \
                         cur_STATUS_Dict['challenge air']==1 and \
-                        current_maximum_sustained_recovery_bout>=minimum_sustained_recovery and \
+                        (
+                            (current_maximum_sustained_recovery_bout >= minimum_sustained_recovery and recovery_mode == 'consecutive') \
+                            or \
+                            (accumulated_recovery>=minimum_sustained_recovery and recovery_mode == 'accumulated') \
+                            )\
+                        and \
                         (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
@@ -898,7 +916,9 @@ try:
             
             
             if SinceLastBreath>=CALL_DEATH_trigger:
-                print('DEATH CALLED')
+                #print('DEATH CALLED')
+                logging.warning('DEATH CALLED')
+                serial_list.append('DEATH CALLED')
                 Current_Mode=advance(Current_Mode,0,len(Mode_dict)-1)
                 sdr.stopStreamData()
                 
@@ -945,6 +965,10 @@ try:
                 current_QB_duration += REL_TIMER-QB_TIMER
             if minimum_cummulative_QB_duration > current_QB_duration:
                 Mode_timing[Current_Mode] += baseline_increment
+                serial_list.append(
+                    f'insufficient baseline {current_QB_duration} of {minimum_cummulative_QB_duration} - {baseline_increment} sec added'
+                    )
+                logger.warning(f'insufficient baseline {current_QB_duration} of {minimum_cummulative_QB_duration} - {baseline_increment} sec added')
                     
             
             
@@ -1571,6 +1595,8 @@ try:
                 Annot_Color=VIOLET
                 # depreciated requirement for thresh2 to have been crossed to utilize - too likely to have error of missing apnea
                 #if max(data1)>=thresh2_flow and (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
+                
+                # check if transition to thresh2 is needed
                 if (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
                     Challenge_Toggle = 2
                     print('violet stopped')
@@ -1580,6 +1606,14 @@ try:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
                 # change marks to red when thresh 2 in use
                 Annot_Color=RED
+            elif cur_STATUS_Dict['challenge air']==1 and gasp_detected==0:
+                BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
+                # change marks to red when thresh 2 in use
+                Annot_Color=RED
+                if len(BreathCalls)>=1:
+                    gasp_detected = 1
+                    logger.warning('gasp detected')
+                    serial_list.append('gasp detected')
             else:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh_flow)
                 #Annot_Color=GREEN
@@ -1779,8 +1813,16 @@ try:
                             sustained_recovery_flag = 1
                             sustained_recovery_start = datetime.now()
                         sustained_recovery = (datetime.now()-sustained_recovery_start).seconds
+                        accumulated_recovery += sustained_recovery
                         if current_maximum_sustained_recovery_bout < sustained_recovery:
                             current_maximum_sustained_recovery_bout = sustained_recovery
+                            
+                        if current_maximum_sustained_recovery_bout >= minimum_sustained_recovery:
+                            logger.warning('sustained recovery detected')
+                            serial_list.append('sustained recovery detected')
+                        if accumulated_recovery >= minimum_sustained_recovery:
+                            logger.warning('accumulated recovery detected')
+                            serial_list.append('accumulated recovery detected')
                     else:
                         sustained_recovery_flag = 0
                     
@@ -1793,8 +1835,9 @@ try:
                 elif cur_STATUS_Dict['challenge gas']==1:
                     current_recovery = float(minimum_resus_time)
                     current_minimum_resus_time = float(minimum_resus_time)
-                    sustained_recovery = float(minimum_sustained_recovery)
+                    sustained_recovery = 0
                     current_maximum_sustained_recovery_bout = 0
+                    accumulated_recovery = 0
             else:
                 current_recovery=float(minimum_resus_time)
                 current_minimum_resus_time = float(minimum_resus_time)

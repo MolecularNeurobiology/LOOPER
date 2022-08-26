@@ -320,6 +320,7 @@ current_maximum_sustained_recovery_bout = 0
 minimum_resus_time=5*60
 current_minimum_resus_time=5*60
 
+recovery_mode = 'consecutive' # or 'accumulated'
 current_recovery=300
 recovery_increment = 5*60
 sustained_recovery = 60
