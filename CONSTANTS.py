@@ -306,20 +306,21 @@ QB_duration=0
 SinceLastBreath=0
 SLB_Trigger=5
 CALL_DEATH_trigger=10*60
-
+Abort_Toggle=0
 baseTT='N/A'
 baseBPM='N/A'
 baseRR='N/A'
 baseHR='N/A'            
 
-baseline_increment = 5*60
+baseline_increment = 60
 baseline_override = 0
 minimum_cummulative_QB_duration = 60
 current_maximum_sustained_recovery_bout = 0
 
 minimum_resus_time=5*60
 current_minimum_resus_time=5*60
-
+accumulated_recovery = 0
+prev_accumulated_recovery = 0
 recovery_mode = 'consecutive' # or 'accumulated'
 current_recovery=300
 recovery_increment = 5*60

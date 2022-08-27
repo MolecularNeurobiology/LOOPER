@@ -30,7 +30,7 @@ v1.0.1
 __version__ = '1.0.1'
 
 #%% import libraries
-
+from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import pyqtSlot, Qt,  QThreadPool, QTimer
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton 
 from PyQt5.QtWidgets import QTextEdit
@@ -188,12 +188,12 @@ def widget_builder(
         instance,
         state,
         metrics,
-        size = [(75,25),(50,25)],
+        size = [(75,25),(75,25)],
         row_increment = 25,
         start_position = (0,0)
         ):
     
-    setattr(instance, f'{state}_label', QLabel(f'<h2>{state}</h2>', parent = instance))
+    setattr(instance, f'{state}_label', QLabel(f'<h3>{state}</h3>', parent = instance))
     getattr(instance, f'{state}_label').setFixedSize(
         size[0][0]+size[1][0],
         size[0][1]
@@ -204,7 +204,7 @@ def widget_builder(
     
     setattr(instance, f'{state}_set', QPushButton('Set', parent = instance))
     getattr(instance, f'{state}_set').setFixedSize(
-        50,
+        25,
         row_increment * len(metrics)
         )
     getattr(instance, f'{state}_set').move(
@@ -298,9 +298,9 @@ class MainWindow(QMainWindow):
         self.singleshot_timer.timeout.connect(self.advance_state)
         self.duration = 0
         
-        self.calibration_VF = 30
+        self.calibration_VF = 180
         self.calibration_VF_IS = 0
-        self.calibration_HR = 60
+        self.calibration_HR = 240
         self.calibration_HR_IS = 0
         self.calibration_duration = 5
         widget_builder(
@@ -311,11 +311,11 @@ class MainWindow(QMainWindow):
             )
         
         
-        self.habituation_VF = 180
+        self.habituation_VF = 220
         self.habituation_VF_IS = 2
-        self.habituation_HR = 500
+        self.habituation_HR = 600
         self.habituation_HR_IS = 2
-        self.habituation_duration = 5
+        self.habituation_duration = 120
         widget_builder(
             self,
             'habituation',
@@ -328,7 +328,7 @@ class MainWindow(QMainWindow):
         self.baseline_VF_IS = 0
         self.baseline_HR = 500
         self.baseline_HR_IS = 0
-        self.baseline_duration = 5
+        self.baseline_duration = 100
         widget_builder(
             self,
             'baseline',
@@ -341,7 +341,7 @@ class MainWindow(QMainWindow):
         self.ready_VF_IS = 0
         self.ready_HR = 500
         self.ready_HR_IS = 0
-        self.ready_duration = 5
+        self.ready_duration = 100
         widget_builder(
             self,
             'ready',
@@ -354,8 +354,8 @@ class MainWindow(QMainWindow):
         self.hypervent_VF_IS = 0
         self.hypervent_HR = 400
         self.hypervent_HR_IS = 0
-        self.hypervent_delay = 10
-        self.hypervent_duration = 5
+        self.hypervent_delay = -1
+        self.hypervent_duration = 15
         widget_builder(
             self,
             'hypervent',
@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
         self.apnea_VF_IS = 0
         self.apnea_HR = 0
         self.apnea_HR_IS = 0
-        self.apnea_duration = 5
+        self.apnea_duration = 15
         widget_builder(
             self,
             'apnea',
@@ -381,7 +381,7 @@ class MainWindow(QMainWindow):
         self.recovery_HR = 300
         self.recovery_HR_IS = 0
         self.recovery_duration = 5
-        self.recovery_rounds = 10
+        self.recovery_rounds = 5
         widget_builder(
             self,
             'recovery',
@@ -465,26 +465,30 @@ class MainWindow(QMainWindow):
         self.oride_heartbeat.released.connect(self.oride_heartbeat_released)
         
     
-    
+    @pyqtSlot()
     def oride_breathing_clicked(self):
         self.breathing.setStyleSheet("background-color: red")
         GPIO.output(3,GPIO.HIGH)
-        self.OFF_action()
-
+        self.OFF_action(reset_pins = False)
+        
+    @pyqtSlot()
     def oride_heartbeat_clicked(self):
         self.heartbeat.setStyleSheet("background-color: red")
         GPIO.output(5,GPIO.HIGH)
-        self.OFF_action()
+        self.OFF_action(reset_pins = False)
         
+    @pyqtSlot()    
     def oride_breathing_released(self):
         self.breathing.setStyleSheet("background-color: black")
-        GPIO.output(3,GPIO.HIGH)
-        self.OFF_action()
+        GPIO.output(3,GPIO.LOW)
+        self.OFF_action(reset_pins = False)
         
+    @pyqtSlot()    
     def oride_heartbeat_released(self):
         self.heartbeat.setStyleSheet("background-color: black")
-        GPIO.output(5,GPIO.HIGH)
-        self.OFF_action()
+        GPIO.output(5,GPIO.LOW)
+        self.OFF_action(reset_pins = False)
+        
         
     def reset_timers(self, label, hold = False):
         self.running = 1
@@ -586,7 +590,11 @@ class MainWindow(QMainWindow):
         print('CHB->(RHAR)')
         self.repeat_challenges = 1
         self.delay_duration = self.hypervent_delay
-        self.delay_for_trigger = 0
+        if float(self.hypervent_delay) <0:
+            self.delay_for_trigger = 1
+            print('wait for trigger a')
+        else: 
+            self.delay_for_trigger = 0
         self.state = 'calibration'
         self.state_label.setText(f'<h1>{self.state}</h1>')
         self.timed_run()
@@ -600,7 +608,11 @@ class MainWindow(QMainWindow):
         print('(RHAR)')
         self.repeat_challenges = 1
         self.delay_duration = self.hypervent_delay
-        self.delay_for_trigger = 0
+        if float(self.hypervent_delay) <0:
+            self.delay_for_trigger = 1
+            print('wait for trigger b')
+        else: 
+            self.delay_for_trigger = 0
         self.state = 'ready'
         self.state_label.setText(f'<h1>{self.state}</h1>')
         self.timed_run()
@@ -612,19 +624,20 @@ class MainWindow(QMainWindow):
             #print(self.state)
             #print(self.repeat_challenges,self.recovery_rounds)
             self.reset_timers(self.state)
-            self.looptimer.start()
-            if self.state == 'delay':
-                if float(self.hypervent_delay) <0:
-                    self.delay_for_trigger = 1
-                else: 
-                    self.delay_for_trigger = 0
-                    
+            self.looptimer.start()                 
             
             if self.state == 'recovery':
                 self.repeat_challenges = int(self.repeat_challenges) + 1
             
             self.singleshot_timer.setInterval(int(self.duration*1000))
             self.singleshot_timer.start()
+        
+            if self.state in ['ready','apnea','recovery']:
+                if float(self.hypervent_delay) <0:
+                    self.delay_for_trigger = 1
+                    print('wait for trigger c')
+                else: 
+                    self.delay_for_trigger = 0
         
         else:
             self.singleshot_timer.stop()
@@ -656,6 +669,7 @@ class MainWindow(QMainWindow):
         elif self.state == 'ready':
             self.state = 'delay'
         self.state_label.setText(f'<h1>{self.state}</h1>')
+
         self.timed_run()
     
     
@@ -687,24 +701,29 @@ class MainWindow(QMainWindow):
         if self.trigger == 1 and \
                 self.state in ['ready','delay','hypervent','recovery'] and \
                 self.delay_for_trigger == 1:
+            print("trigger detected")
             # if trigger detected in a 'challenge state' with breathing
             # reset emouse to begin next challenge round
-            self.state = 'ready'
+            self.state = 'delay'
+            self.delay_for_trigger = 0
             self.advance_state()
+            
+        
         
   
 
         
     
     @pyqtSlot()
-    def OFF_action(self):
+    def OFF_action(self,reset_pins = True):
         self.reset_timers('ready', hold = True)
         self.state = 'off'
         self.state_label.setText(f'<h1>{self.state}</h1>')
         self.running = 0
         self.singleshot_timer.stop()
         self.repeat_challenges = int(self.recovery_rounds)
-        pin_reset([3,5])
+        if reset_pins == True:
+            pin_reset([3,5])
         
         
         
@@ -713,6 +732,9 @@ class MainWindow(QMainWindow):
 #%% main
 
 def main():
+    defaultfont = QtGui.QFont('Arial', 8)
+    QtWidgets.QApplication.setStyle("fusion")
+    QtWidgets.QApplication.setFont(defaultfont)
     app=QApplication(sys.argv)
     MW = MainWindow()
     MW.show()

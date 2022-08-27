@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.1.1'
+__VERSION__ = '42.1.2'
 
 """
 
@@ -811,7 +811,7 @@ try:
         #read serial i/o from arduino
         
         # !!! removed code for Arduino Reconnect - need to test if fine removed
-        
+        serial_list=serial_list[-9:]
         Arduino_Dump_Toggle=0
         if arduino_stream.data.empty()==False:
             Arduino_Dump_Toggle=1
@@ -864,7 +864,7 @@ try:
                     slb_COLOR2=YELLOW
                     value_CurrentChallengeRecovery_Start=datetime.now()
                     gasp_detected = 0
-                    recovery_detected
+                    recovery_detected = 0
                     #print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
                     serial_list.append('apnea detected')
                     logger.warning('apnea detected')
@@ -958,7 +958,7 @@ try:
                 cur_STATUS_Dict['pulse'][i]['state']=pulse_ender(d,cur_STATUS_Dict['pulse'][i]['pin'],cur_STATUS_Dict['pulse'][i]['start'],pulse_duration)
        
         #%% adjust Current_Mode timer if more baseline is needed - added for v42.1.0
-        if Mode_dict[Current_Mode+1]=='Challenge' and \
+        if Mode_dict.get(Current_Mode+1,'n/a')=='Challenge' and \
                 Mode_timing[Current_Mode]<=REL_TIMER:
             current_QB_duration = float(QB_duration)
             if quality_test==1 and REL_TIMER-QB_TIMER>=QB_minimum_duration:
@@ -1813,19 +1813,24 @@ try:
                             sustained_recovery_flag = 1
                             sustained_recovery_start = datetime.now()
                         sustained_recovery = (datetime.now()-sustained_recovery_start).seconds
-                        accumulated_recovery += sustained_recovery
+                        accumulated_recovery = sustained_recovery + prev_accumulated_recovery
                         if current_maximum_sustained_recovery_bout < sustained_recovery:
                             current_maximum_sustained_recovery_bout = sustained_recovery
                             
-                        if current_maximum_sustained_recovery_bout >= minimum_sustained_recovery:
+                        if current_maximum_sustained_recovery_bout >= minimum_sustained_recovery \
+                               and consecutive_sustained_recovery_toggle ==0:
                             logger.warning('sustained recovery detected')
                             serial_list.append('sustained recovery detected')
-                        if accumulated_recovery >= minimum_sustained_recovery:
+                            consecutive_sustained_recovery_toggle = 1
+                        if accumulated_recovery >= minimum_sustained_recovery \
+                                and accumulated_sustained_recovery_toggle ==0:
                             logger.warning('accumulated recovery detected')
                             serial_list.append('accumulated recovery detected')
+                            accumulated_sustained_recovery_toggle = 1
                     else:
                         sustained_recovery_flag = 0
-                    
+                        prev_accumulated_recovery += sustained_recovery
+                        sustained_recovery = 0
                     # !!! increment minimum recovery if mouse not in sustained recovery
                     if current_recovery >= current_minimum_resus_time and \
                             current_maximum_sustained_recovery_bout <= minimum_sustained_recovery:
@@ -1838,6 +1843,9 @@ try:
                     sustained_recovery = 0
                     current_maximum_sustained_recovery_bout = 0
                     accumulated_recovery = 0
+                    prev_accumulated_recovery = 0
+                    accumulated_sustained_recovery_toggle = 0
+                    consecutive_sustained_recovery_toggle = 0
             else:
                 current_recovery=float(minimum_resus_time)
                 current_minimum_resus_time = float(minimum_resus_time)
