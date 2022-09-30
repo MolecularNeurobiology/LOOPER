@@ -854,15 +854,11 @@ def multi_filter(input_df,index_col,filter_dict,logger = None):
 def resample_and_merge_filters(
         filter1_orig,filter2_orig,sample_int,minimum_bout,logger = None
         ):
-    # start = min(filter1['ts'].min(),filter2['ts'].min())
-    # stop = max(filter1['ts'].max(),filter2['ts'].max())
-    # resample_df = pandas.DataFrame(
-    #     {'ts':numpy.arange(start,stop+sample_int,sample_int)}
-    #     )
-    filter1 = filter1_orig.copy()[filter1_orig['filt']].rename(
+
+    filter1 = filter1_orig.copy().rename(
         {'filt':'f1','ts':'ts1'},axis='columns'
         )
-    filter2 = filter2_orig.copy()[filter2_orig['filt']].rename(
+    filter2 = filter2_orig.copy().rename(
         {'filt':'f2','ts':'ts2'},axis='columns'
         )
     precision = int(numpy.format_float_scientific(sample_int).split('e')[1])*-1
@@ -890,13 +886,13 @@ def resample_and_merge_filters(
     # be output as true, 'or' to combine a left and right justified filter
     # provides an output that passes with the minimum bout duration
     rolling_right = resample_df['f1_and_f2'].rolling(
-        f'{int(minimum_bout)}s'
+        f'{int(minimum_bout/2*1000)}ms'
         ).min().fillna(0).astype(bool)
     # series is inverted for rolling window and inverted again for output
     # (rolling function only works right justified, workaround provides a 
     # left justified rolling window)
     rolling_left = resample_df.loc[::-1,'f1_and_f2'].rolling(
-        f'{int(minimum_bout)}s'
+        f'{int(minimum_bout/2*1000)}ms'
         ).min().fillna(0).astype(bool).sort_index()
     resample_df.loc[:,'f1_and_f2'] = rolling_right | rolling_left
     
@@ -909,12 +905,14 @@ def resample_and_merge_filters(
         how = 'left',left_on='ts',right_on='ts2'
         ).fillna(0).astype(bool)
     
-    logger.info(f'resample_and_merge_filters: f1 pass={filter1.filt.sum()}')
-    logger.info(f'resample_and_merge_filters: f2 pass={filter2.filt.sum()}')
-    logger.info(f'resample_and_merge_filters: f1_and_f2 f1 pass={filter1.f1_and_f2.sum()}')
-    logger.info(f'resample_and_merge_filters: f1_and_f2 f1 pass={filter2.f1_and_f2.sum()}')
     
     if logger:
+        logger.info(f'resample_and_merge_filters: f1 pass={filter1.filt.sum()}')
+        logger.info(f'resample_and_merge_filters: f2 pass={filter2.filt.sum()}')
+        logger.info(f'resample_and_merge_filters: f1_and_f2 f1 pass={filter1.f1_and_f2.sum()}')
+        logger.info(f'resample_and_merge_filters: f1_and_f2 f1 pass={filter2.f1_and_f2.sum()}')
+        
+        
         if filter1['f1_and_f2'].sum() == 0 or filter2['f1_and_f2'].sum() == 0:
             logger.warning('resample_and_merge_filters yeild 0 passing')
     return filter1['f1_and_f2'],filter2['f1_and_f2'],resample_df[['round_ts','f1_and_f2']]
