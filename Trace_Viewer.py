@@ -278,9 +278,17 @@ class MainWindow(QMainWindow):
         
         # graphs
         self.graph = {}
+        self.plotted = {}
         self.graph_counter = 0
+        self.plotted_counter = 0
         self.x_min = 0
         self.x_max = 30
+        
+        self.pen_style_dict = {
+            'Solid':Qt.SolidLine,
+            'Dashed':Qt.DashLine,
+            'Dotted':Qt.DotLine
+            }
         
         # layouts
         self.layout = QVBoxLayout()
@@ -319,6 +327,23 @@ class MainWindow(QMainWindow):
 
         # select graph destination
         #    combo box with entry for each graph
+        self.time_start_label = QLabel('Graph Time: Minimum')
+        self.controls_layout_A.addWidget(self.time_start_label)
+        self.time_start_value = QDoubleSpinBox(self)
+        self.time_start_value.setValue(self.x_min)
+        self.time_start_value.setMinimum(0)
+        self.time_start_value.setMaximum(999999)
+        self.time_start_value.setSingleStep(1)
+        self.controls_layout_A.addWidget(self.time_start_value)
+        self.time_window_label = QLabel('Graph Time: Window')
+        self.controls_layout_A.addWidget(self.time_window_label)
+        self.time_window_value = QDoubleSpinBox(self)
+        self.time_window_value.setValue(self.x_max-self.x_min)
+        self.time_window_value.setMinimum(0)
+        self.time_window_value.setMaximum(999999)
+        self.time_window_value.setSingleStep(1)
+        self.controls_layout_A.addWidget(self.time_window_value)
+        
         self.graph_selector = QComboBox(self)
         self.controls_layout_A_radio.addWidget(self.graph_selector)
         
@@ -357,7 +382,7 @@ class MainWindow(QMainWindow):
         self.controls_layout_A.addWidget(self.signal_selector)
         
         #    breath/beat
-        self.breath_beat_label = QLabel('Select: Breath/Beat ')
+        self.breath_beat_label = QLabel('Select: Breath/Beat/Timestamp')
         self.controls_layout_A.addWidget(self.breath_beat_label)
         self.breath_beat_selector = QComboBox(self)
         self.controls_layout_A.addWidget(self.breath_beat_selector)
@@ -551,7 +576,7 @@ class MainWindow(QMainWindow):
         self.beat_list_label = QLabel(
             f'Beat List: {os.path.basename(self.breath_list_path)}'
             )
-        self.controls_layout_B.addWidget(self.breath_list_label)
+        self.controls_layout_B.addWidget(self.beat_list_label)
         # select autores output
         self.select_autores_results_path = QPushButton('Select Autores Results')
         self.select_autores_results_path.clicked.connect(
@@ -605,18 +630,19 @@ class MainWindow(QMainWindow):
         self.derived_measure_selector.hide()
     
         # show controls based on user selection
-        data_type = self.sender()
-        if data_type.isChecked():
-            if data_type.data == 'Signal':
+        self.data_type = self.sender()
+        
+        if self.data_type.isChecked():
+            if self.data_type.data == 'Signal':
                 self.signal_label.show()
                 self.signal_selector.show()
-            elif data_type.data == 'Breath/Beat':
+            elif self.data_type.data == 'Breath/Beat':
                 #    breath/beat
                 self.breath_beat_label.show()
                 self.breath_beat_selector.show()
                 self.breath_beat_offset_label.show()
                 self.breath_beat_offset.show()
-            elif data_type.data == 'Derived Filter':
+            elif self.data_type.data == 'Derived Filter':
                 #    filter - with filter value
                 self.derived_filter_label.show()
                 self.derived_filter_selector.show()
@@ -624,7 +650,7 @@ class MainWindow(QMainWindow):
                 self.derived_filter_value.show()
                 self.derived_filter_offset_label.show()
                 self.derived_filter_offset.show()
-            elif data_type.data == 'Derived Measure':
+            elif self.data_type.data == 'Derived Measure':
                 #    derived measure
                 self.derived_measure_label.show()
                 self.derived_measure_selector.show()
@@ -683,19 +709,123 @@ class MainWindow(QMainWindow):
     def update_graph(self):
         
         pass
-    
+        # setData method on lines can update when changing 
     
     def add_to_graph_action(self):
-        pass
-    
+        try:
+            
+            self.x_min = self.time_start_value.value()
+            self.x_max = self.time_start_value.value() + \
+                self.time_window_value.value()
+            
+            graph = self.graph[
+                int(self.graph_selector.currentText().split(' ')[1])
+                ]['graph']
+            
+            if self.data_type.data == 'Signal':
+                data_filter = (self.signal_data['ts']>=self.x_min) & \
+                    (self.signal_data['ts']<=self.x_max)
+                x_val = self.signal_data['ts'][data_filter]
+                y_val = self.signal_data[
+                    self.signal_selector.currentText()
+                    ][data_filter]
+                print(x_val)
+                print(y_val)
+                
+            elif self.data_type.data == 'Breath/Beat':
+                if self.breath_beat_selector.currentText() == 'Breath':
+                    data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                        (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
+                    x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+                elif self.breath_beat_selector.currentText() == 'Beat':
+                    data_filter = (self.beat_list_data['ts']>=self.x_min) & \
+                        (self.beat_list_data['ts']<=self.x_max)
+                    x_val = self.beat_list_data['ts'][data_filter]
+                else: # timestamp column from autores
+                    x_val = self.autores_results_data['Challenge'][
+                        self.breath_beat_selector.currentText()
+                        ]
+                y_val = [self.breath_beat_offset.value() for i in list(x_val)]
+            elif self.data_type.data == 'Derived Filter':
+                data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                    (self.breath_list_data['Timestamp_Inspiration']<=self.x_max) & \
+                    (
+                        self.breath_list_data['self.derived_filter_selector'] == \
+                        self.breath_list_data['self.derived_filter_value']
+                        )
+                x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+                y_val = [self.derived_filter_offset.value() for i in list(x_val)]
+            elif self.data_type.data == 'Derived Measure':
+                if self.derived_measure_selector.currentText() == "HR":
+                    data_filter = (self.beat_list_data['ts']>=self.x_min) & \
+                        (self.beat_list_data['ts']<=self.x_max)
+                    x_val = self.beat_list_data['ts'][data_filter]
+                    y_val = self.beat_list_data[
+                        self.derived_measure_selector.currentText()
+                        ][data_filter]
+                else:
+                    data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                        (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
+                    x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+                    y_val = self.breath_list_data[
+                        self.derived_measure_selector.currentText()
+                        ][data_filter]
+            elif self.data_type.date == 'Constant':
+                x_val = [self.x_min,self.x_max]
+                y_val = [self.constant_value.value(),self.constant_value.value()]
+            
+            self.plotted_counter +=1
+            # !!! refactoring to avoid plotting twice would be good
+            self.plotted[self.plotted_counter] = graph.plot(list(x_val),list(y_val))
+            # set line style
+            # !!!
+            if self.line_style_select.currentText() == 'None':
+                pen = None
+            else:
+                pen = pyqtgraph.mkPen(
+                    self.line_color_value.currentText()[0],
+                    width=self.line_width_value.value(),
+                    style=self.pen_style_dict[self.line_style_select.currentText()]
+                    )
+            # set marker style
+            if self.marker_style_value.currentText() == 'None':
+                self.plotted[self.plotted_counter].setData(
+                    x=list(x_val) ,y=list(y_val) ,pen = pen, symbol = None
+                    )
+                
+            else:
+                self.plotted[self.plotted_counter].setData(
+                    x=list(x_val),
+                    y=list(y_val),
+                    pen = pen,
+                    symbol = self.marker_style_value.currentText().split('_')[0],
+                    symbolBrush = self.marker_color_value.currentText()[0],
+                    symbolPen = pyqtgraph.mkPen(
+                        self.border_color_value.currentText()[0],
+                        width=self.border_size_value.value()
+                        ),
+                    symbolSize = self.marker_size_value.value()
+                    )
+            
+            graph.update()
+            print('plot?')
+            
+        except Exception:
+            self.log_text(
+                f'unable to prepare graph element: {Exception}<br/>{traceback.format_exc()}',
+                'red'
+                )
+            print('no plot?')
+        
+        
     
     # methods
     @pyqtSlot()
     def mode_radio_action(self):
-            mode_radio = self.sender()
-            if mode_radio.isChecked():
-                self.data_mode = mode_radio.mode
-                self.log_text(f'Data Mode : {self.data_mode}','blue')
+        mode_radio = self.sender()
+        if mode_radio.isChecked():
+            self.data_mode = mode_radio.mode
+            self.log_text(f'Data Mode : {self.data_mode}','blue')
     
     
     def log_text(self,text,color):
@@ -712,7 +842,7 @@ class MainWindow(QMainWindow):
             )[0]
         self.log_text(f'selecting signal file: {self.signal_file_path}','blue'
             )
-        self.signal_file_label.setText('Signal: {self.signal_file_path}')
+        self.signal_file_label.setText(f'Signal: {os.path.basename(self.signal_file_path)}')
         
         if self.signal_file_path == '' or self.signal_file_path is None:
             self.log_text(
@@ -752,11 +882,11 @@ class MainWindow(QMainWindow):
     def select_breath_list_file_action(self):
         self.breath_list_path = QFileDialog.getOpenFileName(
             caption = 'select Breath List',
-            filter = ('Text (*.txt)')
+            filter = ('csv (*.csv)')
             )[0]
         self.log_text(f'selecting Breath List: {self.breath_list_path}','blue'
             )
-        self.breath_list_label.setText('Breath List: {self.breath_list_path}')
+        self.breath_list_label.setText(f'Breath List: {os.path.basename(self.breath_list_path)}')
         
         if self.breath_list_path == '' or self.breath_list_path is None:
             self.log_text(
@@ -775,6 +905,9 @@ class MainWindow(QMainWindow):
                     f'Breath List data loaded: {self.breath_list_data.columns}',
                     'black'
                     )
+                self.breath_beat_selector.addItem('Breath')
+                # additional combo box population needed
+                # !!!
             except Exception:
                 self.log_text(
                     f'unable to load file: {Exception} <br/> {sys.exc_info()}',
@@ -784,9 +917,9 @@ class MainWindow(QMainWindow):
     def select_beat_list_file_action(self):
         self.beat_list_path = QFileDialog.getOpenFileName(
             caption = 'select Beat List',
-            filter = ('Text (*.txt)')
+            filter = ('csv (*.csv)')
             )[0]
-        self.log_text(f'selecting Beat List: {self.beat_list_path}','blue'
+        self.log_text(f'selecting Beat List: {os.path.basename(self.beat_list_path)}','blue'
             )
         self.beat_list_label.setText('Beat List: {self.beat_list_path}')
         
@@ -807,6 +940,7 @@ class MainWindow(QMainWindow):
                     f'Beat List data loaded: {self.beat_list_data.columns}',
                     'black'
                     )
+                self.breath_beat_selector.addItem('Beat')
             except Exception:
                 self.log_text(
                     f'unable to load file: {Exception} <br/> {sys.exc_info()}',
