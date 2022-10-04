@@ -45,7 +45,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton 
 from PyQt5.QtWidgets import QTextEdit, QTableView, QHBoxLayout, QVBoxLayout
 from PyQt5.QtWidgets import QFileDialog, QComboBox, QDialog, QRadioButton
-from PyQt5.QtWidgets import QButtonGroup, QDoubleSpinBox
+from PyQt5.QtWidgets import QButtonGroup, QDoubleSpinBox, QCheckBox
 import pandas
 import sys
 import re
@@ -67,11 +67,13 @@ def html_text_color(text,color):
 
 
 
-
-
-
-
-
+def remove_line(graph=None,line=None,remove=None):
+    graph = graph
+    line = line
+    remove = remove
+    graph['graph'].removeItem(line)
+    remove.setParent = None
+    remove.deleteLater()
 
 #%% define classes
 
@@ -112,11 +114,13 @@ class PandasModel(QAbstractTableModel):
             return len(self._dataframe.columns)
         return 0
 
+
     
     def setData(self, index, value, role):
         if role == Qt.EditRole:
             self._dataframe.iloc[index.row(),index.column()] = value
             return True
+
 
 
     def data(self, index: QModelIndex, role=Qt.ItemDataRole):
@@ -159,9 +163,6 @@ class PandasModel(QAbstractTableModel):
                 return str(self._dataframe.index[section])
             
         return None
-
-
-
 
 
 
@@ -219,8 +220,12 @@ class SettingEditor(QDialog):
             )
         self.close()
         
+        
+        
     def cancel_button_action(self):
         self.close()
+        
+        
         
     def adjust_aesthetics(self):
         # hide/show/modify columns/rows as needed depending on settings
@@ -228,9 +233,6 @@ class SettingEditor(QDialog):
             if list(self.df.columns)[i] in ['Display','Category']:
                 self.view.hideColumn(i)  
                 
-
-
-
 
 
 # main window
@@ -284,6 +286,8 @@ class MainWindow(QMainWindow):
         self.x_min = 0
         self.x_max = 30
         
+        
+        
         self.pen_style_dict = {
             'Solid':Qt.SolidLine,
             'Dashed':Qt.DashLine,
@@ -318,13 +322,18 @@ class MainWindow(QMainWindow):
         
 
         
+        # add graph button
+        self.add_graph_button = QPushButton('Add Graph')
+        self.add_graph_button.clicked.connect(self.add_graph)
+        self.controls_layout_A.addWidget(self.add_graph_button)
+        
         # select data type
         #    toggle data source
         self.controls_layout_A_radio = QVBoxLayout()
         self.controls_layout_A.setAlignment(Qt.AlignTop)
         self.controls_layout_A.addLayout(self.controls_layout_A_radio, stretch=0)
         self.controls_layout_A_radio.setAlignment(Qt.AlignTop)
-
+        
         # select graph destination
         #    combo box with entry for each graph
         self.time_start_label = QLabel('Graph Time: Minimum')
@@ -357,7 +366,7 @@ class MainWindow(QMainWindow):
         self.signal_radio.toggled.connect(self.select_data_action)
         self.controls_layout_A_radio.addWidget(self.signal_radio)
         
-        self.breath_beat_radio = QRadioButton('Breath/Beat')
+        self.breath_beat_radio = QRadioButton('Breath/Beat/TimeStamp')
         self.data_radio_group.addButton(self.breath_beat_radio)
         self.breath_beat_radio.data = 'Breath/Beat'
         self.breath_beat_radio.toggled.connect(self.select_data_action)
@@ -374,6 +383,12 @@ class MainWindow(QMainWindow):
         self.derived_measure_radio.data = 'Derived Measure'
         self.derived_measure_radio.toggled.connect(self.select_data_action)
         self.controls_layout_A_radio.addWidget(self.derived_measure_radio)
+        
+        self.constant_radio = QRadioButton('Constant')
+        self.data_radio_group.addButton(self.constant_radio)
+        self.constant_radio.data = 'Constant'
+        self.constant_radio.toggled.connect(self.select_data_action)
+        self.controls_layout_A_radio.addWidget(self.constant_radio)
         
         #    signal
         self.signal_label = QLabel('Select Signal:')
@@ -406,7 +421,7 @@ class MainWindow(QMainWindow):
         self.derived_filter_value_label = QLabel('Select Value To Mark')
         self.controls_layout_A.addWidget(self.derived_filter_value_label)
         self.derived_filter_value = QComboBox(self)
-        self.controls_layout_A_radio.addWidget(self.derived_filter_value)
+        self.controls_layout_A.addWidget(self.derived_filter_value)
         self.derived_filter_offset_label = QLabel('marker offset')
         self.controls_layout_A.addWidget(self.derived_filter_offset_label)
         self.derived_filter_offset = QDoubleSpinBox(self)
@@ -423,10 +438,15 @@ class MainWindow(QMainWindow):
         self.controls_layout_A.addWidget(self.derived_measure_selector)
         
         #    add constant lines (baseline, minPIF, minPEF)
-        
-        # set initial conditions
-        self.signal_radio.setChecked(True)
-        self.signal_radio.toggle()
+        self.constant_measure_label = QLabel('Select Constant Value')
+        self.controls_layout_A.addWidget(self.constant_measure_label)
+        self.constant_value = QDoubleSpinBox(self)
+        self.controls_layout_A.addWidget(self.constant_value)
+        self.constant_value.setMinimum(-999999)
+        self.constant_value.setMaximum(999999)
+        self.constant_value.setSingleStep(0.1)
+        self.constant_value.setValue(0)
+        # !!! in the future - allow auto loading of key constants (baseline, pif pef, etc.)
         
         
         # select style
@@ -441,6 +461,7 @@ class MainWindow(QMainWindow):
         self.line_style_select.addItem('Solid')
         self.line_style_select.addItem('Dashed')
         self.line_style_select.addItem('Dotted')
+        self.line_style_select.setCurrentText('Solid')
         self.style_layout.addWidget(self.line_style_select)
         #    line width - pt size
         self.line_width_label = QLabel('Line Width')
@@ -462,6 +483,7 @@ class MainWindow(QMainWindow):
         self.line_color_value.addItem('y - yellow')
         self.line_color_value.addItem('k - black')
         self.line_color_value.addItem('w - white')
+        self.line_color_value.setCurrentText('b - blue')
         self.style_layout.addWidget(self.line_color_value)
         #    marker style - none, ... shapes
         self.marker_style_label = QLabel('Marker Style')
@@ -487,9 +509,10 @@ class MainWindow(QMainWindow):
         self.marker_size_label = QLabel('Marker Size')
         self.style_layout.addWidget(self.marker_size_label)
         self.marker_size_value = QDoubleSpinBox(self)
-        self.marker_size_value.setValue(1)
         self.marker_size_value.setMinimum(0)
-        self.marker_size_value.setSingleStep(0.1)
+        self.marker_size_value.setMaximum(100)
+        self.marker_size_value.setValue(10)
+        self.marker_size_value.setSingleStep(1)
         self.style_layout.addWidget(self.marker_size_value)
         #    marker color - rgb
         self.marker_color_label = QLabel('Marker Color')
@@ -508,8 +531,9 @@ class MainWindow(QMainWindow):
         self.border_size_label = QLabel('Border Size')
         self.style_layout.addWidget(self.border_size_label)
         self.border_size_value = QDoubleSpinBox(self)
-        self.border_size_value.setValue(1)
         self.border_size_value.setMinimum(0)
+        self.border_size_value.setMaximum(100)
+        self.border_size_value.setValue(1)
         self.border_size_value.setSingleStep(0.1)
         self.style_layout.addWidget(self.border_size_value)
         #    marker border-color - rgb
@@ -524,6 +548,7 @@ class MainWindow(QMainWindow):
         self.border_color_value.addItem('y - yellow')
         self.border_color_value.addItem('k - black')
         self.border_color_value.addItem('w - white')
+        self.border_color_value.setCurrentText('k - black')
         self.style_layout.addWidget(self.border_color_value)
         # add to graph
         self.add_to_graph = QPushButton('Add to Graph')
@@ -583,14 +608,55 @@ class MainWindow(QMainWindow):
             self.select_autores_results_action
             )
         self.controls_layout_B.addWidget(self.select_autores_results_path)
+        self.autores_results_label = QLabel(
+            f'Autores Results: {os.path.basename(self.autores_results_path)}'
+            )
+        self.controls_layout_B.addWidget(self.autores_results_label)
         
-        # add graph button
-        self.add_graph_button = QPushButton('Add Graph')
-        self.add_graph_button.clicked.connect(self.add_graph)
-        self.controls_layout_B.addWidget(self.add_graph_button)
+        # jump to Combo Boxes
+        self.jump_to_layout = QVBoxLayout()
+        self.controls_layout_B.addLayout(self.jump_to_layout)
         
+        self.jump_to_autores = QHBoxLayout()
+        self.jump_to_layout.addLayout(self.jump_to_autores)
+        self.jump_to_autores_trial = QVBoxLayout()
+        self.jump_to_autores_ts = QVBoxLayout()
+        self.jump_to_autores.addLayout(self.jump_to_autores_trial)
+        self.jump_to_autores.addLayout(self.jump_to_autores_ts)
+
+        self.autores_trial_label = QLabel('Autores Trial')
+        self.autores_trial_combo = QComboBox(self)
+        self.autores_trial_combo.activated.connect(self.jump_to_autores_trial_action)
+        self.jump_to_autores_trial.addWidget(self.autores_trial_label)
+        self.jump_to_autores_trial.addWidget(self.autores_trial_combo)
+        
+        self.autores_ts_label = QLabel('Autores TimeStamp')
+        self.autores_ts_combo = QComboBox(self)
+        self.autores_ts_combo.activated.connect(self.jump_to_autores_ts_action)
+        self.jump_to_autores_ts.addWidget(self.autores_ts_label)
+        self.jump_to_autores_ts.addWidget(self.autores_ts_combo)
+        
+        
+        # time navigation controls
+        self.move_button_layout = QHBoxLayout()
+        self.controls_layout_B.addLayout(self.move_button_layout)
+        self.move_backward = QPushButton('<<<')
+        self.move_backward.clicked.connect(self.move_backward_action)
+        self.move_button_layout.addWidget(self.move_backward)
+        self.refresh_button = QPushButton('Refresh')
+        self.refresh_button.clicked.connect(self.update_graph)
+        self.move_button_layout.addWidget(self.refresh_button)
+        self.move_forward = QPushButton('>>>')
+        self.move_forward.clicked.connect(self.move_forward_action)
+        self.move_button_layout.addWidget(self.move_forward)
+        
+        
+        # set up the environment
         self.add_graph()
-    
+        # set initial conditions
+        self.signal_radio.setChecked(True)
+        self.signal_radio.toggle()
+        
     #   select # of charts
     #   select formatting for charts, data
     #   select annotations for plotting
@@ -603,8 +669,26 @@ class MainWindow(QMainWindow):
     #   edit BASSPRO Settings
     
     
+    @pyqtSlot()
+    def move_backward_action(self):
+        # print(self.time_window_value.value())
+        self.x_min -= self.time_window_value.value()
+        self.time_start_value.setValue(self.x_min)
+        # self.x_max = self.x_min+self.time_window_value.value()
+        
+        self.update_graph()
+        
     
-    # graphs
+    
+    @pyqtSlot()
+    def move_forward_action(self):
+        # print(self.time_window_value.value())
+        self.x_min += self.time_window_value.value()
+        self.time_start_value.setValue(self.x_min)
+        # self.x_max = self.x_min+self.time_window_value.value()
+        
+        self.update_graph()
+    
     @pyqtSlot()
     def select_data_action(self):
         #    signal
@@ -628,6 +712,10 @@ class MainWindow(QMainWindow):
         #    derived measure
         self.derived_measure_label.hide()
         self.derived_measure_selector.hide()
+        
+        #    constant measure
+        self.constant_measure_label.hide()
+        self.constant_value.hide()
     
         # show controls based on user selection
         self.data_type = self.sender()
@@ -654,13 +742,39 @@ class MainWindow(QMainWindow):
                 #    derived measure
                 self.derived_measure_label.show()
                 self.derived_measure_selector.show()
+            elif self.data_type.data == 'Constant':
+                #    constant measure
+                self.constant_measure_label.show()
+                self.constant_value.show()
                 
         
         
+    @pyqtSlot()
+    def jump_to_autores_trial_action(self):
+        pass
+    
+    @pyqtSlot()
+    def jump_to_autores_ts_action(self):
+        pass
     
     @pyqtSlot()
     def update_derived_filter_selections(self):
-        pass
+        self.derived_filter_value.clear()
+        filter_column = self.derived_filter_selector.currentText()
+        filter_source = self.derived_filter_selector.itemData(
+            self.derived_filter_selector.currentIndex()
+            )
+        #!!! this isn't working
+        if filter_source == 'breathlist':
+            filter_values = list(self.breath_list_data[filter_column].unique())
+            for f in filter_values:
+                self.derived_filter_value.addItem(f'{f}',userData=f)
+                print(filter_column,filter_source,f)
+        
+        else:
+            self.log_text('unable to generate filter values', 'red')
+        
+        
     
     @pyqtSlot()
     def add_graph(self):
@@ -675,9 +789,12 @@ class MainWindow(QMainWindow):
         self.graph_layout.addLayout(graph_layout)
         graph = {}
         graph['graph_label'] = QLabel(f'Graph: {self.graph_counter}')
+        graph['layout'] = graph_right_layout
         graph_left_layout.addWidget(graph['graph_label'])
         graph['graph'] = pyqtgraph.PlotWidget()
-        graph['graph'].addLegend()
+        graph['legend'] = graph['graph'].addLegend()
+        graph['legend'].setColumnCount(3)
+        graph['legend'].setOffset([0.1,-0.1])
         graph_left_layout.addWidget(graph['graph'])
         graph['graph'].setXRange(self.x_min,self.x_max)
         graph['graph'].setBackground('w')
@@ -688,6 +805,21 @@ class MainWindow(QMainWindow):
             lambda: remove_graph(self,graph,graph_layout)
             )
         graph_right_layout.addWidget(graph['remove_graph_button'])
+        graph['y_auto'] = QCheckBox('Autoscale Y axis')
+        graph['y_auto'].setChecked(True)
+        graph_right_layout.addWidget(graph['y_auto'])
+        graph['y_max_label'] = QLabel('Y Max')
+        graph['y_max'] = QDoubleSpinBox()
+        graph['y_max'].setMinimum(-999999)
+        graph['y_max'].setMaximum(999999)
+        graph['y_max'].setValue(2)
+        graph_right_layout.addWidget(graph['y_max'])
+        graph['y_min_label'] = QLabel('Y Min')
+        graph['y_min'] = QDoubleSpinBox()
+        graph['y_min'].setMinimum(-999999)
+        graph['y_min'].setMaximum(999999)
+        graph['y_min'].setValue(-2)
+        graph_right_layout.addWidget(graph['y_min'])
         self.graph[self.graph_counter] = graph
         self.graph_selector.addItem(f'Graph: {self.graph_counter}')
         def remove_graph(self,graph,graph_layout):
@@ -697,7 +829,6 @@ class MainWindow(QMainWindow):
             graph_layout.removeItem(graph_right_layout)
             self.graph_layout.removeItem(graph_layout)
             
-            print(self.graph_selector.findText(graph['graph_label'].text()))
             self.graph_selector.removeItem(
                 self.graph_selector.findText(graph['graph_label'].text())
                 )
@@ -708,77 +839,214 @@ class MainWindow(QMainWindow):
         
     def update_graph(self):
         
+        # redraw data
+        self.x_min = self.time_start_value.value()
+        self.x_max = self.x_min+self.time_window_value.value()
+
+        for k,v in self.plotted.items():
+            x_val,y_val,name = self.gather_graph_data(
+                v['data_type'],v['selector'],v['selector_filter'],v['offset']
+                )
+            v['line'].setData(
+                x=list(x_val),
+                y=list(y_val),
+                name=v['name'],
+                pen=v['pen'],
+                **v['symbol']
+                )
+
+        for g in self.graph:
+            # y axis scale
+            if not self.graph[g]['y_auto'].isChecked():
+                self.graph[g]['graph'].setYRange(
+                    self.graph[g]['y_min'].value(),
+                    self.graph[g]['y_max'].value(),
+                    padding=0
+                    )
+            else:
+                self.graph[g]['graph'].autoRange(padding=None)
+            # x axis scale
+            self.graph[g]['graph'].setXRange(self.x_min,self.x_max,padding=0)
+            
+            
+    
+    def gather_graph_data(
+            self,data_type,selector,selector_filter = None,offset=0
+            ):
+        
+        name = selector
+        
+        if data_type == 'Signal':
+            data_filter = (self.signal_data['ts']>=self.x_min) & \
+                (self.signal_data['ts']<=self.x_max)
+            x_val = self.signal_data['ts'][data_filter]
+            y_val = self.signal_data[
+                selector
+                ][data_filter]
+            
+            
+        elif data_type == 'Breath/Beat':
+            if selector == 'Breath':
+                data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                    (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
+                x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+            elif selector == 'Beat':
+                data_filter = (self.beat_list_data['ts']>=self.x_min) & \
+                    (self.beat_list_data['ts']<=self.x_max)
+                x_val = self.beat_list_data['ts'][data_filter]
+            else: # timestamp column from autores
+                x_val = self.autores_results_data['Challenge'][
+                    selector
+                    ]
+            y_val = [offset for i in list(x_val)]
+            
+        elif data_type == 'Derived Filter':
+            data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                (self.breath_list_data['Timestamp_Inspiration']<=self.x_max) & \
+                (
+                    self.breath_list_data[selector] == \
+                    selector_filter
+                    )
+            print(f'{selector_filter}')
+            x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+            y_val = [offset for i in list(x_val)]
+            
+        elif data_type == 'Derived Measure':
+            if selector == "HR":
+                data_filter = (self.beat_list_data['ts']>=self.x_min) & \
+                    (self.beat_list_data['ts']<=self.x_max)
+                x_val = self.beat_list_data['ts'][data_filter]
+                y_val = self.beat_list_data[
+                    selector
+                    ][data_filter]
+            else:
+                data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
+                    (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
+                x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+                y_val = self.breath_list_data[
+                    selector
+                    ][data_filter]
+                
+        elif self.data_type.data == 'Constant':
+            x_val = [self.x_min,self.x_max]
+            y_val = [offset,offset]
+            name = f'constant {self.constant_value.value()}'
+        
+        
+        
+        return x_val,y_val,name
+        
+    def prep_breath_list_timestamps(self):
+        ts_dict = {}
+        for c in [
+                'Exp_Condition',
+                'Auto_Condition',
+                'Man_Condition',
+                'Auto_Block_Id',
+                'Auto_Selection_Id',
+                'Man_Selection_Id'
+                ]:
+        
+            pass
+    
+    def prep_breath_list_filters(self):
+        self.derived_filter_selector.clear()
+        for c in [
+                'Breath_Inclusion_Filter',
+                'AUTO_Inclusion_Filter',
+                'MAN_Inclusion_Filter'
+                ]:
+            if c in self.breath_list_data.columns:
+                self.derived_filter_selector.addItem(c,userData='breathlist')
+        self.update_derived_filter_selections()
+    
+    def prep_breath_list_derived(self):
         pass
-        # setData method on lines can update when changing 
+    
+    def prep_beat_list_derived(self):
+        pass
+    
+    
+    def prep_autores_timestamps_and_filters(self):
+        self.log_text('extracting autores timestamps', 'blue')
+        non_timestamp_keywords = [
+            '_volume'
+            '_vf',
+            '_breath_duration',
+            '_vt',
+            '_hr',
+            '_rr',
+            'latency_',
+            'discrep_',
+            'duration_',
+            'trial_number'
+            ]
+        time_stamp_columns = []
+        for c in self.autores_results_data['Challenge'].columns:
+            print(c)
+            if not any([i.lower() in c.lower() for i in non_timestamp_keywords]):
+                time_stamp_columns.append(c)
+                print('$')
+        
+        trials = list(self.autores_results_data['Challenge']['trial_number'])
+        
+        for t in trials:
+            self.autores_trial_combo.addItem(f'{t}',userData = 'autores')
+        
+        for ts in time_stamp_columns:
+            self.autores_ts_combo.addItem(f'{ts}',userData = 'autores')
+            self.breath_beat_selector.addItem(f'{ts}', userData = 'autores')
+        
+        
     
     def add_to_graph_action(self):
         try:
-            
             self.x_min = self.time_start_value.value()
             self.x_max = self.time_start_value.value() + \
                 self.time_window_value.value()
             
             graph = self.graph[
                 int(self.graph_selector.currentText().split(' ')[1])
-                ]['graph']
-            
-            if self.data_type.data == 'Signal':
-                data_filter = (self.signal_data['ts']>=self.x_min) & \
-                    (self.signal_data['ts']<=self.x_max)
-                x_val = self.signal_data['ts'][data_filter]
-                y_val = self.signal_data[
-                    self.signal_selector.currentText()
-                    ][data_filter]
-                print(x_val)
-                print(y_val)
-                
-            elif self.data_type.data == 'Breath/Beat':
-                if self.breath_beat_selector.currentText() == 'Breath':
-                    data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
-                        (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
-                    x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
-                elif self.breath_beat_selector.currentText() == 'Beat':
-                    data_filter = (self.beat_list_data['ts']>=self.x_min) & \
-                        (self.beat_list_data['ts']<=self.x_max)
-                    x_val = self.beat_list_data['ts'][data_filter]
-                else: # timestamp column from autores
-                    x_val = self.autores_results_data['Challenge'][
-                        self.breath_beat_selector.currentText()
-                        ]
-                y_val = [self.breath_beat_offset.value() for i in list(x_val)]
-            elif self.data_type.data == 'Derived Filter':
-                data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
-                    (self.breath_list_data['Timestamp_Inspiration']<=self.x_max) & \
-                    (
-                        self.breath_list_data['self.derived_filter_selector'] == \
-                        self.breath_list_data['self.derived_filter_value']
-                        )
-                x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
-                y_val = [self.derived_filter_offset.value() for i in list(x_val)]
-            elif self.data_type.data == 'Derived Measure':
-                if self.derived_measure_selector.currentText() == "HR":
-                    data_filter = (self.beat_list_data['ts']>=self.x_min) & \
-                        (self.beat_list_data['ts']<=self.x_max)
-                    x_val = self.beat_list_data['ts'][data_filter]
-                    y_val = self.beat_list_data[
-                        self.derived_measure_selector.currentText()
-                        ][data_filter]
-                else:
-                    data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
-                        (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
-                    x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
-                    y_val = self.breath_list_data[
-                        self.derived_measure_selector.currentText()
-                        ][data_filter]
-            elif self.data_type.date == 'Constant':
-                x_val = [self.x_min,self.x_max]
-                y_val = [self.constant_value.value(),self.constant_value.value()]
+                ]
             
             self.plotted_counter +=1
-            # !!! refactoring to avoid plotting twice would be good
-            self.plotted[self.plotted_counter] = graph.plot(list(x_val),list(y_val))
-            # set line style
-            # !!!
+            
+            # set default, override if applicable
+            selector_filter = None
+            offset = 0
+            # gather gata
+            if self.data_type.data == 'Signal':
+                selector = self.signal_selector.currentText()
+                    
+            elif self.data_type.data == 'Breath/Beat':
+                selector = self.breath_beat_selector.currentText()
+                offset = self.breath_beat_offset.value()
+
+            elif self.data_type.data == 'Derived Filter':
+                selector = self.derived_filter_selector.currentText()
+                selector_filter = self.derived_filter_value.itemData(
+                    self.derived_filter_value.currentIndex()
+                    )
+                offset = self.derived_filter_offset.value()
+                print(f'{self.derived_filter_value.currentIndex()}')
+                print(self.derived_filter_value.itemData(0))
+                print(self.derived_filter_value.itemData(1))
+                print(f'{selector}\n{selector_filter}\n{offset}')
+                
+            elif self.data_type.data == 'Derived Measure':
+                selector = self.derived_measure_selector.currentText()
+                
+            elif self.data_type.data == 'Constant':
+                selector = 'Constant'
+                offset = 0 # !!! need to update once constant box created
+            
+            x_val,y_val,name = self.gather_graph_data(
+                self.data_type.data,
+                selector,
+                selector_filter=selector_filter,
+                offset=offset
+                )
+            
             if self.line_style_select.currentText() == 'None':
                 pen = None
             else:
@@ -789,43 +1057,73 @@ class MainWindow(QMainWindow):
                     )
             # set marker style
             if self.marker_style_value.currentText() == 'None':
-                self.plotted[self.plotted_counter].setData(
-                    x=list(x_val) ,y=list(y_val) ,pen = pen, symbol = None
-                    )
+                symbol = {'symbol':None}
                 
             else:
-                self.plotted[self.plotted_counter].setData(
-                    x=list(x_val),
-                    y=list(y_val),
-                    pen = pen,
-                    symbol = self.marker_style_value.currentText().split('_')[0],
-                    symbolBrush = self.marker_color_value.currentText()[0],
-                    symbolPen = pyqtgraph.mkPen(
+                
+                symbol = {
+                    'symbol':self.marker_style_value.currentText().split('_')[0],
+                    'symbolBrush':self.marker_color_value.currentText()[0],
+                    'symbolPen':pyqtgraph.mkPen(
                         self.border_color_value.currentText()[0],
                         width=self.border_size_value.value()
                         ),
-                    symbolSize = self.marker_size_value.value()
-                    )
+                    'symbolSize':self.marker_size_value.value()                    
+                    }
             
-            graph.update()
-            print('plot?')
+            remove = QPushButton(
+                f'Remove: {selector} : {self.plotted_counter}'
+                )
+            
+            line = graph['graph'].plot(
+                x=list(x_val),
+                y=list(y_val),
+                name=name,
+                pen=pen,
+                **symbol
+                )
+            
+            self.plotted[self.plotted_counter]={
+                'line': line,
+                'graph':graph,
+                'offset':offset,
+                'pen':pen,
+                'symbol':symbol,
+                'data_type':self.data_type.data,
+                'name':name,
+                'selector':selector,
+                'selector_filter':selector_filter,
+                'line_id':self.plotted_counter,
+                f'remove{self.plotted_counter}':remove
+                }
+            graph['layout'].addWidget(
+                self.plotted[self.plotted_counter][f'remove{self.plotted_counter}']
+                )
+            self.plotted[self.plotted_counter][
+                f'remove{self.plotted_counter}'
+                ].clicked.connect(
+                    lambda: remove_line(
+                        graph,
+                        line,
+                        remove
+                        )
+                    )
             
         except Exception:
             self.log_text(
                 f'unable to prepare graph element: {Exception}<br/>{traceback.format_exc()}',
                 'red'
                 )
-            print('no plot?')
-        
-        
     
-    # methods
+    
+
     @pyqtSlot()
     def mode_radio_action(self):
         mode_radio = self.sender()
         if mode_radio.isChecked():
             self.data_mode = mode_radio.mode
             self.log_text(f'Data Mode : {self.data_mode}','blue')
+
     
     
     def log_text(self,text,color):
@@ -906,6 +1204,9 @@ class MainWindow(QMainWindow):
                     'black'
                     )
                 self.breath_beat_selector.addItem('Breath')
+                self.prep_breath_list_timestamps()
+                self.prep_breath_list_filters()
+                self.prep_breath_list_derived()
                 # additional combo box population needed
                 # !!!
             except Exception:
@@ -921,7 +1222,7 @@ class MainWindow(QMainWindow):
             )[0]
         self.log_text(f'selecting Beat List: {os.path.basename(self.beat_list_path)}','blue'
             )
-        self.beat_list_label.setText('Beat List: {self.beat_list_path}')
+        self.beat_list_label.setText(f'Beat List: {self.beat_list_path}')
         
         if self.beat_list_path == '' or self.beat_list_path is None:
             self.log_text(
@@ -956,7 +1257,7 @@ class MainWindow(QMainWindow):
             )[0]
         self.log_text(f'selecting Autores Results: {self.autores_results_path}','blue'
             )
-        self.autores_results_label.setText('Autores Results: {self.autores_results_path}')
+        self.autores_results_label.setText(f'Autores Results: {os.path.basename(self.autores_results_path)}')
         
         if self.autores_results_path == '' or self.autores_results_path is None:
             self.log_text(
@@ -974,8 +1275,9 @@ class MainWindow(QMainWindow):
                     'Baseline':pandas.read_excel(self.autores_results_path,'Baseline'),
                     'Challenge':pandas.read_excel(self.autores_results_path,'Challenge')
                     }
+                self.prep_autores_timestamps_and_filters()
                 self.log_text(
-                    f'Autores data loaded: {self.autores_results_dats.Challenge.columns}',
+                    f'Autores data loaded: {self.autores_results_data["Challenge"].columns}',
                     'black'
                     )
             except Exception:
