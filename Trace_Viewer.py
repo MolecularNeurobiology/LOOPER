@@ -26,12 +26,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 =Features=
 *load and view Signal Data
-*load and view Data Annotations
-*load and view Derived Parameters
-*test BASSPRO settings for breath detection
+ -works for pleth and pneumo data
+*customize plots (i.e. line vs point, color, size, shape)
+*add/remove lines
+*(in progress) modify existing lines
+*(in progress, mostly complete) load and view Data Annotations
+*(in progress) load and view Derived Parameters
+*(not yet started) test BASSPRO settings for breath detection
+*(not yet started) user can interactively run BASSPRO to fill in 
+ filtered/updated signals
 *save graphs
-*run batch export of graphs
-
+ -exportable and savable through native pyqtgraph dialog
+*(not yet started) launch with quick presentation of default view 
+ -(i.e. graph 1 flow + breaths, graph 2 ecg + beats)
+*(not yet started) run batch export of graphs
+*(not yet started) create/load/test basic settings for BASSPRO
 
 """
 
@@ -40,7 +49,7 @@ __version__ = '0.0.1'
 #%% import libraries
 
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, Qt
+from PyQt5.QtCore import pyqtSlot, Qt, QSize
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton 
 from PyQt5.QtWidgets import QTextEdit, QTableView, QHBoxLayout, QVBoxLayout
@@ -336,22 +345,7 @@ class MainWindow(QMainWindow):
         
         # select graph destination
         #    combo box with entry for each graph
-        self.time_start_label = QLabel('Graph Time: Minimum')
-        self.controls_layout_A.addWidget(self.time_start_label)
-        self.time_start_value = QDoubleSpinBox(self)
-        self.time_start_value.setValue(self.x_min)
-        self.time_start_value.setMinimum(0)
-        self.time_start_value.setMaximum(999999)
-        self.time_start_value.setSingleStep(1)
-        self.controls_layout_A.addWidget(self.time_start_value)
-        self.time_window_label = QLabel('Graph Time: Window')
-        self.controls_layout_A.addWidget(self.time_window_label)
-        self.time_window_value = QDoubleSpinBox(self)
-        self.time_window_value.setValue(self.x_max-self.x_min)
-        self.time_window_value.setMinimum(0)
-        self.time_window_value.setMaximum(999999)
-        self.time_window_value.setSingleStep(1)
-        self.controls_layout_A.addWidget(self.time_window_value)
+
         
         self.graph_selector = QComboBox(self)
         self.controls_layout_A_radio.addWidget(self.graph_selector)
@@ -638,15 +632,49 @@ class MainWindow(QMainWindow):
         
         
         # time navigation controls
+        self.graph_time_layout = QHBoxLayout()
+        self.graph_time_minimum_layout = QVBoxLayout()
+        self.time_start_label = QLabel('Graph Time: Minimum')
+        self.graph_time_minimum_layout.addWidget(self.time_start_label)
+        self.time_start_value = QDoubleSpinBox(self)
+        self.time_start_value.setValue(self.x_min)
+        self.time_start_value.setMinimum(0)
+        self.time_start_value.setMaximum(999999)
+        self.time_start_value.setSingleStep(1)
+        self.graph_time_minimum_layout.addWidget(self.time_start_value)
+        self.graph_time_window_layout = QVBoxLayout()
+        self.time_window_label = QLabel('Graph Time: Window')
+        self.graph_time_window_layout.addWidget(self.time_window_label)
+        self.time_window_value = QDoubleSpinBox(self)
+        self.time_window_value.setValue(self.x_max-self.x_min)
+        self.time_window_value.setMinimum(0)
+        self.time_window_value.setMaximum(999999)
+        self.time_window_value.setSingleStep(1)
+        self.graph_time_window_layout.addWidget(self.time_window_value)
+        self.graph_time_layout.addLayout(self.graph_time_minimum_layout)
+        self.graph_time_layout.addLayout(self.graph_time_window_layout)
+        self.controls_layout_B.addLayout(self.graph_time_layout)
+        # buttons to move time
         self.move_button_layout = QHBoxLayout()
         self.controls_layout_B.addLayout(self.move_button_layout)
         self.move_backward = QPushButton('<<<')
+        self.move_backward.setStyleSheet("padding: 5px;")
         self.move_backward.clicked.connect(self.move_backward_action)
         self.move_button_layout.addWidget(self.move_backward)
+        self.move_backward_half = QPushButton(' < ')
+        self.move_backward_half.setStyleSheet("padding: 5px;")
+        self.move_backward_half.clicked.connect(self.move_backward_half_action)
+        self.move_button_layout.addWidget(self.move_backward_half)
         self.refresh_button = QPushButton('Refresh')
+        self.refresh_button.setStyleSheet("padding: 5px;")
         self.refresh_button.clicked.connect(self.update_graph)
         self.move_button_layout.addWidget(self.refresh_button)
+        self.move_forward_half = QPushButton(' > ')
+        self.move_forward_half.setStyleSheet("padding: 5px;")
+        self.move_forward_half.clicked.connect(self.move_forward_action_half)
+        self.move_button_layout.addWidget(self.move_forward_half)
         self.move_forward = QPushButton('>>>')
+        self.move_forward.setStyleSheet("padding: 5px;")
         self.move_forward.clicked.connect(self.move_forward_action)
         self.move_button_layout.addWidget(self.move_forward)
         
@@ -671,23 +699,39 @@ class MainWindow(QMainWindow):
     
     @pyqtSlot()
     def move_backward_action(self):
-        # print(self.time_window_value.value())
+        
         self.x_min -= self.time_window_value.value()
         self.time_start_value.setValue(self.x_min)
-        # self.x_max = self.x_min+self.time_window_value.value()
-        
         self.update_graph()
         
     
     
     @pyqtSlot()
     def move_forward_action(self):
-        # print(self.time_window_value.value())
+        
         self.x_min += self.time_window_value.value()
         self.time_start_value.setValue(self.x_min)
-        # self.x_max = self.x_min+self.time_window_value.value()
-        
         self.update_graph()
+    
+    
+    
+    @pyqtSlot()
+    def move_backward_half_action(self):
+        
+        self.x_min -= self.time_window_value.value()/2
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+        
+    
+    
+    @pyqtSlot()
+    def move_forward_action_half(self):
+        
+        self.x_min += self.time_window_value.value()/2
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+    
+    
     
     @pyqtSlot()
     def select_data_action(self):
@@ -789,6 +833,7 @@ class MainWindow(QMainWindow):
         self.graph_layout.addLayout(graph_layout)
         graph = {}
         graph['graph_label'] = QLabel(f'Graph: {self.graph_counter}')
+        graph['g_l_layout'] = graph_left_layout
         graph['layout'] = graph_right_layout
         graph_left_layout.addWidget(graph['graph_label'])
         graph['graph'] = pyqtgraph.PlotWidget()
@@ -823,15 +868,26 @@ class MainWindow(QMainWindow):
         self.graph[self.graph_counter] = graph
         self.graph_selector.addItem(f'Graph: {self.graph_counter}')
         def remove_graph(self,graph,graph_layout):
+            # delete widgets generated with the graph
             for k in list(graph.keys()):
                 graph[k].setParent(None)
+            # delete widgets added to the graph
+            for i in range(graph_right_layout.count())[::-1]:
+                graph_right_layout.itemAt(i).widget().setParent(None)
+            
+            for i in range(graph_left_layout.count())[::-1]:
+                graph_left_layout.itemAt(i).widget().setParent(None)
+            # remove layouts
             graph_layout.removeItem(graph_left_layout)
             graph_layout.removeItem(graph_right_layout)
             self.graph_layout.removeItem(graph_layout)
-            
+            # purge entry in graph selector
             self.graph_selector.removeItem(
                 self.graph_selector.findText(graph['graph_label'].text())
                 )
+            # purge entry in self.graph
+            self.graph.pop(int(graph['graph_label'].text().split(' ')[1]))
+            
             if self.graph_layout.count() == 0:
                 self.add_graph()
         
@@ -845,7 +901,11 @@ class MainWindow(QMainWindow):
 
         for k,v in self.plotted.items():
             x_val,y_val,name = self.gather_graph_data(
-                v['data_type'],v['selector'],v['selector_filter'],v['offset']
+                v['data_type'],
+                v['selector'],
+                v['selector_filter'],
+                v['offset'],
+                v['source']
                 )
             v['line'].setData(
                 x=list(x_val),
@@ -867,11 +927,24 @@ class MainWindow(QMainWindow):
                 self.graph[g]['graph'].autoRange(padding=None)
             # x axis scale
             self.graph[g]['graph'].setXRange(self.x_min,self.x_max,padding=0)
-            
-            
+        # dimensions on screen
+        widths = []
+        heights = []
+        for g in self.graph:
+            widths.append(self.graph[g]['graph'].width())
+            heights.append(self.graph[g]['graph'].height())
+        for g in self.graph:
+            self.graph[g]['graph'].resize(min(widths),min(heights))
+    
+    
     
     def gather_graph_data(
-            self,data_type,selector,selector_filter = None,offset=0
+            self,
+            data_type,
+            selector,
+            selector_filter = None,
+            offset=0,
+            source = None
             ):
         
         name = selector
@@ -886,10 +959,14 @@ class MainWindow(QMainWindow):
             
             
         elif data_type == 'Breath/Beat':
-            if selector == 'Breath':
+            if selector == 'Breath-I':
                 data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
                     (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
                 x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
+            elif selector == 'Breath-E':
+                data_filter = (self.breath_list_data['Timestamp_Expiration']>=self.x_min) & \
+                    (self.breath_list_data['Timestamp_Expiration']<=self.x_max)
+                x_val = self.breath_list_data['Timestamp_Expiration'][data_filter]
             elif selector == 'Beat':
                 data_filter = (self.beat_list_data['ts']>=self.x_min) & \
                     (self.beat_list_data['ts']<=self.x_max)
@@ -912,14 +989,14 @@ class MainWindow(QMainWindow):
             y_val = [offset for i in list(x_val)]
             
         elif data_type == 'Derived Measure':
-            if selector == "HR":
+            if source == 'beatlist':
                 data_filter = (self.beat_list_data['ts']>=self.x_min) & \
                     (self.beat_list_data['ts']<=self.x_max)
                 x_val = self.beat_list_data['ts'][data_filter]
                 y_val = self.beat_list_data[
                     selector
                     ][data_filter]
-            else:
+            elif source == 'breathlist':
                 data_filter = (self.breath_list_data['Timestamp_Inspiration']>=self.x_min) & \
                     (self.breath_list_data['Timestamp_Inspiration']<=self.x_max)
                 x_val = self.breath_list_data['Timestamp_Inspiration'][data_filter]
@@ -927,11 +1004,13 @@ class MainWindow(QMainWindow):
                     selector
                     ][data_filter]
                 
-        elif self.data_type.data == 'Constant':
+        elif data_type == 'Constant':
             x_val = [self.x_min,self.x_max]
             y_val = [offset,offset]
             name = f'constant {self.constant_value.value()}'
         
+        else:
+            self.log_text('unable to gather graph data','red')
         
         
         return x_val,y_val,name
@@ -954,17 +1033,98 @@ class MainWindow(QMainWindow):
         for c in [
                 'Breath_Inclusion_Filter',
                 'AUTO_Inclusion_Filter',
-                'MAN_Inclusion_Filter'
+                'MAN_Inclusion_Filter',
+                'Exp_Condition',
+                'Auto_Condition',
+                'Man_Condition',
+                'Auto_Block_Id',
+                'Auto_Selection_Id',
+                'Man_Selection_Id'
                 ]:
             if c in self.breath_list_data.columns:
                 self.derived_filter_selector.addItem(c,userData='breathlist')
         self.update_derived_filter_selections()
     
     def prep_breath_list_derived(self):
-        pass
+        # current version is hard coded load...could try a dynamic load
+        # or shift the usable columns into an external config file
+        
+        self.log_text('preparing breath list derived parameters','blue')
+        
+        # purge items that come from a breath_list
+        for i in range(self.derived_measure_selector.count())[::-1]:
+            if self.derived_measure_selector.itemData(i) == 'breathlist':
+                self.derived_measure_selector.removeItem(i)
+        
+        # repopulate with items that come from the new breath_list
+        derived_parameters = [
+            'Inspiratory_Duration',
+            'Expiratory_Duration',
+            'Breath_Cycle_Duration',
+            'IS_TT',
+            'VF',
+            'Tidal_Volume_uncorrected',
+            'Tidal_Volume_exhale_uncorrected',
+            'IS_iTV',
+            'Peak_Inspiratory_Flow',
+            'Peak_Expiratory_Flow',
+            'DVTV',
+            'apnea_local_threshold',
+            'sigh_local_threshold',
+            'per500',
+            'Apnea',
+            'Sigh',
+            'O2_uncalibrated',
+            'CO2_uncalibrated',
+            'corrected_o2',
+            'corrected_co2',
+            'Chamber_Temp_uncalibrated',
+            'Chamber_Temperature',
+            'Body_Temperature_Linear',
+            'mav',
+            'O2_concentration',
+            'CO2_concentration',
+            'base_selection',
+            'base_o2',
+            'base_co2',
+            'base_tv',
+            'VT__Tidal_Volume_corrected',
+            'Peak_Inspiratory_Flow_corrected',
+            'Peak_Expiratory_Flow_corrected',
+            'VO2',
+            'VCO2',
+            'VE__Ventilation',
+            'VEVO2',
+            'RER',
+            'VTpg__Tidal_Volume_per_gram_corrected',
+            'VEpg__Ventilation_per_gram',
+            'VO2pg','VCO2pg',
+            'TT_per_TV',
+            'TT_per_TVpg',
+            'O2_per_Air__VO2_x_TT_per_TV_'
+            ]
+        for c in derived_parameters:
+            if c in self.breath_list_data.columns:
+                self.derived_measure_selector.addItem(c,userData='breathlist')
+                
     
     def prep_beat_list_derived(self):
-        pass
+        # current version is hard coded load...could try a dynamic load
+        # or shift the usable columns into an external config file
+        self.log_text('preparing beat list derived parameters','blue')
+        # purge items that come from a breath_list
+        for i in range(self.derived_measure_selector.count())[::-1]:
+            if self.derived_measure_selector.itemData(i) == 'beatlist':
+                self.derived_measure_selector.removeItem(i)
+        
+        # repopulate with items that come from the new breath_list
+        derived_parameters = [
+            'HR',
+            'RR'
+            ]
+        for c in derived_parameters:
+            if c in self.beat_list_data.columns:
+                self.derived_measure_selector.addItem(c,userData='beatlist')
     
     
     def prep_autores_timestamps_and_filters(self):
@@ -983,10 +1143,10 @@ class MainWindow(QMainWindow):
             ]
         time_stamp_columns = []
         for c in self.autores_results_data['Challenge'].columns:
-            print(c)
+            
             if not any([i.lower() in c.lower() for i in non_timestamp_keywords]):
                 time_stamp_columns.append(c)
-                print('$')
+            
         
         trials = list(self.autores_results_data['Challenge']['trial_number'])
         
@@ -1014,6 +1174,7 @@ class MainWindow(QMainWindow):
             # set default, override if applicable
             selector_filter = None
             offset = 0
+            source = None
             # gather gata
             if self.data_type.data == 'Signal':
                 selector = self.signal_selector.currentText()
@@ -1035,16 +1196,19 @@ class MainWindow(QMainWindow):
                 
             elif self.data_type.data == 'Derived Measure':
                 selector = self.derived_measure_selector.currentText()
-                
+                source = self.derived_measure_selector.itemData(
+                    self.derived_measure_selector.currentIndex()
+                    )
             elif self.data_type.data == 'Constant':
                 selector = 'Constant'
-                offset = 0 # !!! need to update once constant box created
+                offset = self.constant_value.value()
             
             x_val,y_val,name = self.gather_graph_data(
                 self.data_type.data,
                 selector,
                 selector_filter=selector_filter,
-                offset=offset
+                offset=offset,
+                source=source
                 )
             
             if self.line_style_select.currentText() == 'None':
@@ -1093,6 +1257,7 @@ class MainWindow(QMainWindow):
                 'name':name,
                 'selector':selector,
                 'selector_filter':selector_filter,
+                'source':source,
                 'line_id':self.plotted_counter,
                 f'remove{self.plotted_counter}':remove
                 }
@@ -1108,6 +1273,7 @@ class MainWindow(QMainWindow):
                         remove
                         )
                     )
+            self.update_graph()
             
         except Exception:
             self.log_text(
@@ -1129,6 +1295,9 @@ class MainWindow(QMainWindow):
     def log_text(self,text,color):
         self.text1.insertHtml(html_text_color(text,color))
         self.text1.repaint()
+        self.text1.verticalScrollBar().setSliderPosition(
+            self.text1.verticalScrollBar().maximum()
+            )
         
         
     
@@ -1203,10 +1372,12 @@ class MainWindow(QMainWindow):
                     f'Breath List data loaded: {self.breath_list_data.columns}',
                     'black'
                     )
-                self.breath_beat_selector.addItem('Breath')
+                self.breath_beat_selector.addItem('Breath-I')
+                self.breath_beat_selector.addItem('Breath-E')
                 self.prep_breath_list_timestamps()
                 self.prep_breath_list_filters()
                 self.prep_breath_list_derived()
+                
                 # additional combo box population needed
                 # !!!
             except Exception:
@@ -1222,7 +1393,7 @@ class MainWindow(QMainWindow):
             )[0]
         self.log_text(f'selecting Beat List: {os.path.basename(self.beat_list_path)}','blue'
             )
-        self.beat_list_label.setText(f'Beat List: {self.beat_list_path}')
+        self.beat_list_label.setText(f'Beat List: {os.path.basename(self.beat_list_path)}')
         
         if self.beat_list_path == '' or self.beat_list_path is None:
             self.log_text(
@@ -1242,6 +1413,7 @@ class MainWindow(QMainWindow):
                     'black'
                     )
                 self.breath_beat_selector.addItem('Beat')
+                self.prep_beat_list_derived()
             except Exception:
                 self.log_text(
                     f'unable to load file: {Exception} <br/> {sys.exc_info()}',
