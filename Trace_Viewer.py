@@ -29,9 +29,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
  -works for pleth and pneumo data
 *customize plots (i.e. line vs point, color, size, shape)
 *add/remove lines
+*jump to key timestamps in the data
 *(in progress) modify existing lines
-*(in progress, mostly complete) load and view Data Annotations
-*(in progress) load and view Derived Parameters
+*load and view Data Annotations
+*load and view Derived Parameters
 *(not yet started) test BASSPRO settings for breath detection
 *(not yet started) user can interactively run BASSPRO to fill in 
  filtered/updated signals
@@ -41,6 +42,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
  -(i.e. graph 1 flow + breaths, graph 2 ecg + beats)
 *(not yet started) run batch export of graphs
 *(not yet started) create/load/test basic settings for BASSPRO
+*(not yet started) create dialog for custom math to create new derrived 
+ parameters (related - recommend updating BASSPRO to provide HR)
 
 """
 
