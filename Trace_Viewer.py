@@ -44,7 +44,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 #%% import libraries
 
@@ -276,8 +276,13 @@ class MainWindow(QMainWindow):
         self.autores_results_path = ''
         self.autores_results_data = {
             'Baseline':pandas.DataFrame(),
-            'Challenge':pandas.DataFrame()
+            'Challenge':pandas.DataFrame(),
+            'Timestamps':pandas.DataFrame()
             }
+        self.autores_timesetamp_df = pandas.DataFrame()
+        
+        self.jump_to_dict= {}
+        
         
         self.text1 = QTextEdit(self)
         self.text1.insertHtml(
@@ -611,24 +616,53 @@ class MainWindow(QMainWindow):
         self.jump_to_layout = QVBoxLayout()
         self.controls_layout_B.addLayout(self.jump_to_layout)
         
-        self.jump_to_autores = QHBoxLayout()
-        self.jump_to_layout.addLayout(self.jump_to_autores)
-        self.jump_to_autores_trial = QVBoxLayout()
-        self.jump_to_autores_ts = QVBoxLayout()
-        self.jump_to_autores.addLayout(self.jump_to_autores_trial)
-        self.jump_to_autores.addLayout(self.jump_to_autores_ts)
-
-        self.autores_trial_label = QLabel('Autores Trial')
-        self.autores_trial_combo = QComboBox(self)
-        self.autores_trial_combo.activated.connect(self.jump_to_autores_trial_action)
-        self.jump_to_autores_trial.addWidget(self.autores_trial_label)
-        self.jump_to_autores_trial.addWidget(self.autores_trial_combo)
+        self.jump_to_source_label = QLabel('Source for "Jump To" List')
+        self.jump_to_layout.addWidget(self.jump_to_source_label)
+        self.jump_to_source_combo = QComboBox(self)
+        self.jump_to_source_combo.activated.connect(self.update_jump_to_list)
+        self.jump_to_layout.addWidget(self.jump_to_source_combo)
+        self.jump_to_prev_layout = QHBoxLayout()
+        self.jump_to_current_layout = QHBoxLayout()
+        self.jump_to_next_layout = QHBoxLayout()
+        #
+        self.jump_to_layout.addLayout(self.jump_to_prev_layout)
+        self.jump_to_layout.addLayout(self.jump_to_current_layout)
+        self.jump_to_layout.addLayout(self.jump_to_next_layout)
+        self.jump_to_prev_button = QPushButton('/\\')
+        self.jump_to_prev_button.setStyleSheet("padding: 5px;")
+        self.jump_to_prev_button.clicked.connect(self.jump_to_prev_action)
+        self.jump_to_current_button = QPushButton('(O)')
+        self.jump_to_current_button.setStyleSheet("padding: 5px;")
+        self.jump_to_current_button.clicked.connect(self.jump_to_current_action)
+        self.jump_to_next_button = QPushButton('\\/')
+        self.jump_to_next_button.setStyleSheet("padding: 5px;")
+        self.jump_to_next_button.clicked.connect(self.jump_to_next_action)
+        #
+        self.jump_to_prev_label = QLabel('')
+        self.jump_to_current_combo = QComboBox(self)
+        self.jump_to_current_combo.activated.connect(self.jump_to_current_action)
+        self.jump_to_next_label = QLabel('')
+        #
+        self.jump_to_prev_layout.addWidget(self.jump_to_prev_button)
+        self.jump_to_prev_layout.addWidget(self.jump_to_prev_label)
+        self.jump_to_current_layout.addWidget(self.jump_to_current_button)
+        self.jump_to_current_layout.addWidget(self.jump_to_current_combo)
+        self.jump_to_next_layout.addWidget(self.jump_to_next_button)
+        self.jump_to_next_layout.addWidget(self.jump_to_next_label)
         
-        self.autores_ts_label = QLabel('Autores TimeStamp')
-        self.autores_ts_combo = QComboBox(self)
-        self.autores_ts_combo.activated.connect(self.jump_to_autores_ts_action)
-        self.jump_to_autores_ts.addWidget(self.autores_ts_label)
-        self.jump_to_autores_ts.addWidget(self.autores_ts_combo)
+        
+
+        # self.autores_trial_label = QLabel('Autores Trial')
+        # self.autores_trial_combo = QComboBox(self)
+        # self.autores_trial_combo.activated.connect(self.jump_to_autores_trial_action)
+        # self.jump_to_autores_trial.addWidget(self.autores_trial_label)
+        # self.jump_to_autores_trial.addWidget(self.autores_trial_combo)
+        
+        # self.autores_ts_label = QLabel('Autores TimeStamp')
+        # self.autores_ts_combo = QComboBox(self)
+        # self.autores_ts_combo.activated.connect(self.jump_to_autores_ts_action)
+        # self.jump_to_autores_ts.addWidget(self.autores_ts_label)
+        # self.jump_to_autores_ts.addWidget(self.autores_ts_combo)
         
         
         # time navigation controls
@@ -655,28 +689,56 @@ class MainWindow(QMainWindow):
         self.graph_time_layout.addLayout(self.graph_time_window_layout)
         self.controls_layout_B.addLayout(self.graph_time_layout)
         # buttons to move time
-        self.move_button_layout = QHBoxLayout()
-        self.controls_layout_B.addLayout(self.move_button_layout)
+        self.move_button_layout_1 = QHBoxLayout()
+        self.move_button_layout_2 = QHBoxLayout()
+        self.controls_layout_B.addLayout(self.move_button_layout_1)
+        self.controls_layout_B.addLayout(self.move_button_layout_2)
+        # move button_layout_1
+        self.move_beginning = QPushButton(' [< ')
+        self.move_beginning.setStyleSheet("padding: 5px;")
+        self.move_beginning.clicked.connect(self.move_beginning_action)
+        self.move_button_layout_1.addWidget(self.move_beginning)
+        self.show_all = QPushButton(' [<>] ')
+        self.show_all.setStyleSheet("padding: 5px;")
+        self.show_all.clicked.connect(self.show_all_action)
+        self.move_button_layout_1.addWidget(self.show_all)
+        self.window_reset = QPushButton(' <R> ')
+        self.window_reset.setStyleSheet("padding: 5px;")
+        self.window_reset.clicked.connect(self.window_reset_action)
+        self.move_button_layout_1.addWidget(self.window_reset)
+        self.zoom_in = QPushButton(' + ')
+        self.zoom_in.setStyleSheet("padding: 5px;")
+        self.zoom_in.clicked.connect(self.zoom_in_action)
+        self.move_button_layout_1.addWidget(self.zoom_in)
+        self.zoom_out = QPushButton(' - ')
+        self.zoom_out.setStyleSheet("padding: 5px;")
+        self.zoom_out.clicked.connect(self.zoom_out_action)
+        self.move_button_layout_1.addWidget(self.zoom_out)
+        self.move_end = QPushButton(' >] ')
+        self.move_end.setStyleSheet("padding: 5px;")
+        self.move_end.clicked.connect(self.move_end_action)
+        self.move_button_layout_1.addWidget(self.move_end)
+        # move_button_layout_2
         self.move_backward = QPushButton('<<<')
         self.move_backward.setStyleSheet("padding: 5px;")
         self.move_backward.clicked.connect(self.move_backward_action)
-        self.move_button_layout.addWidget(self.move_backward)
+        self.move_button_layout_2.addWidget(self.move_backward)
         self.move_backward_half = QPushButton(' < ')
         self.move_backward_half.setStyleSheet("padding: 5px;")
         self.move_backward_half.clicked.connect(self.move_backward_half_action)
-        self.move_button_layout.addWidget(self.move_backward_half)
+        self.move_button_layout_2.addWidget(self.move_backward_half)
         self.refresh_button = QPushButton('Refresh')
         self.refresh_button.setStyleSheet("padding: 5px;")
         self.refresh_button.clicked.connect(self.update_graph)
-        self.move_button_layout.addWidget(self.refresh_button)
+        self.move_button_layout_2.addWidget(self.refresh_button)
         self.move_forward_half = QPushButton(' > ')
         self.move_forward_half.setStyleSheet("padding: 5px;")
-        self.move_forward_half.clicked.connect(self.move_forward_action_half)
-        self.move_button_layout.addWidget(self.move_forward_half)
+        self.move_forward_half.clicked.connect(self.move_forward_half_action)
+        self.move_button_layout_2.addWidget(self.move_forward_half)
         self.move_forward = QPushButton('>>>')
         self.move_forward.setStyleSheet("padding: 5px;")
         self.move_forward.clicked.connect(self.move_forward_action)
-        self.move_button_layout.addWidget(self.move_forward)
+        self.move_button_layout_2.addWidget(self.move_forward)
         
         
         # set up the environment
@@ -725,7 +787,7 @@ class MainWindow(QMainWindow):
     
     
     @pyqtSlot()
-    def move_forward_action_half(self):
+    def move_forward_half_action(self):
         
         self.x_min += self.time_window_value.value()/2
         self.time_start_value.setValue(self.x_min)
@@ -733,6 +795,106 @@ class MainWindow(QMainWindow):
     
     
     
+    @pyqtSlot()
+    def move_beginning_action(self):
+        self.x_min = 0
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+    
+
+
+    @pyqtSlot()
+    def move_end_action(self):
+        self.x_min = 0
+        if 'ts' in self.signal_data.columns:
+            self.x_min = max(
+                self.signal_data['ts'].max() -self.time_window_value.value(),
+                self.x_min
+                )
+        if 'ts' in self.beat_list_data.columns:
+            self.x_min = max(
+                self.beat_list_data['ts'].max() - \
+                    self.time_window_value.value(),
+                self.x_min
+                )
+        if 'Timestamp_Inspiration' in self.breath_list_data.columns:
+            self.x_min = max(
+                self.breath_list_data['Timestamp_Inspiration'].max() - \
+                    self.time_window_value.value(),
+                self.x_min
+                )
+        if len(self.autores_timesetamp_df) > 0:
+            self.x_min = max(
+                self.autores_timestamp_df.max().max() - \
+                    self.time_window_value.value(),
+                self.x_min
+                )
+        
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+        
+    
+    
+    @pyqtSlot()
+    def show_all_action(self):
+        self.x_min = 0
+        self.x_max = 1
+        if 'ts' in self.signal_data.columns:
+            self.x_max = max(
+                self.signal_data['ts'].max() -self.time_window_value.value(),
+                self.x_max
+                )
+        if 'ts' in self.beat_list_data.columns:
+            self.x_max = max(
+                self.beat_list_data['ts'].max() - \
+                    self.time_window_value.value(),
+                self.x_max
+                )
+        if 'Timestamp_Inspiration' in self.breath_list_data.columns:
+            self.x_max = max(
+                self.breath_list_data['Timestamp_Inspiration'].max() - \
+                    self.time_window_value.value(),
+                self.x_max
+                )
+        if self.autores_timesetamp_df.shape[0] > 0:
+            self.x_max = max(
+                self.autores_timestamp_df.max().max() - \
+                    self.time_window_value.value(),
+                self.x_max
+                )
+        
+        self.time_start_value.setValue(self.x_min)
+        self.time_window_value.setValue(self.x_max-self.x_min)
+        self.update_graph()
+
+    
+
+    @pyqtSlot()
+    def window_reset_action(self):
+        # !!! setting default value in a settings file
+        self.time_window_value.setValue(15)
+        self.update_graph()
+
+
+
+    @pyqtSlot()
+    def zoom_in_action(self):
+        self.time_window_value.setValue(self.time_window_value.value() * 0.5)
+        self.x_min += self.time_window_value.value() * 0.5
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+    
+
+
+    @pyqtSlot()
+    def zoom_out_action(self):
+        self.time_window_value.setValue(self.time_window_value.value() * 2)
+        self.x_min -= self.time_window_value.value() * 0.25
+        self.time_start_value.setValue(self.x_min)
+        self.update_graph()
+    
+
+
     @pyqtSlot()
     def select_data_action(self):
         #    signal
@@ -956,6 +1118,15 @@ class MainWindow(QMainWindow):
             y_val = self.signal_data[
                 selector
                 ][data_filter]
+            graph_width = self.graph[list(self.graph.keys())[0]]['graph'].width()
+            if len(x_val)>graph_width * 4:
+                downsample_factor = int(len(x_val)/graph_width/4)
+                x_val=x_val[::downsample_factor]
+                y_val=y_val[::downsample_factor]
+                self.log_text(
+                    f'downsampling signal by factor of {downsample_factor}',
+                    'orange'
+                    )
             
             
         elif data_type == 'Breath/Beat':
@@ -1014,9 +1185,99 @@ class MainWindow(QMainWindow):
         
         
         return x_val,y_val,name
+    
+    
+    
+    def update_jump_to_labels(self):
+        current_index = self.jump_to_current_combo.currentIndex()
         
+        # at end of list
+        if current_index == self.jump_to_current_combo.count() - 1:
+            self.jump_to_next_label.setText('[X]')
+            self.jump_to_prev_label.setText(
+                self.jump_to_current_combo.itemText(current_index-1)
+                )
+        # at start of list
+        elif current_index == 0:
+            self.jump_to_prev_label.setText('[X]')
+            self.jump_to_next_label.setText(
+                self.jump_to_current_combo.itemText(current_index+1)
+                )
+        #
+        else:
+            self.jump_to_prev_label.setText(
+                self.jump_to_current_combo.itemText(current_index-1)
+                )
+            self.jump_to_next_label.setText(
+                self.jump_to_current_combo.itemText(current_index+1)
+                )
+                
+            
+    
+    def jump_to_current_action(self):
+        current_index = self.jump_to_current_combo.currentIndex()
+        current_text = self.jump_to_current_combo.currentText()
+        current_ts = self.jump_to_current_combo.itemData(current_index)
+        if current_index < 0:
+            return
+        self.x_min = max(current_ts - self.time_window_value.value()/2, 0)
+        self.time_start_value.setValue(self.x_min)
+        
+        self.log_text(f'jumping to {current_text} @ {current_ts}','blue')
+        self.update_jump_to_labels()
+        self.update_graph()
+        
+        
+    
+    def jump_to_prev_action(self):
+        current_index = self.jump_to_current_combo.currentIndex()
+        
+        # at start of list
+        if current_index <= 0:
+            self.log_text('Nowhere to jump to','red')
+        #
+        else:
+            self.jump_to_current_combo.setCurrentIndex(current_index-1)
+            self.jump_to_current_action()
+
+    def jump_to_next_action(self):
+        current_index = self.jump_to_current_combo.currentIndex()
+        
+        if current_index == self.jump_to_current_combo.count() - 1:
+        # at end of list
+            self.log_text('Nowhere to jump to','red')
+        #
+        else:
+            self.jump_to_current_combo.setCurrentIndex(current_index+1)
+            self.jump_to_current_action()
+    
+    def update_jump_to_source_combo(self):
+        self.jump_to_source_combo.clear()
+        for k in self.jump_to_dict:
+            self.jump_to_source_combo.addItem(k)
+    
+    
+    def update_jump_to_list(self):
+        self.jump_to_current_combo.clear()
+        print('updating')
+        self.log_text('updating jump_to_list','blue')
+        
+        for i in range(
+                self.jump_to_dict[self.jump_to_source_combo.currentText()].shape[0]
+                ):
+            self.jump_to_current_combo.addItem(
+                self.jump_to_dict[self.jump_to_source_combo.currentText()].iloc[i][
+                    'text'
+                    ],
+                userData = self.jump_to_dict[
+                    self.jump_to_source_combo.currentText()
+                    ].iloc[i]['ts']
+                )
+    
+    
+    
     def prep_breath_list_timestamps(self):
-        ts_dict = {}
+        
         for c in [
                 'Exp_Condition',
                 'Auto_Condition',
@@ -1025,8 +1286,21 @@ class MainWindow(QMainWindow):
                 'Auto_Selection_Id',
                 'Man_Selection_Id'
                 ]:
-        
-            pass
+            if f'Breathlist:{c}' in self.jump_to_dict.keys():
+                self.jump_to_dict.pop(f'Breathlist:{c}')
+                
+            if len(self.breath_list_data[c].unique())>1:
+                self.jump_to_dict[f'Breathlist:{c}'] = self.breath_list_data[
+                    ['Timestamp_Inspiration',c]
+                    ].groupby(c).min().reset_index().sort_values(
+                        'Timestamp_Inspiration'
+                        ).rename(
+                            columns={c:'text','Timestamp_Inspiration':'ts'}
+                            )
+        self.update_jump_to_source_combo()
+                        
+            
+
     
     def prep_breath_list_filters(self):
         self.derived_filter_selector.clear()
@@ -1130,8 +1404,9 @@ class MainWindow(QMainWindow):
     def prep_autores_timestamps_and_filters(self):
         self.log_text('extracting autores timestamps', 'blue')
         non_timestamp_keywords = [
-            '_volume'
+            '_volume',
             '_vf',
+            '_ve',
             '_breath_duration',
             '_vt',
             '_hr',
@@ -1142,20 +1417,48 @@ class MainWindow(QMainWindow):
             'trial_number'
             ]
         time_stamp_columns = []
+        ts_list = []
+        text_list = []
         for c in self.autores_results_data['Challenge'].columns:
             
             if not any([i.lower() in c.lower() for i in non_timestamp_keywords]):
                 time_stamp_columns.append(c)
-            
+                self.log_text(c,'green')
+        
+        # self.autores_timesetamp_df = self.autores_results_data['Challenge'][time_stamp_columns]
         
         trials = list(self.autores_results_data['Challenge']['trial_number'])
         
         for t in trials:
-            self.autores_trial_combo.addItem(f'{t}',userData = 'autores')
+            # self.autores_trial_combo.addItem(f'{t}',userData = 'autores')
+            
+            for tsc in time_stamp_columns:
+                if list(
+                        pandas.to_numeric(
+                            self.autores_results_data['Challenge'][
+                                self.autores_results_data['Challenge']\
+                                    ['trial_number']==t
+                                ][tsc]).fillna(False))[0]:
+                    ts_list.append(
+                        float(
+                            self.autores_results_data['Challenge'][
+                            self.autores_results_data['Challenge']['trial_number']==t
+                            ][tsc]
+                            )
+                        )
+                    text_list.append(f'{t}:{tsc}')
+        self.jump_to_dict['Autores-Challenge'] = pandas.DataFrame(
+            {'ts':ts_list,'text':text_list}
+            ).sort_values('ts')
+        self.jump_to_dict['Autores-ExpCondition'] = self.autores_results_data[
+            'Timestamps'
+            ].sort_values('ts')
         
-        for ts in time_stamp_columns:
-            self.autores_ts_combo.addItem(f'{ts}',userData = 'autores')
-            self.breath_beat_selector.addItem(f'{ts}', userData = 'autores')
+        self.update_jump_to_source_combo()
+        
+        for tsc in time_stamp_columns:
+            # self.autores_ts_combo.addItem(f'{tsc}',userData = 'autores')
+            self.breath_beat_selector.addItem(f'{tsc}', userData = 'autores')
         
         
     
@@ -1343,7 +1646,7 @@ class MainWindow(QMainWindow):
                     )
             except Exception:
                 self.log_text(
-                    f'unable to load file: {Exception} <br/> {sys.exc_info()}',
+                    f'unable to load file: {Exception}<br/>{traceback.format_exc()}',
                     'red'
                     )
     def select_breath_list_file_action(self):
@@ -1382,7 +1685,7 @@ class MainWindow(QMainWindow):
                 # !!!
             except Exception:
                 self.log_text(
-                    f'unable to load file: {Exception} <br/> {sys.exc_info()}',
+                    f'unable to load file: {Exception}<br/>{traceback.format_exc()}',
                     'red'
                     )
     
@@ -1416,7 +1719,7 @@ class MainWindow(QMainWindow):
                 self.prep_beat_list_derived()
             except Exception:
                 self.log_text(
-                    f'unable to load file: {Exception} <br/> {sys.exc_info()}',
+                    f'unable to load file: {Exception}<br/>{traceback.format_exc()}',
                     'red'
                     )
     
@@ -1445,7 +1748,8 @@ class MainWindow(QMainWindow):
             try:
                 self.autores_results_data = {
                     'Baseline':pandas.read_excel(self.autores_results_path,'Baseline'),
-                    'Challenge':pandas.read_excel(self.autores_results_path,'Challenge')
+                    'Challenge':pandas.read_excel(self.autores_results_path,'Challenge'),
+                    'Timestamps':pandas.read_excel(self.autores_results_path,'Timestamps'),
                     }
                 self.prep_autores_timestamps_and_filters()
                 self.log_text(
@@ -1454,7 +1758,7 @@ class MainWindow(QMainWindow):
                     )
             except Exception:
                 self.log_text(
-                    f'unable to load file: {Exception} <br/> {sys.exc_info()}',
+                    f'unable to load file: {Exception}<br/>{traceback.format_exc()}',
                     'red'
                     )
     

@@ -113,7 +113,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 #%% import libraries
 
@@ -1552,6 +1552,14 @@ def main():
                     ).to_excel(writer,'Baseline', index=False)
                 pandas.DataFrame(Challenge_List).to_excel(
                     writer,'Challenge', index=False
+                    )
+                pandas.DataFrame(
+                    {
+                        'ts':Harmonized_Timestamps.keys(),
+                        'text':Harmonized_Timestamps.values()
+                        }
+                    ).to_excel(
+                    writer,'Timestamps',index=False
                     )
                 writer.save()
                 Logger.info('\n\nOutput Saved - {}'.format(output_path))
