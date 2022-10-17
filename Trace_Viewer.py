@@ -39,7 +39,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *save graphs
  -exportable and savable through native pyqtgraph dialog
 *(not yet started) launch with quick presentation of default view 
- -(i.e. graph 1 flow + breaths, graph 2 ecg + beats)
+ -(i.e. graph 1 flow + breaths, graph 2 ecg + beats) - can probably accomplish
+  this using a json/pickling of the graphs/lines, on reload - 
+  try to repopulate, remove elements that are not possible with warning to user 
 *(not yet started) run batch export of graphs
 *(not yet started) create/load/test basic settings for BASSPRO
 *(not yet started) create dialog for custom math to create new derrived 
