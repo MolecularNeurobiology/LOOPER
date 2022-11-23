@@ -3,29 +3,21 @@
 __VERSION__ = '42.0.2'
 
 """
-
 Physiology Command Center
 (C) 2019
 @author: Christopher Ward (christow@bcm.edu, ward.chris.s@gmail.com)
-
 Created as part of the Russell Ray Molecular Neurobiology Group's
 Autoresuscitation Project
-
 contributions to this project include code, concepts, or consultation from 
 several individuals including Russell Ray, Eunice Aissi, Dipak Patel, 
 Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, and Kevin Jiang
-
-
 This software provides a graphical interface for I/O between an computer
 and 1) Arduino Microcontroller, 2) LabJack Analog to Digital Converter.
 Signals from the LabJack undergo signal processing to identify key features
 used as triggers to execute programmed control sequences run by the Arduino.
-
 The current implementation utilizes pneumotachography and electrocardiogram 
 signals to monitor breathing and heart rate as part of a neonate 
 autoresuscitation assay.
-
-
 Default Workflow (subject to change)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0-signal preview mode (adjust baseline and confirm tunable parameters)
@@ -52,16 +44,13 @@ Default Workflow (subject to change)
 6-experiment ended mode 
 **terminate preview and capture, send signal to notify user
 **signal to DC out, or other Raspberry Pi notification
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Inputs: currently none - all settings are coordinated within the GUI
 Outputs: timeseries signal datafile 
     [calibration capture, animal signal capture] - this is currently one file 
     with seperate sections
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO regarding PCC
-
 *create flexibility for alternate study designs/data collection
 *create flexibility to terminate study after variable number of trials
 *error checking to prevent inversion of y axis, baseline and threshold values
@@ -70,10 +59,7 @@ TODO regarding PCC
     (probably try except and closing out connection)
 *better handling for arduino connection
 *incorporate logging library for improved status and debugging...maybe?
-
 *revisit UX restrictions for tweakables for display and general UX design
-
-
 related but slightly seperate
 *server/client for comms with Supervisor System and Worker Systems 
     (i.e. central workstation communicates to rigs running PCC for set-up and 
@@ -84,6 +70,7 @@ related but slightly seperate
 *migrate settings to external file
 *add challenge endpoint based on trial number
 *start minor gui improvements
+
 """
 
 
@@ -182,7 +169,6 @@ def guiGetFloat(title,text,default_if_canceled):
     .....
     declare as a dictionairy)
     {"title":"","minvalue":"","maxvalue":""}
-
     .....
     """
     root=tkinter.Tk().withdraw()
@@ -204,7 +190,6 @@ def guiGetText(title,text,default_if_canceled):
     .....
     declare as a dictionairy)
     {"title":"","minvalue":"","maxvalue":""}
-
     .....
     """
     root=tkinter.Tk().withdraw()
