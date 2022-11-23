@@ -736,7 +736,61 @@ arduino_stream=StreamArduino(ser)
 ardThread= threading.Thread(target=arduino_stream.readStreamData)
 ardThread.start()
 
-##%%
+##%% Start Reciving from manger
+from socket import AF_INET, socket, SOCK_STREAM
+
+from threading import Thread
+
+def receive():
+
+    """Handles receiving of messages."""
+
+    while True:
+
+        try:
+
+            msg = client_socket.recv(BUFSIZ).decode("utf8")
+
+            print(msg)
+
+        except OSError:  # Possibly client has left the chat.
+
+            break
+
+ 
+
+ 
+
+def send(msg, event=None):  # event is passed by binders.
+
+    """Handles sending of messages."""
+
+    client_socket.send(bytes(msg, "utf8"))
+
+    if msg == "{quit}":
+
+        client_socket.close()
+ 
+"""
+HOST = "SMMacbook.local"
+PORT = 33000
+BUFSIZ = 1024
+
+ADDR = (HOST, PORT)
+
+ 
+
+client_socket = socket(AF_INET, SOCK_STREAM)
+
+client_socket.connect(ADDR)
+
+send("pi")
+
+receive_thread = threading.Thread(target=receive)
+
+receive_thread.start()
+
+"""
 
 #%%   
 #% main loop
@@ -746,6 +800,7 @@ Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
 Challenge_Timer=datetime.now()
 Challenge_Delay=5
+
 
 
 
@@ -1793,6 +1848,7 @@ try:
             hr_points_graphed=[]
             for p in hr_points:
                 hr_points_graphed.append(pygame.draw.circle(DISPLAYSURF,GREEN,(int(p[0]),int(p[1])),5))
+                send(str((int(p[0]),int(p[1]))))
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
