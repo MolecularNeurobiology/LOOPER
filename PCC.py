@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '41.0.2'
+__VERSION__ = '42.0.2'
 
 """
 Physiology Command Center
@@ -65,7 +65,14 @@ related but slightly seperate
     (i.e. central workstation communicates to rigs running PCC for set-up and 
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
+
+!!! v42.0.0 goals CW !!!
+*migrate settings to external file
+*add challenge endpoint based on trial number
+*start minor gui improvements
 """
+
+
 
 ##
 #%% import libraries
@@ -92,6 +99,17 @@ import smtplib
 import ssl
 import serial
 import serial.tools.list_ports
+
+import logging
+
+#Import constants from CONSTANTS.PY
+from CONSTANTS import *
+
+#GET GUI classes from GUI.py
+from GUI import *
+
+#Import Stream classes fro Strem.py
+from Stream import *
 
 ##
 #%%
@@ -122,9 +140,43 @@ try:
 except Exception as e:
     print('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
-    
+   
 ##
 #%% define functions
+##LOGGING SETUPn
+
+def setup_logging(filename, debug = 1):
+    log_format = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
+    logger = logging.getLogger(__name__)
+    if debug:
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(logging.DEBUG)
+    else:
+        c_handler = logging.StreamHandler()
+        c_handler.setLevel(logging.INFO)
+    f_handler = logging.FileHandler(filename + ".log")
+    f_handler.setLevel(logging.WARNING)
+    c_handler.setFormatter(log_format)
+    f_handler.setFormatter(log_format)
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
+    logger.warning('PLETHYSMOGRAPHY COMMAND CENTER LOG FILE\n')
+    logger.warning('file may contain mutliple sessions, session marker : $$$$$\n')
+    logger.warning('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
+                        year=now.year, month=now.month, day=now.day,
+                        hour=now.hour, minute=now.minute, second=now.second))
+    return logger
+
+def log_to_file(logger, message):
+    logger.warning(message)
+
+def log_to_console(logger, message):
+    logger.debug(message)
+
+logger = logging.getLogger(__name__)
+##
+
+    
 def guiSaveFileName(kwargs={}):
     """Returns the path to the filename and location entered in the GUI
     *Function calls on tkFileDialog and uses those arguments
@@ -196,6 +248,50 @@ def guiGetText(title,text,default_if_canceled):
             root.destroy()
         except: pass
         return outputtext
+
+
+# class OptionPanel:
+#     def __init__(self,panel_title, option_dict):
+#         root = tkinter.Tk()
+#         root.title = panel_title
+#         self.Buttons = {}
+#         for k in option_dict:
+#             self.Buttons[k] = tkinter.Button(
+#                 root,
+#                 text = option_dict[k]['text'],
+#                 value = option_dict[k]['value'],
+#                 command = option_dict[k]['command'],
+#                 bg = option_dict[k]['bg_color'],
+#                 height = option_dict[k]['height'],
+#                 width = option_dict[k]['width']
+#                 )
+#             self.Buttons[k].grid(sticky ='S')
+    
+
+# #%% option panel test
+# TestPanel = OptionPanel(
+#     'this is just a test',
+#     {'button1':
+#      {
+#       'text':'button1',
+#       'command':guiGetText('test1','test1 text','default'),
+#       'bg_color':'green',
+#       'height':10,
+#       'width':40
+#       },
+#      'button2':
+#       {
+#        'text':'button2',
+#        'command':guiGetText('test2','test2 text','default'),
+#        'bg_color':'red',
+#        'height':10,
+#        'width':40
+#        }
+#      }
+#         )
+                        
+
+
 #%%
 def emailnotification(emailsettingslocation,dev):
     with open(emailsettingslocation,'r') as oif:
@@ -290,15 +386,7 @@ def advance(state,minstate,maxstate):
         state=minstate
     return state
 
-def trianglepoints(direction):
-    if direction=='up':
-        return [(10,0),(0,10),(20,10)]
-    elif direction=='down':
-        return [(10,10),(0,0),(20,0)]
-    elif direction=='left':
-        return [(0,10),(10,0),(10,20)]
-    elif direction=='right':
-        return [(0,0),(0,20),(10,10)]
+
     
 def save_button():
     print('save')
@@ -486,6 +574,7 @@ def processStatus(status,device,serial_connection,ADC):
         serialtext='<U,0,0>'
         try:
             ser.write(serialtext.encode())
+            log_to_file(logger, '{} - sent'.format(serialtext))
             print('{} - sent'.format(serialtext))
             status['startup_ready']=1
         except:
@@ -520,6 +609,7 @@ def processStatus(status,device,serial_connection,ADC):
         
         try:
             ser.write(serialtext.encode())
+            log_to_file(logger, '{} - sent'.format(serialtext))
             print('{} - sent'.format(serialtext))
         except:
             print('unable to transmit "{}"via serial io'.format(serialtext))
@@ -528,489 +618,14 @@ def processStatus(status,device,serial_connection,ADC):
 
 
 #%% define classes
-class adjustbutton(pygame.sprite.Sprite):
-    def __init__(self,color,width,height,points,TL=(0,0)):
-        super().__init__() #not sure what this does - probably gathers sprite class initialization data...
-        
-        self.TL=TL
-        self.image=pygame.Surface([width,height])
-        self.image.fill(WHITE)
-        pygame.draw.polygon(self.image,color,points)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-        
-class labeledbutton(pygame.sprite.Sprite):
-    def __init__(self,color1,color2,width,height,label,TL=(0,0)):
-        super().__init__() #not sure what this does - probably gathers sprite class initialization data...
 
-        self.width=width
-        self.height=height
-        self.TL=TL
-        self.label=label
-        self.color1=color1
-        self.color2=color2
-        
-        buttonlabel = font.render(label,True,color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(width/2),int(height/2))
-        
-        self.image=pygame.Surface([width,height])
-        self.image.fill(color1)
-        pygame.draw.rect(self.image,color1,(0,0,width,height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-    
-    def relocate(self,x,y):
-        self.TL=(x,y)
-
-        buttonlabel = font.render(self.label,True,self.color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(self.width/2),int(self.height/2))
-        
-        self.image=pygame.Surface([self.width,self.height])
-        self.image.fill(self.color1)
-        pygame.draw.rect(self.image,self.color1,(0,0,self.width,self.height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-    
-    def update(self,color1,color2,label):
-        self.color1=color1
-        self.color2=color2
-        self.label=label
-        
-        buttonlabel = font.render(label,True,color2)
-        buttonlabel_rect= buttonlabel.get_rect()
-        buttonlabel_rect.center=(int(self.width/2),int(self.height/2))
-        self.image=pygame.Surface([self.width,self.height])
-        self.image.fill(color1)
-        pygame.draw.rect(self.image,color1,(0,0,self.width,self.height))
-        self.image.blit(buttonlabel,buttonlabel_rect)
-        self.rect = self.image.get_rect()
-        self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
-
-    def update_left(self,color1,color2,label):
-            self.color1=color1
-            self.color2=color2
-            self.label=label
-            
-            buttonlabel = font.render(label,True,color2)
-            buttonlabel_rect= buttonlabel.get_rect()
-            buttonlabel_rect.midleft=(10,int(self.height/2))
-            self.image=pygame.Surface([self.width,self.height])
-            self.image.fill(color1)
-            pygame.draw.rect(self.image,color1,(0,0,self.width,self.height))
-            self.image.blit(buttonlabel,buttonlabel_rect)
-            self.rect = self.image.get_rect()
-            self.rect.x,self.rect.y=(self.TL[0],self.TL[1])
 
 #%% set-up class for streaming data
 ## try streaming arduino data
-class StreamArduino(object):
-    def __init__(self,device):
-        self.device=device
-        self.data=Queue.Queue()
-        self.finished = False
 
-    def readStreamData(self):
-        while not self.finished:
-            self.finished = False
-            returnText=self.device.read(1000)
-            self.data.put_nowait(deepcopy(returnText))
-
-
-        
 ##
+
         
-class StreamDataReader(object):
-    def __init__(self, device):
-        self.device = device
-        self.data = Queue.Queue()
-        self.readCount = 0
-        self.missed = 0
-        self.finished = True
-        self.start=0
-        self.current=0
-        self.duration=0.0
-        self.captured_time=0
-        self.SCAN_FREQUENCY=0
-        self.NUM_CHANNELS=0
-        self.lag=0
-        
-    def readStreamData(self):
-        self.finished = False
-        
-        print("Start stream.")
-        
-        try:
-            # Try to stop stream mode. Ignore exception if it fails.
-            self.device.streamStop()
-            print('Prior Stream Terminated')
-        except:
-            print('No Prior Stream')
-        
-        try:
-            self.start = datetime.now()
-            self.readCount=0
-            self.device.streamStart()
-            
-            while not self.finished:
-                # Calling with convert = False, because we are going to convert in
-                # the main thread.
-                returnDict = next(self.device.streamData(convert=False))
-                if returnDict is None:
-                    print("No stream data")
-                    continue
-
-                self.data.put_nowait(deepcopy(returnDict))
-
-                self.missed += returnDict["missed"]
-                self.readCount += 1
-                self.current=datetime.now()
-
-            
-            print("Stream stopped.\n")
-            self.device.streamStop()
-            
-        except Exception:
-            try:
-                # Try to stop stream mode. Ignore exception if it fails.
-                self.device.streamStop()
-            except:
-                pass
-            self.finished = True
-            e = sys.exc_info()[1]
-            print("readStreamData exception: %s %s" % (type(e), e))
-
-    def stopStreamData(self):
-        try:
-            # Try to stop stream mode. Ignore exception if it fails.
-            self.finished = True
-        except:
-            pass
-##
-#%% define constants/buffers/status-tags/customization-parameters
-Mode_dict={0:'startup',
-           1:'standby',
-           2:'Signal Preview 1',
-           3:'calibration',
-           4:'Signal Preview 2',
-           5:'Habituation',
-           6:'Signal Preview 3',
-           7:'Pre-Inject',
-           8:'Inject',
-           9:'Baseline',
-           10:'Challenge',
-           11:'Finished'}
-Mode_timing={0:-1,
-             1:-1,
-             2:-1,
-             3:60*2,
-             4:-1,
-             5:30*60,
-             6:-1,
-             7:10*60,
-             8:-1,
-             9:15*60,
-             10:-1,
-             11:-1}
-
-savable_modes=['calibration','Habituation','Pre-Inject','Baseline','Challenge']
-
-
-Current_Mode=0 # start in first mode
-prev_Mode=-1
-
-
-## buffers
-breath_list=[]
-breath_dict={}
-
-HR_list=[]
-HR_dict={}
-
-quality_seg_list=[]
-quality_seg_dict={}
-
-serial_list=['1','2','3','4','5','6','7','8','9']
-
-## constants
-ScreenSize=(1280,960)
-FPS = 60 # frames per second setting
-fpsClock = pygame.time.Clock()
-
-BACKGROUND_COLOR = (200,200,200)
-GRAPH_BACKGROUND = (255,255,255)
-BUTTON_NORMAL_COLOR = (100,100,100)
-BUTTON_TOGGLED_COLOR = (50,150,50)
-BUTTON_URGENT_COLOR = (200,0,0)
-BUTTON_WARNING_COLOR = (200,200,0)
-
-BLACK=(0,0,0)
-WHITE=(255,255,255)
-LGREY=(200,200,200)
-DGREY=(50,50,50)
-RED=(200,0,0)
-ORANGE=(200,50,0)
-YELLOW=(200,200,0)
-GREEN=(50,150,50)
-BLUE=(0,0,255)
-VIOLET=(200,0,255)
-
-g1_TL=(100,25)
-g1_xySize=(250,250)
-g1_x_minmax=[0,500]
-g1_y_minmax=[-2,2]
-
-g2_TL=(100,325)
-g2_xySize=(250,250)
-g2_x_minmax=[0,500]
-g2_y_minmax=[-1,5]
-
-
-g3_TL=(100,625)
-g3_xySize=(250,250)
-g3_x_minmax=[0,500]
-g3_y_minmax=[-3,3]
-
-#sensor value displays
-BT_TL=(450,50)
-CT_TL=(450,100)
-RH_TL=(450,150)
-O2_TL=(450,200)
-CO2_TL=(450,250)
-#derived param displays
-BPM_TL=(450,300)
-
-TV_TL=(450,350)
-HR_TL=(450,400)
-
-baseBPM_TL=(450,500)
-
-baseTV_TL=(450,550)
-baseHR_TL=(450,600)
-qual_bouts_TL=(450,750)
-qual_dur_TL=(450,800)
-sincelastbreath_TL=(450,700)
-
-SLB_Value_TL=(900,700)
-qual_test_TL=(700,750)
-
-#sizes
-#sensor value displays
-BT_xySize=(200,50)
-CT_xySize=(200,50)
-RH_xySize=(200,50)
-O2_xySize=(200,50)
-CO2_xySize=(200,50)
-#derived param displays
-BPM_xySize=(200,50)
-#PIF_xySize=(200,50)
-TV_xySize=(200,50)
-HR_xySize=(200,50)
-baseBPM_xySize=(200,50)
-#basePIF_xySize=(200,50)
-baseTV_xySize=(200,50)
-baseHR_xySize=(200,50)
-sincelastbreath_xySize=(200,50)
-qual_bouts_xySize=(200,50)
-qual_dur_xySize=(200,50)
-qual_test_xySize=(200,50)
-
-increment=0.1
-inc_TL=(450,50)
-
-cur_time=datetime.now()
-
-#$$$$ Scoreboard
-SLB_Trigger_Setter_xySize=(200,50)
-Challenge_Counter_xySize=(200,50)
-CurrentChallengeCO2_Timer_xySize=(200,50)
-CurrentChallengeRecovery_Timer_xySize=(200,50)
-
-
-Position_RA_xySize=(200,25)
-Position_Gas_xySize=(200,25)
-Duration_Cal_xySize=(200,25)
-Duration_Prefill_xySize=(200,25)
-
-Serial_Abort_xySize=(100,50)
-Serial_ShutDown_xySize=(100,50)
-finish_startup_xySize=(200,50)
-SerialOutTester_xySize=(200,50)
-
-SLB_Trigger_Setter_TL=(700,50)
-Challenge_Counter_TL=(700,100)
-CurrentChallengeCO2_Timer_TL=(700,150)
-CurrentChallengeRecovery_Timer_TL=(700,200)
-
-Arduino_Function_Constants={
-    'Position_RA':0,
-    'Position_Gas':3,
-    'Duration_Cal':30,
-    'Duration_Prefill':60
-    }
-
-Position_RA_TL=(700,250)
-Position_Gas_TL=(700,275)
-Duration_Cal_TL=(700,300)
-Duration_Prefill_TL=(700,325)
-
-
-Serial_Abort_TL=(700,350)
-Serial_ShutDown_TL=(800,350)
-finish_startup_TL=(700,400)
-
-SerialOutTester_TL=(700,450)
-
-SO1_xySize=(300,25)
-SO2_xySize=(300,25)
-SO3_xySize=(300,25)
-SO4_xySize=(300,25)
-SO5_xySize=(300,25)
-SO6_xySize=(300,25)
-SO7_xySize=(300,25)
-SO8_xySize=(300,25)
-SO9_xySize=(300,25)
-
-SO1_TL=(650,500)
-SO2_TL=(650,525)
-SO3_TL=(650,550)
-SO4_TL=(650,575)
-SO5_TL=(650,600)
-SO6_TL=(650,625)
-SO7_TL=(650,650)
-SO8_TL=(650,675)
-SO9_TL=(650,700)
-
-
-#$$$$
-
-baseline_flow_TL=(40,170)
-thresh_flow_TL=(40,100)
-thresh2_flow_TL=450,200
-baseline_vol_TL=(40,470)
-thresh_vol_TL=(40,400)
-baseline_ecg_TL=(40,770)
-noise_ecg_TL=(450,630)
-absthresh_ecg_TL=(40,700)
-thresh_ecg1_TL=(450,700)
-thresh_ecg2_TL=(450,770)
-
-INVERT_FLOW_TL=(950,300)
-PLETHFILT_TL=(950,325)
-
-ECGFILT_TL=(950,360)
-INVERT_ECG_TL=(950,385)#
-
-HR_recovery_thresh_TL=(950,420)
-BPM_recovery_thresh_TL=(950,450)
-avgBPM_thresh_TL=(950,490)
-cvTT_thresh_TL=(950,520)
-avgHR_thresh_TL=(950,550)
-avgRR_thresh_TL=(950,580)
-cvRR_thresh_TL=(950,610)
-BSD_thresh_TL=(950,640)
-DVTV_thresh_TL=(950,670)
-QB_duration_TL=(950,700)
-
-SLB_trigger_TL=(950,750)
-minimum_resus_time_TL=(950,780)
-CALL_DEATH_trigger_TL=(950,810)
-               
-
-## buffers and status tags
-# variables to hold error reports - need to make and move this to a log file eventually
-
-PreFilt_data1=[0 for i in range(1000)]
-#PreFilt_data2=[0 for i in range(1000)]
-PreFilt_data3=[0 for i in range(20000)]
-PreFilt_data3_ds=[0 for i in range(1000)]
-
-data1=[0 for i in range(500)]
-#data2=[0 for i in range(500)]
-data3=[0 for i in range(10000)]
-data3_ds=[0 for i in range(500)]
-
-RunningBreaths=[]
-RunningBeats=[]
-
-errors = 0
-errlist=[]
-missed = 0
-curdata={}
-
-pleth_filt_state=0
-ecg_filt_state=1
-
-baseHR=1 #move this to the constants/buffer section
-avgRR=999
-OUTPUTFILE=None
-running=True
-READYTOSAVE=False
-RESCUE_STATUS=False
-slb_COLOR=BLACK
-slb_COLOR2=WHITE
-REL_TIMER=0
-QB_TIMER=0
-QB_Counter=0
-QB_duration=0
-SinceLastBreath=0
-SLB_Trigger=5
-CALL_DEATH_trigger=10*60
-minimum_resus_time=5*60
-current_recovery=300
-resus_START=0-minimum_resus_time
-
-#$$$$ scoreboard
-value_Challenge_Counter=0
-value_CurrentChallengeCO2_Timer=0
-value_CurrentChallengeCO2_Start=datetime.now()
-value_CurrentChallengeRecovery_Timer=0
-value_CurrentChallengeRecovery_Start=datetime.now()
-
-
-#$$$$
-
-INVERT_FLOW=0
-INVERT_ECG=0
-pulse_duration=3 #duration of high voltage pulse to microcontroller
-
-## tuning and customization parameters
-baseline_flow=0
-thresh_flow=0.25
-thresh2_flow=0.5
-filt_flow='None'
-
-baseline_vol=0
-thresh_vol=0.25
-filt_vol='None'
-
-baseline_ecg=0
-absthresh_ecg=0.3
-thresh_ecg1=4.0
-thresh_ecg2=2.0
-noise_ecg=75
-
-HR_recovery_thresh=63
-BPM_recovery_thresh=50
-QB_minimum_duration=5
-stream_lag=0
-prev_qual_test=0
-CURRENT_STATUS="Not Ready"
-OLD_STATUS="Not Ready"
-
-filt_crit_Dict={
-            'avgBPM':250,
-            'cvTT':0.5,
-            'avgHR':700,
-            'avgRR':999,
-            'cvRR':0.5,
-            'BSD':0.25,
-            'DVTV':0.75
-            }
-
 #%%
 now=datetime.now()
 cur_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibration':0,'challenge air':0,'challenge gas':0,
@@ -1031,717 +646,7 @@ old_STATUS_Dict={'standby':0,'startup':0,'streaming':0,'ready to save':0,'calibr
                  }
 
 ##
-#%% setup display
-pygame.init()
-font=pygame.font.SysFont('lucidaconsole',18)
-DISPLAYSURF = pygame.display.set_mode(ScreenSize)
-pygame.display.set_caption('Plethysmography Command Center')
-#%%
-DISPLAYSURF.fill(BACKGROUND_COLOR)
-## prepare sprites
-control_sizes={'vertical':{'inc':(20,10),'dec':(20,10),'reset':(20,20),'float':(95,20)}}
-control_offset={'verticalA':{'inc':(-30,-10),'dec':(-30,40),'reset':(-30,0),'float':(-95,20)},
-                'verticalB':{'inc':(-30,-10),'dec':(-30,40),'reset':(-30,0),'float':(-35,20)},
-                'verticalC':{'inc':(-30,200),'dec':(-30,250),'reset':(-30,210),'float':(-95,230)},
-                'verticalD':{'inc':(-30,200),'dec':(-30,250),'reset':(-30,210),'float':(-35,230)},
-                'horizontalA':{'inc':(-10,10),'dec':(40,10),'reset':(0,10),'float':(20,10)}}
 
-#g1 controls
-g1_ymax_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g1_TL[0]+control_offset['verticalA']['inc'][0],
-                          g1_TL[1]+control_offset['verticalA']['inc'][1]))
-g1_ymax_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g1_TL[0]+control_offset['verticalA']['dec'][0],
-                          g1_TL[1]+control_offset['verticalA']['dec'][1]))
-g1_ymax_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g1_TL[0]+control_offset['verticalA']['reset'][0],
-                                 g1_TL[1]+control_offset['verticalA']['reset'][1]))
-g1_ymax_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g1_y_minmax[1]),(g1_TL[0]+control_offset['verticalA']['float'][0],
-                                 g1_TL[1]+control_offset['verticalA']['float'][1]))
-g1_ymin_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g1_TL[0]+control_offset['verticalC']['inc'][0],
-                          g1_TL[1]+control_offset['verticalC']['inc'][1]))
-g1_ymin_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g1_TL[0]+control_offset['verticalC']['dec'][0],
-                          g1_TL[1]+control_offset['verticalC']['dec'][1]))
-g1_ymin_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g1_TL[0]+control_offset['verticalC']['reset'][0],
-                                 g1_TL[1]+control_offset['verticalC']['reset'][1]))
-g1_ymin_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g1_y_minmax[0]),(g1_TL[0]+control_offset['verticalC']['float'][0],
-                                 g1_TL[1]+control_offset['verticalC']['float'][1]))
-
-#g2 controls
-#
-g2_ymax_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g2_TL[0]+control_offset['verticalA']['inc'][0],
-                          g2_TL[1]+control_offset['verticalA']['inc'][1]))
-g2_ymax_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g2_TL[0]+control_offset['verticalA']['dec'][0],
-                          g2_TL[1]+control_offset['verticalA']['dec'][1]))
-g2_ymax_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g2_TL[0]+control_offset['verticalA']['reset'][0],
-                                 g2_TL[1]+control_offset['verticalA']['reset'][1]))
-g2_ymax_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g2_y_minmax[1]),(g2_TL[0]+control_offset['verticalA']['float'][0],
-                                 g2_TL[1]+control_offset['verticalA']['float'][1]))
-g2_ymin_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g2_TL[0]+control_offset['verticalC']['inc'][0],
-                          g2_TL[1]+control_offset['verticalC']['inc'][1]))
-
-g2_ymin_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g2_TL[0]+control_offset['verticalC']['dec'][0],
-                          g2_TL[1]+control_offset['verticalC']['dec'][1]))
-g2_ymin_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g2_TL[0]+control_offset['verticalC']['reset'][0],
-                                 g2_TL[1]+control_offset['verticalC']['reset'][1]))
-g2_ymin_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g2_y_minmax[0]),(g2_TL[0]+control_offset['verticalC']['float'][0],
-                                 g2_TL[1]+control_offset['verticalC']['float'][1]))
-
-#g3 controls
-g3_ymax_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g3_TL[0]+control_offset['verticalA']['inc'][0],
-                          g3_TL[1]+control_offset['verticalA']['inc'][1]))
-g3_ymax_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g3_TL[0]+control_offset['verticalA']['dec'][0],
-                          g3_TL[1]+control_offset['verticalA']['dec'][1]))
-g3_ymax_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g3_TL[0]+control_offset['verticalA']['reset'][0],
-                                 g3_TL[1]+control_offset['verticalA']['reset'][1]))
-g3_ymax_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g3_y_minmax[1]),(g3_TL[0]+control_offset['verticalA']['float'][0],
-                                 g3_TL[1]+control_offset['verticalA']['float'][1]))
-g3_ymin_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (g3_TL[0]+control_offset['verticalC']['inc'][0],
-                          g3_TL[1]+control_offset['verticalC']['inc'][1]))
-
-g3_ymin_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (g3_TL[0]+control_offset['verticalC']['dec'][0],
-                          g3_TL[1]+control_offset['verticalC']['dec'][1]))
-g3_ymin_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(g3_TL[0]+control_offset['verticalC']['reset'][0],
-                                 g3_TL[1]+control_offset['verticalC']['reset'][1]))
-g3_ymin_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(g3_y_minmax[0]),(g3_TL[0]+control_offset['verticalC']['float'][0],
-                                 g3_TL[1]+control_offset['verticalC']['float'][1]))
-
-#increment adjuster
-inc_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (inc_TL[0]+control_offset['verticalA']['inc'][0],
-                          inc_TL[1]+control_offset['verticalA']['inc'][1]))
-inc_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (inc_TL[0]+control_offset['verticalA']['dec'][0],
-                          inc_TL[1]+control_offset['verticalA']['dec'][1]))
-inc_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(inc_TL[0]+control_offset['verticalA']['reset'][0],
-                                 inc_TL[1]+control_offset['verticalA']['reset'][1]))
-inc_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(increment),(inc_TL[0]+control_offset['verticalA']['float'][0],
-                                 inc_TL[1]+control_offset['verticalA']['float'][1]))
-
-#baseline flow adjuster
-baseline_flow_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (baseline_flow_TL[0]+control_offset['verticalA']['inc'][0],
-                          baseline_flow_TL[1]+control_offset['verticalA']['inc'][1]))
-baseline_flow_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (baseline_flow_TL[0]+control_offset['verticalA']['dec'][0],
-                          baseline_flow_TL[1]+control_offset['verticalA']['dec'][1]))
-baseline_flow_reset=labeledbutton(BLUE,WHITE,
-                                  control_sizes['vertical']['reset'][0],
-                                  control_sizes['vertical']['reset'][1],
-                                  'R',
-                                  (baseline_flow_TL[0]+control_offset['verticalA']['reset'][0],
-                                   baseline_flow_TL[1]+control_offset['verticalA']['reset'][1]))
-baseline_flow_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(baseline_flow),(baseline_flow_TL[0]+control_offset['verticalB']['float'][0],
-                                 baseline_flow_TL[1]+control_offset['verticalB']['float'][1]))
-
-#thresh flow adjuster
-thresh_flow_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (thresh_flow_TL[0]+control_offset['verticalA']['inc'][0],
-                          thresh_flow_TL[1]+control_offset['verticalA']['inc'][1]))
-thresh_flow_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (thresh_flow_TL[0]+control_offset['verticalA']['dec'][0],
-                          thresh_flow_TL[1]+control_offset['verticalA']['dec'][1]))
-thresh_flow_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(thresh_flow_TL[0]+control_offset['verticalA']['reset'][0],
-                                 thresh_flow_TL[1]+control_offset['verticalA']['reset'][1]))
-thresh_flow_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(thresh_flow),(thresh_flow_TL[0]+control_offset['verticalB']['float'][0],
-                                 thresh_flow_TL[1]+control_offset['verticalB']['float'][1]))
-
-#thresh2 flow adjuster
-thresh2_flow_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (thresh2_flow_TL[0]+control_offset['verticalA']['inc'][0],
-                          thresh2_flow_TL[1]+control_offset['verticalA']['inc'][1]))
-thresh2_flow_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (thresh2_flow_TL[0]+control_offset['verticalA']['dec'][0],
-                          thresh2_flow_TL[1]+control_offset['verticalA']['dec'][1]))
-thresh2_flow_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(thresh2_flow_TL[0]+control_offset['verticalA']['reset'][0],
-                                 thresh2_flow_TL[1]+control_offset['verticalA']['reset'][1]))
-thresh2_flow_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(thresh2_flow),(thresh2_flow_TL[0]+control_offset['verticalA']['float'][0],
-                                 thresh2_flow_TL[1]+control_offset['verticalA']['float'][1]))
-
-#baseline vol adjuster
-baseline_vol_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (baseline_vol_TL[0]+control_offset['verticalA']['inc'][0],
-                          baseline_vol_TL[1]+control_offset['verticalA']['inc'][1]))
-baseline_vol_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (baseline_vol_TL[0]+control_offset['verticalA']['dec'][0],
-                          baseline_vol_TL[1]+control_offset['verticalA']['dec'][1]))
-baseline_vol_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',
-                            (baseline_vol_TL[0]+control_offset['verticalA']['reset'][0],
-                             baseline_vol_TL[1]+control_offset['verticalA']['reset'][1]))
-baseline_vol_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(baseline_vol),(baseline_vol_TL[0]+control_offset['verticalB']['float'][0],
-                                 baseline_vol_TL[1]+control_offset['verticalB']['float'][1]))
-
-#thresh flow adjuster
-thresh_vol_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (thresh_vol_TL[0]+control_offset['verticalA']['inc'][0],
-                          thresh_vol_TL[1]+control_offset['verticalA']['inc'][1]))
-thresh_vol_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (thresh_vol_TL[0]+control_offset['verticalA']['dec'][0],
-                          thresh_vol_TL[1]+control_offset['verticalA']['dec'][1]))
-thresh_vol_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(thresh_vol_TL[0]+control_offset['verticalA']['reset'][0],
-                                 thresh_vol_TL[1]+control_offset['verticalA']['reset'][1]))
-thresh_vol_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(thresh_vol),(thresh_vol_TL[0]+control_offset['verticalB']['float'][0],
-                                 thresh_vol_TL[1]+control_offset['verticalB']['float'][1]))
-
-#baseline ecg adjuster
-baseline_ecg_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (baseline_ecg_TL[0]+control_offset['verticalA']['inc'][0],
-                          baseline_ecg_TL[1]+control_offset['verticalA']['inc'][1]))
-baseline_ecg_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (baseline_ecg_TL[0]+control_offset['verticalA']['dec'][0],
-                          baseline_ecg_TL[1]+control_offset['verticalA']['dec'][1]))
-baseline_ecg_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(baseline_ecg_TL[0]+control_offset['verticalA']['reset'][0],
-                                 baseline_ecg_TL[1]+control_offset['verticalA']['reset'][1]))
-baseline_ecg_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(baseline_ecg),(baseline_ecg_TL[0]+control_offset['verticalB']['float'][0],
-                                 baseline_ecg_TL[1]+control_offset['verticalB']['float'][1]))
-
-#noise ecg adjuster
-noise_ecg_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (noise_ecg_TL[0]+control_offset['verticalA']['inc'][0],
-                          noise_ecg_TL[1]+control_offset['verticalA']['inc'][1]))
-noise_ecg_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (noise_ecg_TL[0]+control_offset['verticalA']['dec'][0],
-                          noise_ecg_TL[1]+control_offset['verticalA']['dec'][1]))
-noise_ecg_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(noise_ecg_TL[0]+control_offset['verticalA']['reset'][0],
-                                 noise_ecg_TL[1]+control_offset['verticalA']['reset'][1]))
-noise_ecg_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.1F}'.format(noise_ecg),(noise_ecg_TL[0]+control_offset['verticalA']['float'][0],
-                                 noise_ecg_TL[1]+control_offset['verticalA']['float'][1]))
-
-#absthresh ecg adjuster
-absthresh_ecg_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (absthresh_ecg_TL[0]+control_offset['verticalA']['inc'][0],
-                          absthresh_ecg_TL[1]+control_offset['verticalA']['inc'][1]))
-absthresh_ecg_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (absthresh_ecg_TL[0]+control_offset['verticalA']['dec'][0],
-                          absthresh_ecg_TL[1]+control_offset['verticalA']['dec'][1]))
-absthresh_ecg_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(absthresh_ecg_TL[0]+control_offset['verticalA']['reset'][0],
-                                 absthresh_ecg_TL[1]+control_offset['verticalA']['reset'][1]))
-absthresh_ecg_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.3F}'.format(absthresh_ecg),(absthresh_ecg_TL[0]+control_offset['verticalB']['float'][0],
-                                 absthresh_ecg_TL[1]+control_offset['verticalB']['float'][1]))
-
-
-#thresh ecg1 adjuster
-thresh_ecg1_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (thresh_ecg1_TL[0]+control_offset['verticalA']['inc'][0],
-                          thresh_ecg1_TL[1]+control_offset['verticalA']['inc'][1]))
-thresh_ecg1_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (thresh_ecg1_TL[0]+control_offset['verticalA']['dec'][0],
-                          thresh_ecg1_TL[1]+control_offset['verticalA']['dec'][1]))
-thresh_ecg1_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(thresh_ecg1_TL[0]+control_offset['verticalA']['reset'][0],
-                                 thresh_ecg1_TL[1]+control_offset['verticalA']['reset'][1]))
-thresh_ecg1_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.2F}'.format(thresh_ecg1),(thresh_ecg1_TL[0]+control_offset['verticalA']['float'][0],
-                                 thresh_ecg1_TL[1]+control_offset['verticalA']['float'][1]))
-
-thresh_ecg2_inc=adjustbutton(GREEN,
-                         control_sizes['vertical']['inc'][0],
-                         control_sizes['vertical']['inc'][1],
-                         trianglepoints('up'),
-                         (thresh_ecg2_TL[0]+control_offset['verticalA']['inc'][0],
-                          thresh_ecg2_TL[1]+control_offset['verticalA']['inc'][1]))
-thresh_ecg2_dec=adjustbutton(RED,
-                         control_sizes['vertical']['dec'][0],
-                         control_sizes['vertical']['dec'][1],
-                         trianglepoints('down'),
-                         (thresh_ecg2_TL[0]+control_offset['verticalA']['dec'][0],
-                          thresh_ecg2_TL[1]+control_offset['verticalA']['dec'][1]))
-thresh_ecg2_reset=labeledbutton(BLUE,WHITE,
-                            control_sizes['vertical']['reset'][0],
-                            control_sizes['vertical']['reset'][1],
-                            'R',(thresh_ecg2_TL[0]+control_offset['verticalA']['reset'][0],
-                                 thresh_ecg2_TL[1]+control_offset['verticalA']['reset'][1]))
-thresh_ecg2_float=labeledbutton(BLACK,WHITE,
-                            control_sizes['vertical']['float'][0],
-                            control_sizes['vertical']['float'][1],
-                            '{:#.2F}'.format(thresh_ecg2),(thresh_ecg2_TL[0]+control_offset['verticalA']['float'][0],
-                                 thresh_ecg2_TL[1]+control_offset['verticalA']['float'][1]))
-box_stream_lag=labeledbutton(BACKGROUND_COLOR,RED,
-                             150,25,
-                             '{:#.3F}'.format(stream_lag),
-                                 (ScreenSize[0]-150,ScreenSize[1]-25))
-PLETHFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER PLETH',PLETHFILT_TL)
-ECGFILT_TOGGLE=labeledbutton(RED,BLACK,300,25,'FILTER ECG',ECGFILT_TL)
-INVERT_FLOW_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert Flow:{}'.format(INVERT_FLOW),INVERT_FLOW_TL)
-INVERT_ECG_TOGGLE=labeledbutton(WHITE,BLACK,300,25,'Invert ECG:{}'.format(INVERT_ECG),INVERT_ECG_TL)
-
-box_minimum_resus_time=labeledbutton(WHITE,BLACK,300,25,'RECOVERY:{:d}/{:d})'.format(int(current_recovery),int(minimum_resus_time)),minimum_resus_time_TL)
-
-box_SLB_trigger=labeledbutton(YELLOW,BLACK,300,25,'SLB: {:#.2F} sec'.format(SLB_Trigger),SLB_trigger_TL)
-box_CALL_DEATH_trigger=labeledbutton(YELLOW,BLACK,300,25,'CALL DEATH: {:#.2F} min'.format(CALL_DEATH_trigger/60),CALL_DEATH_trigger_TL)
-box_HR_recovery_thresh=labeledbutton(YELLOW,BLACK,300,25,'HR recover: *NA* %',HR_recovery_thresh_TL)
-box_BPM_recovery_thresh=labeledbutton(YELLOW,BLACK,300,25,'BPM recover: *NA* %',BPM_recovery_thresh_TL)
-box_avgBPM_thresh=labeledbutton(YELLOW,BLACK,300,25,'avg BPM: *NA* bpm',avgBPM_thresh_TL)
-box_cvTT_thresh=labeledbutton(YELLOW,BLACK,300,25,'CV TT: *NA* ratio',cvTT_thresh_TL)
-box_avgHR_thresh=labeledbutton(YELLOW,BLACK,300,25,'avg HR: *NA* bpm',avgHR_thresh_TL)
-box_avgRR_thresh=labeledbutton(YELLOW,BLACK,300,25,'avg RR: *NA* sec',avgRR_thresh_TL)
-box_cvRR_thresh=labeledbutton(YELLOW,BLACK,300,25,'CV RR: *NA* ratio',cvRR_thresh_TL)
-box_BSD_thresh=labeledbutton(YELLOW,BLACK,300,25,'Base Drift: *NA* V',BSD_thresh_TL)
-box_DVTV_thresh=labeledbutton(YELLOW,BLACK,300,25,'DVTV: *NA* ratio',DVTV_thresh_TL)
-box_QB_duration=labeledbutton(YELLOW,BLACK,300,25,'min QB: *NA* sec',QB_duration_TL)
-
-box_BT=labeledbutton(WHITE,BLUE,BT_xySize[0],BT_xySize[1],'BT:*NA* C',BT_TL)
-box_CT=labeledbutton(WHITE,BLUE,CT_xySize[0],CT_xySize[1],'CT:*NA* C',CT_TL)
-box_RH=labeledbutton(WHITE,BLUE,RH_xySize[0],RH_xySize[1],'RH:*NA* %',RH_TL)
-box_O2=labeledbutton(WHITE,BLUE,O2_xySize[0],O2_xySize[1],'O2:*NA** %',O2_TL)
-box_CO2=labeledbutton(WHITE,BLUE,CO2_xySize[0],CO2_xySize[1],'CO2: *NA* %',CO2_TL)
-#derived param displays
-box_BPM=labeledbutton(BLUE,WHITE,BPM_xySize[0],BPM_xySize[1],'BPM:*NA*',BPM_TL)
-
-box_TV=labeledbutton(BLUE,WHITE,TV_xySize[0],TV_xySize[1],'TV:*NA*',TV_TL)
-box_HR=labeledbutton(BLUE,WHITE,HR_xySize[0],HR_xySize[1],'HR:*NA*',HR_TL)
-box_baseBPM=labeledbutton(GREEN,BLACK,baseBPM_xySize[0],baseBPM_xySize[1],'base BPM:*NA*',baseBPM_TL)
-
-box_baseTV=labeledbutton(GREEN,BLACK,baseTV_xySize[0],baseTV_xySize[1],'base TV:*NA*',baseTV_TL)
-box_baseHR=labeledbutton(GREEN,BLACK,baseHR_xySize[0],baseHR_xySize[1],'base HR:*NA*',baseHR_TL)
-box_sincelastbreath=labeledbutton(WHITE,GREEN,sincelastbreath_xySize[0],sincelastbreath_xySize[1],
-                                  'SLB: *NA* sec',sincelastbreath_TL)
-box_qual_bouts=labeledbutton(YELLOW,BLACK,qual_bouts_xySize[0],qual_bouts_xySize[1],'bouts:*NA*',qual_bouts_TL)
-box_qual_dur=labeledbutton(YELLOW,BLACK,qual_dur_xySize[0],qual_dur_xySize[1],'duration:*NA*',qual_dur_TL)
-box_qual_test=labeledbutton(WHITE,BLACK,qual_test_xySize[0],qual_test_xySize[1],'',qual_test_TL)
-
-graph1=labeledbutton(WHITE,WHITE,g1_xySize[0],g1_xySize[1],'',g1_TL)
-graph2=labeledbutton(WHITE,WHITE,g2_xySize[0],g2_xySize[1],'',g2_TL)
-graph3=labeledbutton(WHITE,WHITE,g3_xySize[0],g3_xySize[1],'',g3_TL)
-
-FLOW_LABEL=labeledbutton(WHITE,BLACK,125,25,'Flow',g1_TL)
-VOL_LABEL=labeledbutton(WHITE,BLACK,125,25,'Volume',g2_TL)
-ECG_LABEL=labeledbutton(WHITE,BLACK,125,25,'ECG',g3_TL)
-
-box_MODE=labeledbutton(BLACK,WHITE,250,25,Mode_dict[Current_Mode],(ScreenSize[0]-275,0))
-box_NEXT=labeledbutton(GREEN,WHITE,25,25,'>>',(ScreenSize[0]-25,0))
-box_duration=labeledbutton(BLACK,RED,250,25,'*NA* sec',(0,ScreenSize[1]-25))
-
-#$$$$ scoreboard
-
-SLB_Trigger_Setter=labeledbutton(WHITE,BLACK,SLB_Trigger_Setter_xySize[0],SLB_Trigger_Setter_xySize[1],
-                                 'SLB_Trigger: {}sec'.format(SLB_Trigger),SLB_Trigger_Setter_TL)
-Challenge_Counter=labeledbutton(WHITE,BLACK,Challenge_Counter_xySize[0],Challenge_Counter_xySize[1],
-                                'Challenge #: __', Challenge_Counter_TL)
-CurrentChallengeCO2_Timer=labeledbutton(WHITE,BLACK,CurrentChallengeCO2_Timer_xySize[0],CurrentChallengeCO2_Timer_xySize[1],
-                                           'CO2 Time: ___sec',CurrentChallengeCO2_Timer_TL)
-CurrentChallengeRecovery_Timer=labeledbutton(WHITE,BLACK,CurrentChallengeRecovery_Timer_xySize[0],CurrentChallengeRecovery_Timer_xySize[1],
-                                                'Rec Time: ___sec',CurrentChallengeRecovery_Timer_TL)
-
-Position_RA=labeledbutton(BLACK,WHITE,Position_RA_xySize[0],Position_RA_xySize[1],
-                          'RA position: {}'.format(Arduino_Function_Constants['Position_RA']),
-                          Position_RA_TL)
-Position_Gas=labeledbutton(BLACK,WHITE,Position_Gas_xySize[0],Position_Gas_xySize[1],
-                                        'Gas position: {}'.format(Arduino_Function_Constants['Position_Gas']),
-                                        Position_Gas_TL)
-Duration_Cal=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySize[1],
-                           'Cal dur: {}'.format(Arduino_Function_Constants['Duration_Cal']),
-                           Duration_Cal_TL)
-Duration_Prefill=labeledbutton(BLACK,WHITE,Duration_Cal_xySize[0],Duration_Cal_xySize[1],
-                               'Prefill dur: {}'.format(Arduino_Function_Constants['Duration_Prefill']),
-                               Duration_Prefill_TL)
-
-Serial_Abort=labeledbutton(RED,BLACK,Serial_Abort_xySize[0],Serial_Abort_xySize[1],
-                           'ABORT!',Serial_Abort_TL)
-Serial_ShutDown=labeledbutton(BLACK,WHITE,Serial_ShutDown_xySize[0],Serial_ShutDown_xySize[1],
-                              'ShutDown',Serial_ShutDown_TL)
-
-finish_startup=labeledbutton(BLACK,WHITE,finish_startup_xySize[0],finish_startup_xySize[1],
-                             '',finish_startup_TL)
-
-SerialOutTester=labeledbutton(WHITE,BLACK,SerialOutTester_xySize[0],SerialOutTester_xySize[1],
-                              'Serial Out',SerialOutTester_TL)
-
-SO1=labeledbutton(DGREY,WHITE,SO1_xySize[0],SO1_xySize[1],
-                  ':',SO1_TL)
-SO2=labeledbutton(DGREY,WHITE,SO2_xySize[0],SO2_xySize[1],
-                  ':',SO2_TL)
-SO3=labeledbutton(DGREY,WHITE,SO3_xySize[0],SO3_xySize[1],
-                  ':',SO3_TL)
-SO4=labeledbutton(DGREY,WHITE,SO4_xySize[0],SO4_xySize[1],
-                  ':',SO4_TL)
-SO5=labeledbutton(DGREY,WHITE,SO5_xySize[0],SO5_xySize[1],
-                  ':',SO5_TL)
-SO6=labeledbutton(DGREY,WHITE,SO6_xySize[0],SO6_xySize[1],
-                  ':',SO6_TL)
-SO7=labeledbutton(DGREY,WHITE,SO7_xySize[0],SO7_xySize[1],
-                  ':',SO7_TL)
-SO8=labeledbutton(DGREY,WHITE,SO8_xySize[0],SO8_xySize[1],
-                  ':',SO8_TL)
-SO9=labeledbutton(DGREY,WHITE,SO9_xySize[0],SO9_xySize[1],
-                  ':',SO9_TL)
-
-#$$$$
-                          
-box_SAVE=labeledbutton(BLACK,WHITE,500,25,'SAVE',(ScreenSize[0]-650,ScreenSize[1]-25))
-box_NOTIFICATION=labeledbutton(DGREY,WHITE,500,25,'NOTIFICATIONS-OFF',(ScreenSize[0]-650,ScreenSize[1]-50))
-
-box_Synch=labeledbutton(RED,WHITE,250,25,'Synch Stream',(ScreenSize[0]-275,25))
-box_mode_select={}
-box_mode_times={}
-for i in Mode_dict:
-    box_mode_select[i]=labeledbutton(BLACK,WHITE,300,25,'{}:{:#.2F}'.format(Mode_dict[i],Mode_timing[i]/60),(ScreenSize[0]-325,25*i+50))
-    box_mode_times[i]=labeledbutton(VIOLET,WHITE,25,25,'t',(ScreenSize[0]-25,25*i+50))
-
-#prep sprite list
-sprite_list=pygame.sprite.Group()
-
-sprite_list.add(box_MODE)
-
-sprite_list.add(box_Synch)
-for i in Mode_dict:
-    sprite_list.add(box_mode_select[i])
-    sprite_list.add(box_mode_times[i])
-
-
-sprite_list.add(box_NEXT)
-sprite_list.add(box_duration)
-
-sprite_list.add(graph1)
-sprite_list.add(graph2)
-sprite_list.add(graph3)
-
-sprite_list.add(box_SLB_trigger)
-sprite_list.add(box_CALL_DEATH_trigger)
-sprite_list.add(box_HR_recovery_thresh)
-sprite_list.add(box_BPM_recovery_thresh)
-sprite_list.add(box_avgBPM_thresh)
-sprite_list.add(box_cvTT_thresh)
-sprite_list.add(box_avgHR_thresh)
-sprite_list.add(box_avgRR_thresh)
-sprite_list.add(box_cvRR_thresh)
-sprite_list.add(box_BSD_thresh)
-sprite_list.add(box_DVTV_thresh)
-sprite_list.add(box_QB_duration)
-
-sprite_list.add(FLOW_LABEL)
-sprite_list.add(VOL_LABEL)
-sprite_list.add(ECG_LABEL)
-
-sprite_list.add(g1_ymax_inc)
-sprite_list.add(g1_ymax_dec)
-sprite_list.add(g1_ymax_reset)
-sprite_list.add(g1_ymax_float)
-sprite_list.add(g1_ymin_inc)
-sprite_list.add(g1_ymin_dec)
-sprite_list.add(g1_ymin_reset)
-sprite_list.add(g1_ymin_float)
-
-sprite_list.add(g2_ymax_inc)
-sprite_list.add(g2_ymax_dec)
-sprite_list.add(g2_ymax_reset)
-sprite_list.add(g2_ymax_float)
-sprite_list.add(g2_ymin_inc)
-sprite_list.add(g2_ymin_dec)
-sprite_list.add(g2_ymin_reset)
-sprite_list.add(g2_ymin_float)
-
-sprite_list.add(g3_ymax_inc)
-sprite_list.add(g3_ymax_dec)
-sprite_list.add(g3_ymax_reset)
-sprite_list.add(g3_ymax_float)
-sprite_list.add(g3_ymin_inc)
-sprite_list.add(g3_ymin_dec)
-sprite_list.add(g3_ymin_reset)
-sprite_list.add(g3_ymin_float)
-
-sprite_list.add(baseline_flow_inc)
-sprite_list.add(baseline_flow_dec)
-sprite_list.add(baseline_flow_reset)
-sprite_list.add(baseline_flow_float)
-
-sprite_list.add(baseline_vol_inc)
-sprite_list.add(baseline_vol_dec)
-sprite_list.add(baseline_vol_reset)
-sprite_list.add(baseline_vol_float)
-
-sprite_list.add(baseline_ecg_inc)
-sprite_list.add(baseline_ecg_dec)
-sprite_list.add(baseline_ecg_reset)
-sprite_list.add(baseline_ecg_float)
-
-sprite_list.add(noise_ecg_inc)
-sprite_list.add(noise_ecg_dec)
-sprite_list.add(noise_ecg_reset)
-sprite_list.add(noise_ecg_float)
-
-sprite_list.add(thresh_flow_inc)
-sprite_list.add(thresh_flow_dec)
-sprite_list.add(thresh_flow_reset)
-sprite_list.add(thresh_flow_float)
-
-sprite_list.add(thresh2_flow_inc)
-sprite_list.add(thresh2_flow_dec)
-sprite_list.add(thresh2_flow_reset)
-sprite_list.add(thresh2_flow_float)
-
-sprite_list.add(thresh_vol_inc)
-sprite_list.add(thresh_vol_dec)
-sprite_list.add(thresh_vol_reset)
-sprite_list.add(thresh_vol_float)
-
-sprite_list.add(thresh_ecg1_inc)
-sprite_list.add(thresh_ecg1_dec)
-sprite_list.add(thresh_ecg1_reset)
-sprite_list.add(thresh_ecg1_float)
-
-sprite_list.add(absthresh_ecg_inc)
-sprite_list.add(absthresh_ecg_dec)
-sprite_list.add(absthresh_ecg_reset)
-sprite_list.add(absthresh_ecg_float)
-
-sprite_list.add(thresh_ecg2_inc)
-sprite_list.add(thresh_ecg2_dec)
-sprite_list.add(thresh_ecg2_reset)
-sprite_list.add(thresh_ecg2_float)
-
-sprite_list.add(inc_inc)
-sprite_list.add(inc_dec)
-sprite_list.add(inc_reset)
-sprite_list.add(inc_float)
-
-sprite_list.add(ECGFILT_TOGGLE)
-sprite_list.add(PLETHFILT_TOGGLE)
-sprite_list.add(box_minimum_resus_time)
-sprite_list.add(INVERT_FLOW_TOGGLE)
-sprite_list.add(INVERT_ECG_TOGGLE)
-
-sprite_list.add(box_BT)
-sprite_list.add(box_CT)
-sprite_list.add(box_RH)
-sprite_list.add(box_O2)
-sprite_list.add(box_CO2)
-#derived param displays
-sprite_list.add(box_BPM)
-sprite_list.add(box_TV)
-sprite_list.add(box_HR)
-sprite_list.add(box_baseBPM)
-sprite_list.add(box_baseTV)
-sprite_list.add(box_baseHR)
-sprite_list.add(box_sincelastbreath)
-sprite_list.add(box_qual_bouts)
-sprite_list.add(box_qual_dur)
-sprite_list.add(box_qual_test)
-sprite_list.add(box_SAVE)
-sprite_list.add(box_NOTIFICATION)
-sprite_list.add(box_stream_lag)
-
-#$$$$ scoreboard
-sprite_list.add(Position_RA)
-sprite_list.add(Position_Gas)
-sprite_list.add(Duration_Cal)
-sprite_list.add(Duration_Prefill)
-sprite_list.add(SLB_Trigger_Setter)
-sprite_list.add(Challenge_Counter)
-sprite_list.add(CurrentChallengeCO2_Timer)
-sprite_list.add(CurrentChallengeRecovery_Timer)
-sprite_list.add(Serial_Abort)
-sprite_list.add(Serial_ShutDown)
-sprite_list.add(SerialOutTester)
-sprite_list.add(SO1)
-sprite_list.add(SO2)
-sprite_list.add(SO3)
-sprite_list.add(SO4)
-sprite_list.add(SO5)
-sprite_list.add(SO6)
-sprite_list.add(SO7)
-sprite_list.add(SO8)
-sprite_list.add(SO9)
-
-#$$$$
-
-sprite_list.draw(DISPLAYSURF)
 
 
 #%% setup labjack
@@ -1766,6 +671,12 @@ Requests=0
 d = u6.U6()
 # For applying the proper calibration to readings.
 d.getCalibrationData()
+
+try:
+    d.streamStop()
+    print('stream found running - now stopped')
+except:
+    print('labjack pre-stream checked')
 ##
 
 #"""
@@ -1832,7 +743,12 @@ ardThread.start()
 Arduino_Dump_Toggle=0
 Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
+Challenge_Timer=datetime.now()
+Challenge_Delay=5
 
+
+
+##
 try:
     while running==True: # the main game loop
         #read serial i/o from arduino
@@ -1850,6 +766,8 @@ try:
                 print(serial_list)
             for i in arduino_list:
                 if Challenge_phrase in i:
+                    if Challenge_Toggle==0:
+                        Challenge_Timer=datetime.now()
                     Challenge_Toggle=1
         #%% update state of program
         if sdr.finished==False:
@@ -1880,6 +798,25 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     print('first challenge')
+
+                elif (SinceLastBreath>=SLB_Trigger or Abort_Toggle==1) and cur_STATUS_Dict['challenge gas']==1:
+                    cur_STATUS_Dict['challenge air']=1
+                    cur_STATUS_Dict['challenge gas']=0
+                    Abort_Toggle=0
+                    slb_COLOR2=YELLOW
+                    value_CurrentChallengeRecovery_Start=datetime.now()
+                    
+                    print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
+                    Challenge_Toggle=0
+                    print(value_CurrentChallenge_Timer)
+                    if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
+                        print('Recommend Update to Challenge Thresh!')
+                        serial_list+=['!!!','Warning - False Apnea Likely',
+                                      'Recommend Update to Threshold2',
+                                      '!!!']
+                        WarningColor=RED
+                        WarningText='[CLEAR]!!Check Threshold2!!'
+
                 #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
                 elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -1927,7 +864,9 @@ try:
         #process status changes
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
-            print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            #print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            log_to_file(logger, 'change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
+            log_to_console(logger, "only console")
         #%%
 
         if old_STATUS_Dict['startup_ready']==1:
@@ -2042,6 +981,8 @@ try:
                         cur_STATUS_Dict['ready to save']=new_rts
                         OUTPUTFILE = str(new_OUTPUTFILE)
                         box_SAVE.update(WHITE,BLUE,os.path.basename(OUTPUTFILE))
+                        logger = setup_logging(OUTPUTFILE[:-4])
+                        print("Logging file setup done")
                     
                     
                 elif box_NOTIFICATION.rect.collidepoint(event.pos) and Current_Mode==0:
@@ -2076,19 +1017,33 @@ try:
                         Arduino_Function_Constants['Duration_Prefill']
                         )
                     Duration_Prefill.update(BLACK,WHITE,'Prefill dur {}'.format(Arduino_Function_Constants['Duration_Prefill']))
-
+                elif Duration_Challenge_Delay.rect.collidepoint(event.pos):
+                    Challenge_Delay=guiGetFloat(
+                        'Challenge Delay',
+                        'Challenge Delay',
+                        Challenge_Delay
+                        )
+                    Duration_Challenge_Delay.update(BLACK,WHITE,'Challenge Delay: {}'.format(Challenge_Delay))
+                elif Text_Challenge_Phrase.rect.collidepoint(event.pos):
+                    Challenge_Delay=guiGetText('Challenge Signal Phrase','Challenge Signal Phrase',Challenge_phrase)
+                    
+                    Text_Challenge_Phrase.update(BLACK,WHITE,'Phrase: {}'.format(Challenge_phrase))
                 elif Serial_Abort.rect.collidepoint(event.pos):
                     serialtext='<Z,0,0>'
                     try:
                         ser.write(serialtext.encode())
+                        log_to_file(logger, '{} - sent'.format(serialtext))
                         print('{} - sent'.format(serialtext))
                     except:
                         print('unable to transmit "{} "via serial io'.format(serialtext))
-
+                elif Serial_Rec_OR.rect.collidepoint(event.pos):
+                    Recovery_Override_Toggle=1
+                    print('override')
                 elif Serial_ShutDown.rect.collidepoint(event.pos):
                     serialtext='<D,0,0>'
                     try:
                         ser.write(serialtext.encode())
+                        log_to_file(logger, '{} - sent'.format(serialtext))
                         print('{} - sent'.format(serialtext))
                     except:
                         print('unable to transmit "{} "via serial io'.format(serialtext))
@@ -2097,6 +1052,7 @@ try:
                     serialtext='<E,0,0>'
                     try:
                         ser.write(serialtext.encode())
+                        log_to_file(logger, '{} - sent'.format(serialtext))
                         print('{} - sent'.format(serialtext))
                     except:
                         print('unable to transmit "{} "via serial io'.format(serialtext))
@@ -2107,6 +1063,7 @@ try:
                     serialtext=guiGetText('serial output','serial output','')
                     try:
                         ser.write(serialtext.encode())
+                        log_to_file(logger, '{} - sent'.format(serialtext))
                         print('{} - sent'.format(serialtext))
                     except:
                         print('unable to transmit "{} "via serial io'.format(serialtext))
@@ -2356,9 +1313,19 @@ try:
         
         if cur_STATUS_Dict['challenge gas']==1:
             Challenge_Counter.update(WHITE,BLACK,'Challenge #: {}'.format(value_Challenge_Counter))
-            value_CurrentChallengeCO2_Timer=cur_time-value_CurrentChallengeCO2_Start
+            value_CurrentChallengeCO2_Timer_uncorrected=cur_time-value_CurrentChallengeCO2_Start
+            if Challenge_Toggle==0:
+                value_CurrentChallengeCO2_Timer=\
+                value_CurrentChallengeCO2_Timer_uncorrected.days*24*60*60+\
+                value_CurrentChallengeCO2_Timer_uncorrected.seconds-\
+                Arduino_Function_Constants['Duration_Prefill']
+            else:
+                value_CurrentChallengeCO2_Timer=\
+                    (cur_time-Challenge_Timer).days*24*60*60+\
+                    (cur_time-Challenge_Timer).seconds
+            
             CurrentChallengeCO2_Timer.update(WHITE,BLACK,'CO2: {} sec'.format(
-                value_CurrentChallengeCO2_Timer.days*24*60*60+value_CurrentChallengeCO2_Timer.seconds))
+                value_CurrentChallengeCO2_Timer))
 
 
         elif cur_STATUS_Dict['challenge air']==1:
@@ -2514,16 +1481,25 @@ try:
             ts1=[i/1000+20/1000 for i in range(int(round((REL_TIMER-5)*1000,3)),int(REL_TIMER*1000),20)] # this may need adjusting if frequency is changed
             ts3=[i/1000+1/1000 for i in range(int(round((REL_TIMER-2.5)*1000,3)),int(REL_TIMER*1000),2)]
             
+            #reset annotation marks to green
+            Annot_Color=GREEN
+
             if Challenge_Toggle==1:
-                if max(data1)>=thresh2_flow:
+                Annot_Color=VIOLET
+                # depreciated requirement for thresh2 to have been crossed to utilize - too likely to have error of missing apnea
+                #if max(data1)>=thresh2_flow and (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
+                if (datetime.now()-Challenge_Timer).seconds>=Challenge_Delay:
                     Challenge_Toggle = 2
-            
+                    print('violet stopped')
+                    print((datetime.now()-Challenge_Timer).seconds)
+                
             if cur_STATUS_Dict['challenge gas']==1 and Challenge_Toggle==2: # !!! this will need to be replaced with gas verify variable from serial io
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh2_flow)
+                # change marks to red when thresh 2 in use
                 Annot_Color=RED
             else:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh_flow)
-                Annot_Color=GREEN
+                #Annot_Color=GREEN
             if BreathCalls is None or len(BreathCalls)<2:
                 avgBPM='<12'
                 #avgPIF='-----'
@@ -2586,6 +1562,7 @@ try:
 
             SinceLastBreath=elapsed_time_sec-LastBreath
             if SinceLastBreath>=CALL_DEATH_trigger:
+                log_to_file(logger, "Since Last Breath  >= Call_Death")
                 print(SinceLastBreath)
                 print(elapsed_time_sec)
                 print(LastBreath)
@@ -2727,7 +1704,11 @@ try:
             box_qual_bouts.update(YELLOW,BLACK,'bouts:{}'.format(QB_Counter))
             box_qual_dur.update(YELLOW,BLACK,'duration:{:#.1F}'.format(QB_duration))                   
             # updated unused boxes for demo video
-            box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            try:
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
+            except:
+                # print('unable to get RPi CPU Temp - or other error, expected if testing on device other than RPi')
+                box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{}'.format(CT_value,'unk')) #see note abot regarding labjack internal temp
             box_BT.update(RED,BLACK,'CT: {:#.1F}C'.format(1000*numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])))
             box_RH.update(BLACK,BLACK,'RH: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['RH'])])))
             box_O2.update(BLACK,BLACK,'O2: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['O2'])])))
@@ -2814,6 +1795,7 @@ try:
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
+                logging.warning("Experiment Finished")
                 print('EXPERIMENT FINISHED')
                 emailnotification(EMAIL_SETTINGS,d)
             except:
@@ -2826,13 +1808,7 @@ try:
 except Exception as e:
     print(e)
     traceback.print_exc()
-    # Close the device
-    d.setDIOState(0,0)
-    d.setDIOState(1,0)
-    d.setDIOState(2,0)
-    d.setDIOState(3,0)
 
-d.close()
 print('exit received')
 #% Wait for the stream thread to stop
 try:
@@ -2841,6 +1817,14 @@ try:
 except:
     print('no loose thread found')
 # Close the device
+try:
+    d.streamStop()
+    print('stream stopped')
+except:
+    print('no remaining stream found')
+    
+
+
 d.setDIOState(0,0)
 d.setDIOState(1,0)
 d.setDIOState(2,0)

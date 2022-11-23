@@ -11,7 +11,8 @@ Autoresuscitation Project
 
 contributions to this project include code, concepts, or consultation from 
 several individuals including Russell Ray, Eunice Aissi, Dipak Patel, 
-Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, and Kevin Jiang
+Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, Kevin Jiang, and 
+Shourya Munjal.
 
 
 This software provides a graphical interface for I/O between an computer

@@ -2,7 +2,8 @@
 // Current Code with endstops, no overheating motor, led indicator, and timing belt
 // To add new function, Add the function letter the to Commands array and increase Comsize by the number of new functions
 
-// [2021-0415-Tan] Re-assign the I/O pins and add VA2, VA3, VA4 
+// [2021-0415-Tan] Re-assign the I/O pins and add VA2, VA3, VA4
+// [2022-0131-Brandon] Slow down the rotational motor and adjust position 3 a few steps 
 
 // Debugging notes
 ///add guard safe to make sure it does not move back if it is already touching the end stop
@@ -33,7 +34,7 @@ int posho = 0;
 int pos0 = 0; // endstop position
 const int pos1 = -940;
 const int pos2 = -530;
-const int pos3 = -160;
+const int pos3 = -155;
 const int pos4 = -1350;
 long rothome = 975;// this should be 800 but bewcause i messed up in the placement of the flag arm of the gas housing, i needed to adjust the home for the red AGE rothome = 830 works best
 const int mot = 26; // pin for DC motor [Tan]
@@ -106,9 +107,9 @@ void setup()
   stepper.setAcceleration(15000);
   stepper.setCurrentPosition(0);
   stepper.setEnablePin(4);//ENA- pin 4 for turning motor on and off (changed from 19 to 25, to 4) [Tan]
-  rotstepper.setMaxSpeed(58000);
-  rotstepper.setSpeed(8000);
-  rotstepper.setAcceleration(8000);
+  rotstepper.setMaxSpeed(30000);
+  rotstepper.setSpeed(4000);
+  rotstepper.setAcceleration(3000);
   rotstepper.setCurrentPosition(0); // sets 1 position as 0 at each startup
   rotstepper.setEnablePin(7);//ENA- pin 7 for turning motor on and off (changed from 18 to 5, to 7) [Tan]
   pinMode(Gas1, OUTPUT); //Gas 1 pin [Tan]
@@ -192,7 +193,6 @@ void rotstepperPosition1() {
     }
     if (digitalRead (Rotendstop) == LOW) {
       rotstepper.setCurrentPosition(0);
-      Serial.println(rotstepper.currentPosition());
       rotstepper.moveTo (pos1);
       while (rotstepper.currentPosition() != pos1) {
         rotstepper.run();
@@ -314,19 +314,25 @@ void Calibrate(long Cals) {
   }
   if (CalsInt != 0 && CalsInt != -1) {
     Sec = 1000 * CalsInt;
-    Serial.print("Starting: Calibrating for ");
-    Serial.print(Cals); Serial.println("s");
+    String action_label = "Starting: Calibrating for ";
+    String calibration_time = String(Cals);
+    String time_unit = "s";
+    Serial.println(action_label + calibration_time + time_unit);
     digitalWrite(mot, HIGH);
     mmil = millis();
     mprev = mmil;
     while (millis() - mprev <= Sec) {};// wait for given seconds
     digitalWrite(mot, LOW);
-    Serial.print ("Finished: Calibrating");
+    Serial.println("Finished: Calibrating");
   }
 }
 
 void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   // Note putting in a number greater than 4 for Valve could cause the program to crash since
+  String current_label = "Valve ";
+  String identify_valve = String(ValveInt);
+  String total_time = String(OpInt);
+  String time_unit = "s";
   //matrices are used here so a number greater then 4 will not be accepted aka nothing will happen
   SecValve = 1000 * OpInt;
   int valves[] = {Gas1, Gas2, Gas3, Gas4}; // sets up matrix with Gas pins, note the values are intergers
@@ -334,12 +340,14 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   if (OpInt == 0 && ValveInt < 5 && ValveInt > 0) {
     digitalWrite(valves[ValveInt - 1], LOW); // for ie. if Op=1, this lines turns off the pin number in
     //position 0 of the valves matrix which is Gas1 (Gas1 is an interger and stores the pin numbers)
-    Serial.print("Ongoing: Valve "); Serial.println(ValveInt ); Serial.println ("Off");
+    String valve_off = " Off";
+    Serial.println(current_label + identify_valve + valve_off);
   }
   //Turn on valve
   if (OpInt == -1 && ValveInt < 5 && ValveInt > 0) {
     digitalWrite(valves[ValveInt - 1], HIGH);
-    Serial.println("Ongoing: Valve "); Serial.print(ValveInt); Serial.println (" On");
+    String valve_on = " On";
+    Serial.println(current_label + identify_valve + valve_on);
   }
   //Turn off all valves
   if (ValveInt == 0 && OpInt == 0) {
@@ -352,27 +360,33 @@ void Valve(int ValveInt, long OpInt) { // Inputs are intergers
   //Turn on valve for specified time
   else {
     if (ValveInt < 5 && ValveInt > 0 && OpInt != -1 && OpInt != 0) {
-      Serial.println("Starting: Valve "); Serial.print(ValveInt ); Serial.print (" on for "); Serial.print(OpInt);
-      Serial.println("s");
+      String valve_start = "Starting: Valve ";
+      String specify_time = " on for ";
+      Serial.println(valve_start + identify_valve + specify_time + total_time + time_unit);
       digitalWrite(valves[ValveInt - 1], HIGH);
       milV = millis();
       prevV = milV;
       while (millis() - prevV <= SecValve) {};
       digitalWrite(valves[ValveInt - 1], LOW);
-      Serial.println("Finished: Valve "); Serial.print(ValveInt ); Serial.print (" on for "); Serial.print(OpInt);
-      Serial.println("s");
+      String valve_finish = "Finished: Valve ";
+      Serial.println(valve_finish + identify_valve + specify_time + total_time + time_unit);
     }
   }
 }
 
 void Pos(int PosiInt, long GasInt) { // Inputs are intergers
-  Serial.println(GasInt);
+  String prefill_label = "Prefill for ";
+  String prefill_time = String(GasInt);
+  String time_unit = "s";
+  String position_label = "Ongoing: On Position ";
+  String identify_position = String(PosiInt);
+  Serial.println(prefill_label + prefill_time + time_unit);
   int valves[] = {Gas1, Gas2, Gas3, Gas4};
   SecPosi = 1000 * GasInt;
-  Serial.println(SecPosi);
   //Go to posi and do not turn on the valve
   if (GasInt == 0 && PosiInt < 5 && PosiInt > 0) {
-    Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.println(", Gas Off");
+    String gas_off = ", Gas Off";
+    Serial.println(position_label + identify_position + gas_off);
     digitalWrite(valves[PosiInt - 1], LOW); // turn off valve
     if (PosiInt == 1) {
       stepperForward2(); rotstepperPosition1(); stepperBackwards2();
@@ -390,7 +404,8 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   // Go to Position and Turn on the Valve
   if (GasInt == -1 && PosiInt < 5 && PosiInt > 0) {
     digitalWrite(valves[PosiInt - 1], HIGH); // turn on valve
-    Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.println(", Gas On");
+    String gas_on = ", Gas On";
+    Serial.println(position_label + identify_position + gas_on);
     if (PosiInt == 1) {
       stepperForward2(); rotstepperPosition1(); stepperBackwards2();
     }
@@ -407,8 +422,8 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
   // Turn on gas for specified time first, then go to position and keep gas on
   else {
     if (PosiInt < 5 && PosiInt > 0 && GasInt != 0 && GasInt != -1) {
-      Serial.println("Ongoing: On Position "); Serial.print(PosiInt); Serial.print(", Prefilled for ");
-      Serial.print(GasInt); Serial.println("s");
+      String prefill_length = ", Prefilled for ";
+      Serial.println(position_label + identify_position + prefill_length + prefill_time + time_unit);
       digitalWrite(valves[PosiInt - 1], HIGH);
       milP = millis();
       prevP = milP;
@@ -435,9 +450,9 @@ void Pos(int PosiInt, long GasInt) { // Inputs are intergers
         stepperForward2(); rotstepperPosition4(); stepperBackwards2();
         go = false;
       }
-
-      Serial.println("Finished: On Position "); Serial.print(PosiInt); Serial.print(", Prefilled for ");
-      Serial.print(GasInt); Serial.println("s");
+      
+      String position_finish = "Finished: On Position ";
+      Serial.println(position_finish + identify_position + prefill_length + prefill_time + time_unit);
     }
   }
 }
@@ -465,11 +480,11 @@ void Room() {
 }
 
 void Startup() {
-  Serial.print( " Starting: Startup Check");
-  Serial.println(" User input is required for startup, follow the instructions on the screen");
-  Serial.println(" If any of the test fail, let the startup sequence finish, then shut down the device by inputing <D,0,0> and call a technician");
-  Serial.println(" Align the pneumotach with the gas chamber, once it is aligned input '<E,0,0>' into the serial port");
-
+  String startup_check = "  Starting: Startup Check";
+  String instruction1 = " User input is required for startup, follow the instructions on the screen";
+  String instruction2 = " If any of the test fail, let the startup sequence finish, then shut down the device by inputing <D,0,0> and call a technician";
+  String instruction3 = " Align the pneumotach with the gas chamber, once it is aligned input '<E,0,0>' into the serial port";
+  Serial.println(startup_check + "\n" + instruction1 + "\n" + instruction2 + "\n" + instruction3);
 }
 
 void StartupPartB() {
@@ -500,10 +515,8 @@ void StartupPartB() {
     }
   }
   stepperBackwards2();
-  Serial.print("Rotational Stepper Motor Homed" );
   // rotate to all four positions and set the positions
-  Serial.print ("Confirming that the device is properly homed:");
-  Serial.println (" Going to position 2");
+  Serial.println("Confirming that the rotational stepper motor is properly homed:\n Going to position 2");
   stepperForward2(); rotstepperPosition2(); stepperBackwards2();
   Serial.println (" Going to position 3");
   stepperForward2(); rotstepperPosition3(); stepperBackwards2();
@@ -511,10 +524,9 @@ void StartupPartB() {
   stepperForward2(); rotstepperPosition4(); stepperBackwards2();
   Serial.println (" Going to position 1");
   stepperForward2(); rotstepperPosition1(); stepperBackwards2();
-  Serial.println("If the device locked at any point, restart the homing sequence by inputing <U,0,0>" );
+  Serial.println("\nIf the device locked at any point, restart the homing sequence by inputing <U,0,0>" );
   // Turn on and off all gas valves
-  Serial.print ("Testing Valves: All valves will be turned on and off in order for 5 seconds each. If you do not hear the gas flowing when a valve is turned on, wait for the startup fo finish then input <D,0,0> to shut down the device and call a technician.");
-  Serial.println (" Valve 1");
+  Serial.println("Testing Valves: All valves will be turned on and off in order for 5 seconds each. If you do not hear the gas flowing when a valve is turned on, wait for the startup fo finish then input <D,0,0> to shut down the device and call a technician.\n\n Valve 1");
   Valve(1, 5);
   Valve(1, 0);
   Serial.println (" Valve 2");
@@ -526,8 +538,7 @@ void StartupPartB() {
   Serial.println (" Valve 4");
   Valve(4, 5);
   Valve(4, 0);
-  Serial.println("If any of the valves are irresponsive, DO NOT use this device, turn it off and call a technician");
-  Serial.println(" Testing Calibrating Pipette");
+  Serial.println("\nIf any of the valves are irresponsive, DO NOT use this device, turn it off and call a technician\n Testing Calibrating Pipette");
   Calibrate (30);
   Serial.println(" Finished: Startup Check - All Components Functional");
   startupread = false;
@@ -606,12 +617,13 @@ void parseData() { // split the data into its parts
 
 void showParsedData() {
 
-  Serial.print("Component ");
-  Serial.println(Component);
-  Serial.print("Number ");
-  Serial.println(ComponentNum);
-  Serial.print("Operation ");
-  Serial.println(ComponentOp);
+  String component_label = "Component ";
+  String identify_component = String(Component);
+  String number_label = "Number ";
+  String comp_num = String(ComponentNum);
+  String op_label = "Operation ";
+  String comp_op = String(ComponentOp);
+  Serial.println(component_label + identify_component + "\n" + number_label + comp_num + "\n" + op_label + comp_op);
 
 }
 
