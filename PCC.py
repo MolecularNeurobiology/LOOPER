@@ -70,6 +70,7 @@ related but slightly seperate
 *migrate settings to external file
 *add challenge endpoint based on trial number
 *start minor gui improvements
+
 """
 
 
