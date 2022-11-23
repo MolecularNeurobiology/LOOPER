@@ -3,29 +3,21 @@
 __VERSION__ = '42.1.2'
 
 """
-
 Physiology Command Center
 (C) 2019
 @author: Christopher Ward (christow@bcm.edu, ward.chris.s@gmail.com)
-
 Created as part of the Russell Ray Molecular Neurobiology Group's
 Autoresuscitation Project
-
 contributions to this project include code, concepts, or consultation from 
 several individuals including Russell Ray, Eunice Aissi, Dipak Patel, 
 Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, and Kevin Jiang
-
-
 This software provides a graphical interface for I/O between an computer
 and 1) Arduino Microcontroller, 2) LabJack Analog to Digital Converter.
 Signals from the LabJack undergo signal processing to identify key features
 used as triggers to execute programmed control sequences run by the Arduino.
-
 The current implementation utilizes pneumotachography and electrocardiogram 
 signals to monitor breathing and heart rate as part of a neonate 
 autoresuscitation assay.
-
-
 Default Workflow (subject to change)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 0-signal preview mode (adjust baseline and confirm tunable parameters)
@@ -52,16 +44,13 @@ Default Workflow (subject to change)
 6-experiment ended mode 
 **terminate preview and capture, send signal to notify user
 **signal to DC out, or other Raspberry Pi notification
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Inputs: currently none - all settings are coordinated within the GUI
 Outputs: timeseries signal datafile 
     [calibration capture, animal signal capture] - this is currently one file 
     with seperate sections
-
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO regarding PCC
-
 *create flexibility for alternate study designs/data collection
 *create flexibility to terminate study after variable number of trials
 *error checking to prevent inversion of y axis, baseline and threshold values
@@ -70,10 +59,7 @@ TODO regarding PCC
     (probably try except and closing out connection)
 *better handling for arduino connection
 *incorporate logging library for improved status and debugging...maybe?
-
 *revisit UX restrictions for tweakables for display and general UX design
-
-
 related but slightly seperate
 *server/client for comms with Supervisor System and Worker Systems 
     (i.e. central workstation communicates to rigs running PCC for set-up and 
@@ -126,6 +112,7 @@ related but slightly seperate
 * add detection of gasp event and commenting
 * add detection of recovery and commenting
 * add alternate sustained recovery (accumulated rather than consecutive)
+
 
 """
 
@@ -792,7 +779,61 @@ arduino_stream=StreamArduino(ser)
 ardThread= threading.Thread(target=arduino_stream.readStreamData)
 ardThread.start()
 
-##%%
+##%% Start Reciving from manger
+from socket import AF_INET, socket, SOCK_STREAM
+
+from threading import Thread
+
+def receive():
+
+    """Handles receiving of messages."""
+
+    while True:
+
+        try:
+
+            msg = client_socket.recv(BUFSIZ).decode("utf8")
+
+            print(msg)
+
+        except OSError:  # Possibly client has left the chat.
+
+            break
+
+ 
+
+ 
+
+def send(msg, event=None):  # event is passed by binders.
+
+    """Handles sending of messages."""
+
+    client_socket.send(bytes(msg, "utf8"))
+
+    if msg == "{quit}":
+
+        client_socket.close()
+ 
+"""
+HOST = "SMMacbook.local"
+PORT = 33000
+BUFSIZ = 1024
+
+ADDR = (HOST, PORT)
+
+ 
+
+client_socket = socket(AF_INET, SOCK_STREAM)
+
+client_socket.connect(ADDR)
+
+send("pi")
+
+receive_thread = threading.Thread(target=receive)
+
+receive_thread.start()
+
+"""
 
 #%%   
 #% main loop
@@ -802,6 +843,7 @@ Challenge_Toggle=0
 Challenge_phrase='Finished: On Anoxic'
 Challenge_Timer=datetime.now()
 Challenge_Delay=5
+
 
 
 
@@ -902,6 +944,7 @@ try:
                             (accumulated_recovery>=minimum_sustained_recovery and recovery_mode == 'accumulated') \
                             )\
                         and \
+
                         (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
@@ -1813,6 +1856,7 @@ try:
                             sustained_recovery_flag = 1
                             sustained_recovery_start = datetime.now()
                         sustained_recovery = (datetime.now()-sustained_recovery_start).seconds
+
                         accumulated_recovery = sustained_recovery + prev_accumulated_recovery
                         if current_maximum_sustained_recovery_bout < sustained_recovery:
                             current_maximum_sustained_recovery_bout = sustained_recovery
@@ -1846,6 +1890,7 @@ try:
                     prev_accumulated_recovery = 0
                     accumulated_sustained_recovery_toggle = 0
                     consecutive_sustained_recovery_toggle = 0
+
             else:
                 current_recovery=float(minimum_resus_time)
                 current_minimum_resus_time = float(minimum_resus_time)
@@ -1954,6 +1999,7 @@ try:
             hr_points_graphed=[]
             for p in hr_points:
                 hr_points_graphed.append(pygame.draw.circle(DISPLAYSURF,GREEN,(int(p[0]),int(p[1])),5))
+                send(str((int(p[0]),int(p[1]))))
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
