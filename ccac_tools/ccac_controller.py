@@ -97,6 +97,17 @@ class ccac_main_window(Ui_MainWindow):
         
         # connect buttons
         self.actionAbout.triggered.connect(self.action_about)
+        
+        self.actionSelect_Append_Files.triggered.connect(self.action_add_files)
+        self.actionSelect_Append_Output_Folder_s.triggered.connect(self.action_add_directory)
+        self.actionClear_Files.triggered.connect(self.action_remove_all_files)
+        self.actionClear_Output_Folders.triggered.connect(self.action_remove_all_directories)
+        self.actionReset_Form.triggered.connect(self.action_remove_all_files)
+        self.actionReset_Form.triggered.connect(self.action_remove_all_directories)
+        
+        self.actionCopy_and_Check.triggered.connect(self.action_copy_files)
+        self.actionCopy_Check_and_Clear.triggered.connect(self.action_copy_check_clear)
+        
         self.pushButton_add_files.clicked.connect(self.action_add_files)
         self.pushButton_remove_files.clicked.connect(self.action_remove_files)
         self.pushButton_add_folder.clicked.connect(self.action_add_directory)
@@ -147,6 +158,12 @@ class ccac_main_window(Ui_MainWindow):
         self.action_refresh_file_list()
     
     
+    def action_remove_all_files(self):
+        self.model.input_file_list = []
+        self.action_refresh_file_list()
+        
+    
+    
     def action_remove_directory(self):
         print([item.row() for item in self.listView_backup_locations.selectedIndexes()])
         print([i for i,f in enumerate(self.model.output_folder_list)])
@@ -161,6 +178,20 @@ class ccac_main_window(Ui_MainWindow):
         ]
         print(self.model.output_folder_list)
         self.action_refresh_folder_list()
+    
+    
+    def action_remove_all_directories(self):
+        self.model.output_folder_list = []
+        self.action_refresh_folder_list()
+    
+    
+    
+    def action_copy_check_clear(self):
+        self.checkBox_clear_mode.setChecked(True)
+        self.checkBox_delete_flag.setChecked(True)
+        self.model.delete_flag = True
+        self.action_copy_files()
+    
     
     def action_refresh_file_list(self):
         self.model_files_to_copy.removeRows(0, self.model_files_to_copy.rowCount())
@@ -192,8 +223,11 @@ class ccac_main_window(Ui_MainWindow):
         else:
             for f in self.model.input_file_list:
                 copy_to_multiple(f,self.model.output_folder_list,self.logger)
+            
+            self.action_compare_files()
+            
             if self.checkBox_clear_mode.isChecked():
-                self.action_compare_files()
+                
                 self.action_clear_backed_up_files()
                 
     def action_compare_files(self):
