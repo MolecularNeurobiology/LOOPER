@@ -8,7 +8,7 @@ Created on Fri Mar  4 11:21:31 2022
 recommend running on python 3.8+ if on windows, should otherwise work on linux
 """
 
-__version__ = '1.1.0'
+__version__ = '1.1.2'
 
 
 
@@ -19,6 +19,7 @@ import hashlib
 import os
 import logging
 import sys
+import traceback
 
 #%% define functions
 
@@ -59,15 +60,29 @@ def copy_to_multiple(input_file, output_paths, logger = None):
 
     """
     # copy file
-    for p in output_paths:
-        shutil.copy2(
-            input_file,
-            os.path.join(
-                p,
-                os.path.basename(input_file)
+    try:
+        for i,p in enumerate(output_paths):
+            if logger: 
+                logger.info(
+                    f'copy {i+1} of {len(output_paths)}: '+
+                    f'copying {os.path.basename(input_file)} to {p}...'
                 )
+            shutil.copy2(
+                input_file,
+                os.path.join(
+                    p,
+                    os.path.basename(input_file)
+                    )
+                )
+            if logger:
+                logger.info(
+                    '...copy completed'
+                )
+    except Exception as e:
+        if logger:
+            logger.exception(
+                f'unable to perform copy: {e} :{traceback.format_exception}'
             )
-
         
         
     
@@ -92,32 +107,45 @@ def compare_checksums(input_file, output_paths, logger = None):
     """
     Good_Copy_Flags=[]
     orig_md5 = hashlib.md5()
-    with open(input_file,'rb') as openfile:
-        while True:
-            data = openfile.read(65536)
-            if not data:
-                break
-            orig_md5.update(data)
-    if logger: logger.info(f'i_md5: {orig_md5.hexdigest()}')
-    
-    for p in output_paths:
-        p_md5 = hashlib.md5()
-        with open(
-                os.path.join(
-                    p,
-                    os.path.basename(input_file)
-                    ),
-                'rb'
-                ) as openfile:
+    try:
+        if logger:
+            logger.info(f'checking copies of file: {os.path.basename(input_file)}')
+        
+        with open(input_file,'rb') as openfile:
             while True:
                 data = openfile.read(65536)
                 if not data:
                     break
-                p_md5.update(data)
-        if logger: logger.info(f'-o {p}\no_md5: {p_md5.hexdigest()}')
-        Good_Copy_Flags.append(orig_md5.hexdigest()==p_md5.hexdigest())
+                orig_md5.update(data)
+        if logger: logger.info(f'  i_md5: {orig_md5.hexdigest()}')
+        
+        for p in output_paths:
+            p_md5 = hashlib.md5()
+            with open(
+                    os.path.join(
+                        p,
+                        os.path.basename(input_file)
+                        ),
+                    'rb'
+                    ) as openfile:
+                while True:
+                    data = openfile.read(65536)
+                    if not data:
+                        break
+                    p_md5.update(data)
+            
+            if logger: logger.info(f'  o_md5: {p_md5.hexdigest()}    -o {p}')
+            Good_Copy_Flags.append(orig_md5.hexdigest()==p_md5.hexdigest())
+    except Exception as e:
+        if logger:
+            logger.exception(
+                f'unable to perform check: {e} :{traceback.format_exception}'
+            )
+            
+        Good_Copy_Flags.append(False)
+            
     return Good_Copy_Flags
-    
+        
     
     
 def finalize_ccac(
@@ -138,12 +166,13 @@ def finalize_ccac(
             return 'file backed up, original still in place'
         
     else:
-        if logger: logger.info('at least one copy failed')
-        if logger: logger.info(f'{zip(output_paths,good_copy)}')
+        if logger: logger.warning('at least one copy failed')
+        if logger: logger.warning(f'{zip(output_paths,good_copy)}')
         if delete_flag == True:
-            if logger: logger.info(
+            if logger: logger.warning(
                     'unable to delete original file due to failed transfer'
                     )
+            return 'error at least one copy failed to correctly transfer'
     
 
 #%% define main
