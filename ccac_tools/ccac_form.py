@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ccac_form.ui'
+# Form implementation generated from reading ui file 'D:\git\Autoresuscitation\ccac_tools\ccac_form.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -62,6 +62,13 @@ class Ui_MainWindow(object):
         self.checkBox_delete_flag = QtWidgets.QCheckBox(self.centralwidget)
         self.checkBox_delete_flag.setGeometry(QtCore.QRect(600, 480, 241, 17))
         self.checkBox_delete_flag.setObjectName("checkBox_delete_flag")
+        self.spinBox_retry_limit = QtWidgets.QSpinBox(self.centralwidget)
+        self.spinBox_retry_limit.setGeometry(QtCore.QRect(170, 530, 42, 22))
+        self.spinBox_retry_limit.setProperty("value", 2)
+        self.spinBox_retry_limit.setObjectName("spinBox_retry_limit")
+        self.label_retry_limit = QtWidgets.QLabel(self.centralwidget)
+        self.label_retry_limit.setGeometry(QtCore.QRect(220, 530, 221, 31))
+        self.label_retry_limit.setObjectName("label_retry_limit")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 21))
@@ -124,6 +131,8 @@ class Ui_MainWindow(object):
         self.pushButton_clear_backed_up_files.setText(_translate("MainWindow", "Clear Successfully Backed-up Files"))
         self.label_status.setText(_translate("MainWindow", "Status:"))
         self.checkBox_delete_flag.setText(_translate("MainWindow", "Enable Clearing"))
+        self.label_retry_limit.setText(_translate("MainWindow", "File copying RETRY limit\n"
+"[0] don\'t retry, [2] retry 2 times if needed"))
         self.menuHelp.setTitle(_translate("MainWindow", "Help"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.menuRun.setTitle(_translate("MainWindow", "Run"))
@@ -135,13 +144,3 @@ class Ui_MainWindow(object):
         self.actionReset_Form.setText(_translate("MainWindow", "Reset Form"))
         self.actionCopy_and_Check.setText(_translate("MainWindow", "Copy and Check"))
         self.actionCopy_Check_and_Clear.setText(_translate("MainWindow", "Copy, Check, and Clear"))
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
