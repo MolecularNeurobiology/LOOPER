@@ -779,61 +779,61 @@ arduino_stream=StreamArduino(ser)
 ardThread= threading.Thread(target=arduino_stream.readStreamData)
 ardThread.start()
 
-##%% Start Reciving from manger
-from socket import AF_INET, socket, SOCK_STREAM
+# ##%% Start Reciving from manger
+# from socket import AF_INET, socket, SOCK_STREAM
 
-from threading import Thread
+# from threading import Thread
 
-def receive():
+# def receive():
 
-    """Handles receiving of messages."""
+#     """Handles receiving of messages."""
 
-    while True:
+#     while True:
 
-        try:
+#         try:
 
-            msg = client_socket.recv(BUFSIZ).decode("utf8")
+#             msg = client_socket.recv(BUFSIZ).decode("utf8")
 
-            print(msg)
+#             print(msg)
 
-        except OSError:  # Possibly client has left the chat.
+#         except OSError:  # Possibly client has left the chat.
 
-            break
-
- 
+#             break
 
  
 
-def send(msg, event=None):  # event is passed by binders.
-
-    """Handles sending of messages."""
-
-    client_socket.send(bytes(msg, "utf8"))
-
-    if msg == "{quit}":
-
-        client_socket.close()
- 
-"""
-HOST = "SMMacbook.local"
-PORT = 33000
-BUFSIZ = 1024
-
-ADDR = (HOST, PORT)
-
  
 
-client_socket = socket(AF_INET, SOCK_STREAM)
+# def send(msg, event=None):  # event is passed by binders.
 
-client_socket.connect(ADDR)
+#     """Handles sending of messages."""
 
-send("pi")
+#     client_socket.send(bytes(msg, "utf8"))
 
-receive_thread = threading.Thread(target=receive)
+#     if msg == "{quit}":
 
-receive_thread.start()
+#         client_socket.close()
+ 
+# """
+# HOST = "SMMacbook.local"
+# PORT = 33000
+# BUFSIZ = 1024
 
-"""
+# ADDR = (HOST, PORT)
+
+ 
+
+# client_socket = socket(AF_INET, SOCK_STREAM)
+
+# client_socket.connect(ADDR)
+
+# send("pi")
+
+# receive_thread = threading.Thread(target=receive)
+
+# receive_thread.start()
+
+# """
 
 #%%   
 #% main loop
@@ -944,7 +944,6 @@ try:
                             (accumulated_recovery>=minimum_sustained_recovery and recovery_mode == 'accumulated') \
                             )\
                         and \
-
                         (60/avgRR>=baseHR*HR_recovery_thresh/100 or HR_recovery_thresh==0):
                     cur_STATUS_Dict['challenge air']=0
                     cur_STATUS_Dict['challenge gas']=1
@@ -1999,7 +1998,7 @@ try:
             hr_points_graphed=[]
             for p in hr_points:
                 hr_points_graphed.append(pygame.draw.circle(DISPLAYSURF,GREEN,(int(p[0]),int(p[1])),5))
-                send(str((int(p[0]),int(p[1]))))
+                # send(str((int(p[0]),int(p[1]))))
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
