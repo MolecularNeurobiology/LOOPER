@@ -8,7 +8,7 @@ Created on Fri Mar  4 11:21:31 2022
 recommend running on python 3.8+ if on windows, should otherwise work on linux
 """
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 
 # %% import libraries
@@ -19,6 +19,7 @@ import os
 import logging
 import sys
 import traceback
+import pandas
 
 # %% define functions
 
@@ -136,6 +137,141 @@ def compare_checksums(input_file, output_paths, logger=None):
         Good_Copy_Flags.append(False)
 
     return Good_Copy_Flags
+
+
+#%%
+def crawl_and_compare(*input_dir,output_dir = None,logger = None):
+    # if input_dir is single path,
+    # its contents should be checked against output_dir
+    # if input_dir is multiple paths, each folder is expected to be a 
+    # subfolder in output_dir
+    
+    logger.info('starting crawl and compare')
+    
+    if not output_dir:
+        if logger: logger.exception('no target location specified')
+        return
+    
+    input_dict = {}
+    
+    for i in input_dir:
+        for d,p,f in os.walk(i):
+            for filename in f:
+                input_dict[
+                    os.path.join(d,filename)[len(i):]
+                ] = os.path.join(d,filename)
+                
+    output_dict = {}
+    for d,p,f in os.walk(output_dir):
+        for filename in f:
+            output_dict[
+                os.path.join(d,filename)[len(output_dir):]
+            ] = os.path.join(d,filename)
+    
+    input_set = set(input_dict.keys())
+    output_set = set(output_dict.keys())
+    
+    files_in_both = {
+        k:{'i':input_dict[k],'o':output_dict[k]} for k in 
+        input_set.intersection(output_set)
+    }
+    files_in_input_not_output = {
+        k:{'i':input_dict[k]} for k in 
+        input_set.difference(output_set)
+    }
+    files_in_output_not_intput = {
+        k:{'o':output_dict[k]} for k in 
+        output_set.difference(input_set)    
+    }
+    
+    files_in_both_good_hash = {}
+    files_in_both_bad_hash = {}
+    files_in_both_not_testable = {}
+    
+    for k in files_in_both:    
+        if logger:
+            logger.info(
+                f"checking copies of file: {k}"
+            )
+        input_md5 = hashlib.md5()
+        output_md5 = hashlib.md5()
+        
+        try:
+            with open(input_dict[k], "rb") as openfile:
+                while True:
+                    data = openfile.read(65536)
+                    if not data:
+                        break
+                    input_md5.update(data)
+        
+            with open(output_dict[k], "rb") as openfile:
+                while True:
+                    data = openfile.read(65536)
+                    if not data:
+                        break
+                    output_md5.update(data)
+            input_hash = input_md5.hexdigest()
+            output_hash = output_md5.hexdigest()
+            
+            if input_hash == output_hash:
+                files_in_both_good_hash[k] = {
+                    'i':input_dict[k], 'o':output_dict[k], 'md5':input_hash
+                }
+            else:
+                files_in_both_bad_hash[k] = {
+                    'i':input_dict[k], 'o':output_dict[k], 
+                    'md5-i':input_hash, 'md5-o':output_hash
+                }
+        
+        except Exception as e:
+            if logger:
+                logger.exception(
+                    f"unable to perform check: {e} :{traceback.format_exception}"
+                )
+                files_in_both_not_testable[k] = {
+                    'i':input_dict[k], 'o':output_dict[k]
+                }
+    if logger:
+        logger.info('finished crawl and compare')
+    return {
+        'both-good':files_in_both_good_hash,
+        'both-bad':files_in_both_bad_hash,
+        'both-notest':files_in_both_not_testable,
+        'input_only':files_in_input_not_output,
+        'output_only':files_in_output_not_intput        
+    }
+    
+
+
+def export_crawl_and_compare_results(cac_results,output_path,logger=None):
+    with pandas.ExcelWriter(output_path) as writer:
+        pandas.DataFrame(
+            cac_results['both-good']).transpose().rename_axis('file').to_excel(
+                writer, sheet_name = 'both-good'
+            )
+        pandas.DataFrame(
+            cac_results['both-bad']).transpose().rename_axis('file').to_excel(
+                writer, sheet_name = 'both-bad'
+            )
+        pandas.DataFrame(
+            cac_results['both-notest']).transpose().rename_axis('file').to_excel(
+                writer, sheet_name = 'both-notest'
+            )
+        pandas.DataFrame(
+            cac_results['input_only']).transpose().rename_axis('file').to_excel(
+                writer, sheet_name = 'input_only'
+            )
+        pandas.DataFrame(
+            cac_results['output_only']).transpose().rename_axis('file').to_excel(
+                writer, sheet_name = 'output_only'
+            )
+    if logger:
+        logger.info('Crawl and Compare Results Exported')
+
+    
+#%% 
+    
+    
 
 
 def finalize_ccac(

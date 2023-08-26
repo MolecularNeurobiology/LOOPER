@@ -5,12 +5,13 @@ Created on Tue Mar  7 22:55:19 2023
 @author: wardc
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # %% import libraries
 
 from ccac_form import Ui_MainWindow
 from ccac import copy_to_multiple, compare_checksums, finalize_ccac
+from ccac import crawl_and_compare, export_crawl_and_compare_results
 
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QAbstractItemView
 from PyQt5.QtGui import QStandardItemModel, QStandardItem, QFont
@@ -157,6 +158,10 @@ class ccac_main_window(Ui_MainWindow):
         self.actionCopy_Check_and_Clear.triggered.connect(
             self.action_copy_check_clear
         )
+        
+        self.actionCrawl_and_Compare_Tool.triggered.connect(
+            self.action_crawl_and_compare
+        )
 
         self.pushButton_add_files.clicked.connect(self.action_add_files)
         self.pushButton_remove_files.clicked.connect(self.action_remove_files)
@@ -198,6 +203,7 @@ class ccac_main_window(Ui_MainWindow):
         self.actionSelect_Append_Files.setEnabled(False)
         self.actionSelect_Append_Files.setEnabled(False)
         self.actionSelect_Append_Output_Folder_s.setEnabled(False)
+        self.actionCrawl_and_Compare_Tool.setEnabled(False)
 
         # self.safety_timer.start()
 
@@ -229,6 +235,7 @@ class ccac_main_window(Ui_MainWindow):
             self.actionSelect_Append_Files.setEnabled(True)
             self.actionSelect_Append_Files.setEnabled(True)
             self.actionSelect_Append_Output_Folder_s.setEnabled(True)
+            self.actionCrawl_and_Compare_Tool.setEnabled(True)
 
             self.spinBox_retry_limit.valueChanged.connect(
                 self.update_retry_limit
@@ -385,6 +392,50 @@ class ccac_main_window(Ui_MainWindow):
                         )
 
             r += 1
+
+    def action_crawl_and_compare(self):
+        self.logger.info('Launching the Crawl and Compare Tool')
+        ref_directory = QFileDialog.getExistingDirectory(
+            None, "Select Reference (i) Directory for file comparison"
+        )
+        self.logger.info(f'reference folder (i): {ref_directory}')
+        test_directory = QFileDialog.getExistingDirectory(
+            None, "Select Test (o) Directory for file comparison"
+        )
+        self.logger.info(f'test folder (o): {test_directory}')
+        output_file = QFileDialog.getSaveFileName(
+            None,
+            "Select Filename for Comparison Report",
+            "",
+            "Excel File (*.xlsx)",
+        )[0]
+        self.logger.info(f'Comparison Report will be saved @: {output_file}')
+        
+        if not ref_directory:
+            self.logger.error('No Reference directory set! exiting')
+            return
+        if not test_directory:
+            self.logger.error('No Test directory set! exiting')
+            return
+        if not output_file:
+            self.logger.error('No path for report file selected! exiting')
+            return
+        
+        
+        
+        crawl_and_compare_worker = Worker(
+            lambda input_dir=ref_directory, output_dir=test_directory, 
+            output_path=output_file, logger = self.logger: 
+                export_crawl_and_compare_results(
+                    crawl_and_compare(
+                        input_dir, output_dir=output_dir, logger=logger
+                    ), output_path, logger=logger
+                )
+        )
+            
+        self.disable_run_buttons()
+        self.threadpool.start(crawl_and_compare_worker)
+            
 
     def action_copy_and_check_files_worker(self):
         if not self.model.output_folder_list or not self.model.input_file_list:

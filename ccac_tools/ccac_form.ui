@@ -261,6 +261,8 @@
     <addaction name="actionCopy_and_Check"/>
     <addaction name="separator"/>
     <addaction name="actionCopy_Check_and_Clear"/>
+    <addaction name="separator"/>
+    <addaction name="actionCrawl_and_Compare_Tool"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuRun"/>
@@ -305,6 +307,11 @@
   <action name="actionCopy_Check_and_Clear">
    <property name="text">
     <string>Copy, Check, and Clear</string>
+   </property>
+  </action>
+  <action name="actionCrawl_and_Compare_Tool">
+   <property name="text">
+    <string>Crawl and Compare Tool</string>
    </property>
   </action>
  </widget>
