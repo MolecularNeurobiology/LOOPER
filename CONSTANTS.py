@@ -33,19 +33,19 @@ Mode_dict={0:'startup',
            10:'Baseline',
            11:'Challenge',
            12:'Finished'}
-Mode_timing={0:-1,
-             1:-1,
-             2:-1,
+Mode_timing={0:-0.02,
+             1:-0.02,
+             2:-0.02,
              3:60*2,
-             4:-1,
+             4:-0.02,
              5:30*60,
-             6:-1,
-             7:10*60,
-             8:-1,
-             9:15*60,
-             10:10*60,
-             11:-1,
-             12:-1}
+             6:0,
+             7:0,
+             8:0,
+             9:0,
+             10:2*60,
+             11:-0.02,
+             12:-0.02}
 
 savable_modes=[
     'calibration',
@@ -99,7 +99,7 @@ VIOLET=(200,0,255)
 g1_TL=(100,25)
 g1_xySize=(250,250)
 g1_x_minmax=[0,500]
-g1_y_minmax=[-2,2]
+g1_y_minmax=[-0.5,0.5]
 
 g2_TL=(100,325)
 g2_xySize=(250,250)
@@ -110,7 +110,7 @@ g2_y_minmax=[-1,5]
 g3_TL=(100,625)
 g3_xySize=(250,250)
 g3_x_minmax=[0,500]
-g3_y_minmax=[-3,3]
+g3_y_minmax=[-0.5,0.5]
 
 #sensor value displays
 BT_TL=(450,50)
@@ -189,8 +189,8 @@ CurrentChallengeRecovery_Timer_TL=(700,200)
 Arduino_Function_Constants={
     'Position_RA':0,
     'Position_Gas':3,
-    'Duration_Cal':30,
-    'Duration_Prefill':60
+    'Duration_Cal':100,
+    'Duration_Prefill':10
     }
 
 Challenge_phrase='Finished: On Anoxic'
@@ -348,8 +348,8 @@ pulse_duration=3 #duration of high voltage pulse to microcontroller
 
 ## tuning and customization parameters
 baseline_flow=0
-thresh_flow=0.25
-thresh2_flow=0.5
+thresh_flow=0.050
+thresh2_flow=0.100
 filt_flow='None'
 
 baseline_vol=0
@@ -357,7 +357,7 @@ thresh_vol=0.25
 filt_vol='None'
 
 baseline_ecg=0
-absthresh_ecg=0.3
+absthresh_ecg=0.140
 thresh_ecg1=4.0
 thresh_ecg2=2.0
 noise_ecg=75
@@ -372,10 +372,10 @@ OLD_STATUS="Not Ready"
 
 filt_crit_Dict={
             'avgBPM':250,
-            'cvTT':0.5,
-            'avgHR':700,
+            'cvTT':0.50,
+            'avgHR':850,
             'avgRR':999,
-            'cvRR':0.5,
+            'cvRR':1.00,
             'BSD':0.25,
             'DVTV':0.75
             }
