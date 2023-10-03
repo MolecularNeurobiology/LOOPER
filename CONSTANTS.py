@@ -6,6 +6,7 @@ Divided by where they are used
 
 """
 
+__VERSION__ = "0.0.2"
 
 
 import pygame
