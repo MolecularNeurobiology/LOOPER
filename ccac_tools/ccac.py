@@ -87,7 +87,7 @@ def compare_checksums(input_file, output_paths, logger=None):
     ----------
     input_file : string
         path to file needing backup
-    output_paths : string
+    output_paths : list of strings
         path to folder to deposit file backup
     logger : logging object [optional]
         logging object used to pass status information

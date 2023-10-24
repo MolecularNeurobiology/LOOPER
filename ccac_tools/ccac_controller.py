@@ -23,6 +23,8 @@ from PyQt5.QtCore import (
 
 import os
 import queue
+import time
+
 
 # %% define classes
 
@@ -335,7 +337,7 @@ class ccac_main_window(Ui_MainWindow):
             f'file list updated: {",".join(self.model.input_file_list)}'
         )
         self.model.good_copy_dict = {
-            k: v for k, v in self.model.good_copy_dict
+            k: v for k, v in self.model.good_copy_dict.items()
             if k in self.model.input_file_list
         }
 
@@ -363,6 +365,7 @@ class ccac_main_window(Ui_MainWindow):
     def action_copy_files(self, file, output_paths):
 
         copy_to_multiple(file, output_paths, self.logger)
+        # time.sleep(10) # this line is useful to help confirm hash checking would detect bad copies - buys time to insert a difference in the file to detect
         self.action_compare_files([file], output_paths)
 
         r = 0
@@ -370,28 +373,35 @@ class ccac_main_window(Ui_MainWindow):
             if all(self.model.good_copy_dict[file]):
                 break
             elif len(self.model.good_copy_dict[file]) != len(output_paths):
-                self.logger.info(
-                    f"bad copy detected, retrying {r}"
+                self.logger.warning(
+                    f"missing copy detected, retrying {r}"
                     + f" of {self.model.retry_limit} possible times"
                 )
                 # copy file
                 copy_to_multiple(file, output_paths, logger=self.logger)
                 # compare checksums
+                # time.sleep(10) # this line is useful to help confirm hash checking would detect bad copies - buys time to insert a difference in the file to detect
                 self.model.good_copy_dict[file] = compare_checksums(
                     file, output_paths, logger=self.logger
                 )
 
             else:
+                self.logger.warning(
+                    f"bad copy detected, retrying {r}"
+                    + f" of {self.model.retry_limit} possible times"
+                )
                 for i, retry_path in enumerate(output_paths):
                     if not self.model.good_copy_dict[file][i]:
                         copy_to_multiple(
                             file, [retry_path], logger=self.logger
                         )
+                        # time.sleep(10) # this line is useful to help confirm hash checking would detect bad copies - buys time to insert a difference in the file to detect
                         self.model.good_copy_dict[file][i] = compare_checksums(
                             file, [retry_path], logger=self.logger
-                        )
+                        )[0]
 
             r += 1
+            
 
     def action_crawl_and_compare(self):
         self.logger.info('Launching the Crawl and Compare Tool')
@@ -503,7 +513,7 @@ class ccac_main_window(Ui_MainWindow):
             "CCAC Report - copy and check only",
             "\n".join(
                 [
-                    f"{os.path.basename(k)} : good copy = {str(all(v))}"
+                    f"{os.path.basename(k)} : good copy = {v} = {all(v)}"
                     for k, v in self.model.good_copy_dict.items()
                 ]
             ),
