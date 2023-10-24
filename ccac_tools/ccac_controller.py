@@ -5,7 +5,7 @@ Created on Tue Mar  7 22:55:19 2023
 @author: wardc
 """
 
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # %% import libraries
 

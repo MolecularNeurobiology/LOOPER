@@ -8,7 +8,7 @@ Created on Fri Mar  4 11:21:31 2022
 recommend running on python 3.8+ if on windows, should otherwise work on linux
 """
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 
 
 # %% import libraries
