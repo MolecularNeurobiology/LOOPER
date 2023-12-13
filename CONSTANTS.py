@@ -6,7 +6,7 @@ Divided by where they are used
 
 """
 
-__VERSION__ = "0.0.2"
+__VERSION__ = "0.0.3"
 
 
 import pygame
@@ -305,7 +305,7 @@ QB_TIMER=0
 QB_Counter=0
 QB_duration=0
 SinceLastBreath=0
-SLB_Trigger=5
+SLB_Trigger=7
 CALL_DEATH_trigger=10*60
 Abort_Toggle=0
 baseTT='N/A'
