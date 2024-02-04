@@ -456,8 +456,62 @@ def save_button():
         
     return outputfile,readytosave
 
+def beat_caller(
+        CT,
+        TS, 
+        absthresh=0.84,
+        minRR=0.05
+        ):
+    """
+    Extract R-R intervals and calculate heart rate from an ECG signal.
+    This version uses scipy.signal.find_peaks function.
+    Function and settings based on code from SLusk.
+
+    Parameters:
+    - CT (array-like): The raw ECG data.
+    - TS (array-like): Timestamps corresponding to the ECG data points.
+    - absthresh (float): Absolute Voltage Threshold for beat detection.
+    - minRR (float): Minimum RR interval in seconds to consider for heart rate calculation.
+
+    Returns:
+    - DataFrame: DataFrame containing 
+        timestamps ['ts']
+        RR intervals ['rr']
+        heart rates ['hr']
+    """
+
+    # Convert CT to a numpy array if it isn't one already
+    CT = numpy.array(CT)
+    TS = numpy.array(TS)
+    sampling_time = TS[1]-TS[0]
+
+    peak_finding_distance = int(minRR/sampling_time)
+    
+    # Identify peaks in the ECG signal; adjust parameters as necessary for your data
+    peaks,_ = find_peaks(CT, height=absthresh, distance=peak_finding_distance)  # Adjust 'distance' as needed    
+    
+    # Extract timestamps for the detected peaks
+    timestamps_peaks = numpy.take(TS, peaks, axis=0)
+    
+    # Calculate RR intervals in seconds
+    rr_intervals = numpy.diff(timestamps_peaks)
+    
+    # Calculate heart rate from rr intervals
+    heart_rates = [60/ri for ri in rr_intervals]
+
+    # Prepare dataframe to return
+    beat_df = pandas.DataFrame({
+        'ts': timestamps_peaks[:-1], # Exclude the last timestamp
+        'rr': rr_intervals,
+        'hr': heart_rates
+        })
+   
+    return beat_df  
+
 def basicRR(CT,TS,noisecutoff,threshfactor,absthresh,minRR):
     """
+    This is a deprecated function - superceded by beat_caller
+
     simple RR peak caller based on relative signal to noise thresholding
     CT = signal
     noisecutoff = perrcentile within signal to consider as noise
@@ -1695,24 +1749,31 @@ try:
 
 
                             
-            BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg1,absthresh_ecg,3)
-            if BeatCalls is None or len(BeatCalls)<5 :
-                BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg2,absthresh_ecg,3)
+            # BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg1,absthresh_ecg,3)
+            # if BeatCalls is None or len(BeatCalls)<5 :
+            #     BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg2,absthresh_ecg,3)
+
+            BeatCalls = beat_caller(data3, ts3, absthresh=absthresh)
+
             if BeatCalls is None or len(BeatCalls)<5 :            
                 avgHR='<60'
                 avgRR=999
                 CV_RR=999
             else:
-                avgRR=numpy.average([BeatCalls[i]['RR'] for i in BeatCalls]) 
-                avgHR='{:#.1F}'.format(60/avgRR)
-                CV_RR=numpy.std([BeatCalls[i]['RR'] for i in BeatCalls])/avgRR 
+                # avgRR=numpy.average([BeatCalls[i]['RR'] for i in BeatCalls]) 
+                # avgHR='{:#.1F}'.format(60/avgRR)
+                # CV_RR=numpy.std([BeatCalls[i]['RR'] for i in BeatCalls])/avgRR 
+                avgRR = BeatCalls['rr'].mean()
+                avgHR = '{:#.1F}'.format(60/avgRR)
+                CV_RR = BeatCalls['rr'].std()/avgRR
             
                  
             BL=list(BreathCalls.keys())
             BL.sort()
 
-            HL=list(BeatCalls.keys())
-            HL.sort()
+            # HL=list(BeatCalls.keys())
+            # HL.sort()
+            HL=list(BeatCalls['ts'])
             
             if len(BreathCalls)>0:
                 LastBreath=BL[-1]
@@ -1770,7 +1831,7 @@ try:
             # !!! can this information be addressed in a config file
             if Mode_dict[Current_Mode]=='Baseline' and prev_Mode!=Current_Mode:
                 RunningBreaths=[]
-                RunningBeats=[]
+                RunningBeats={'ts':[],'rr':[]}
                 quality_seg_list=[]
             if Mode_dict[Current_Mode]=='Baseline':
                 # populate quality segment list 
@@ -1797,20 +1858,27 @@ try:
                             
                         elif  i>RunningBreaths[-1]['TS-I']:
                             RunningBreaths.append(BreathCalls[i])
-                            
-                for i in HL:
-                    if len(RunningBeats)==0:
-                        RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
+                
+                if len(RunningBeats)==0:
+                    RunningBeats['ts']+=list(BeatCalls['ts'])
+                    RunningBeats['rr']+=list(BeatCalls['rr'])
+                else:
+                    RunningBeats['ts']+=list(BeatCalls[BeatCalls['ts']>RunningBeats['ts'][-1]]['ts'])
+                    RunningBeats['rr']+=list(BeatCalls[BeatCalls['ts']>RunningBeats['ts'][-1]]['rr'])
+
+                # for i in HL:
+                #     if len(RunningBeats)==0:
+                #         RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
                         
-                    elif i>RunningBeats[-1]['ts']:
-                        RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
+                #     elif i>RunningBeats[-1]['ts']:
+                #         RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
                         
             prev_qual_test=int(quality_test)
             #filter to the good breaths and summarize stats
             #%%
             if Mode_dict[Current_Mode]=='Challenge' and prev_Mode!=Current_Mode:
                 Q_breaths=[]
-                Q_beats=[]
+                Q_beats={'rr':[]}
                 QB_Counter=0
                 QB_duration=0
                 for i,j in quality_seg_list:
@@ -1821,15 +1889,17 @@ try:
                     for k in RunningBreaths:
                         if k['TS-I']>i and k['TS-I']<j:
                             Q_breaths.append(k)
-                    for k in RunningBeats:
-                        if k['ts']>i and k['ts']<j:
-                            Q_beats.append(k)
+                    for k,v in enumerate(RunningBeats['ts']):
+                        # if k['ts']>i and k['ts']<j:
+                        if v>i and v<j:
+                            Q_beats['rr'].append(RunningBeats['rr'][k])
                 
                             
                 baseTT=numpy.average([i['TI']+i['TE'] for i in Q_breaths if 'TE' in i.keys()])
                 baseBPM=60/baseTT
                 baseTV=numpy.average([i['iTV'] for i in Q_breaths])
-                baseRR=numpy.average([i['BC']['RR'] for i in Q_beats])
+                # baseRR=numpy.average([i['BC']['RR'] for i in Q_beats])
+                baseRR = numpy.average(Q_beats['rr'])
                 baseHR=60/baseRR
                 
                 box_baseBPM.update(GREEN,BLACK,'base BPM:{:#.1F}'.format(baseBPM))
@@ -1989,9 +2059,15 @@ try:
                 bc_points_graphed.append(pygame.draw.circle(DISPLAYSURF,Annot_Color,(int(p[0]),int(p[1])),5))
 
         try:
-            hr_points=graphScaler(g3_TL,g3_xySize,(ts3[0],ts3[-1]),g3_y_minmax,
-                              [i for i in BeatCalls if BeatCalls[i]],
-                              [0 for i in BeatCalls]) #correct this for plotting timestamps on x-axis
+            hr_points=graphScaler(
+                g3_TL,g3_xySize,
+                (ts3[0],ts3[-1]),
+                g3_y_minmax,
+                list(BeatCalls['ts']),
+                [0 for i in range(BeatCalls.shape[0])]
+            )                                  
+                            #   [i for i in BeatCalls if BeatCalls[i]],
+                            #   [0 for i in BeatCalls]) #correct this for plotting timestamps on x-axis
         except:
             hr_points=[]
         if len(hr_points)!=0:
