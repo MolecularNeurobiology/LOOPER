@@ -488,7 +488,7 @@ def beat_caller(
     peak_finding_distance = int(minRR/sampling_time)
     
     # Identify peaks in the ECG signal; adjust parameters as necessary for your data
-    peaks,_ = find_peaks(CT, height=absthresh, distance=peak_finding_distance)  # Adjust 'distance' as needed    
+    peaks,_ = signal.find_peaks(CT, height=absthresh, distance=peak_finding_distance)  # Adjust 'distance' as needed    
     
     # Extract timestamps for the detected peaks
     timestamps_peaks = numpy.take(TS, peaks, axis=0)
