@@ -27,7 +27,7 @@ v1.0.1
 
 """
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 # %% import libraries
 from PyQt5 import QtGui, QtWidgets
@@ -584,7 +584,7 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot()
     def timed_run(self):
-        if int(self.repeat_challenges) < int(self.recovery_rounds):
+        if int(self.repeat_challenges) <= int(self.recovery_rounds):
             # print(self.state)
             # print(self.repeat_challenges,self.recovery_rounds)
             self.reset_timers(self.state)

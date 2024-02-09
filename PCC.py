@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.1.2'
+__VERSION__ = '42.1.3'
 
 """
 Physiology Command Center
@@ -122,6 +122,7 @@ related but slightly seperate
 #%% import libraries
 import pygame
 import numpy
+import pandas
 from scipy import signal
 import sys
 import threading
@@ -172,17 +173,17 @@ try:
             arduino_list.append(d)
     
     if len(arduino_list) > 1:
-        print('multiple arduinos found, using first')
+        logging.warning('multiple arduinos found, using first')
         ser.port = arduino_list[0].device
     elif len(arduino_list) == 1:
         ser.port = arduino_list[0].device
     else:
-        print('unable to locate arduino')
+        logging.warning('unable to locate arduino')
     ser.timeout=1
     ser.open()
     Connected_Arduino=True
 except Exception as e:
-    print('unable to connect to arduino {}'.format(e))
+    logging.warning('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
    
 ##
@@ -204,15 +205,15 @@ def setup_logging(filename, debug = 1):
     f_handler.setFormatter(log_format)
     logger.addHandler(c_handler)
     logger.addHandler(f_handler)
-    logger.warning('PLETHYSMOGRAPHY COMMAND CENTER LOG FILE\n')
-    logger.warning('file may contain mutliple sessions, session marker : $$$$$\n')
-    logger.warning('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
+    logger.info('PLETHYSMOGRAPHY COMMAND CENTER LOG FILE\n')
+    logger.info('file may contain mutliple sessions, session marker : $$$$$\n')
+    logger.info('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
                         year=now.year, month=now.month, day=now.day,
                         hour=now.hour, minute=now.minute, second=now.second))
     return logger
 
 def log_to_file(logger, message):
-    logger.warning(message)
+    logger.info(message)
 
 def log_to_console(logger, message):
     logger.debug(message)
@@ -413,13 +414,9 @@ def pulse_ender(device,pin,start,duration):
     cur_dur_sec=duration_timer.seconds
     
     if cur_dur_sec>=duration:
-        #print(cur_dur_sec)
-        #print(start)
-        #print(now)
         device.setDIOState(pin,0)
         pulse_status=0
     else:
-        #print(cur_dur_sec)
         pass
     return pulse_status
         
@@ -488,7 +485,7 @@ def beat_caller(
     peak_finding_distance = int(minRR/sampling_time)
     
     # Identify peaks in the ECG signal; adjust parameters as necessary for your data
-    peaks,_ = signal.find_peaks(CT, height=absthresh, distance=peak_finding_distance)  # Adjust 'distance' as needed    
+    peaks,_ = signal.find_peaks(CT, height=absthresh_ecg, distance=peak_finding_distance)  # Adjust 'distance' as needed    
     
     # Extract timestamps for the detected peaks
     timestamps_peaks = numpy.take(TS, peaks, axis=0)
@@ -708,9 +705,9 @@ def processStatus(status,device,serial_connection,ADC):
         try:
             ser.write(serialtext.encode())
             log_to_file(logger, '{} - sent'.format(serialtext))
-            print('{} - sent'.format(serialtext))
+            logging.info('{} - sent'.format(serialtext))
         except:
-            print('unable to transmit "{}"via serial io'.format(serialtext))
+            logging.warning('unablfe to transmit "{}"via serial io'.format(serialtext))
     
     return status
 
@@ -951,7 +948,7 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     #print('first challenge')
-                    logger.warning('first challenge')
+                    logger.info('first challenge')
 
                 elif (SinceLastBreath>=SLB_Trigger or Abort_Toggle==1) and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -963,28 +960,19 @@ try:
                     recovery_detected = 0
                     #print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
                     serial_list.append('apnea detected')
-                    logger.warning('apnea detected')
+                    logger.info('apnea detected')
                     Challenge_Toggle=0
-                    #print(value_CurrentChallenge_Timer)
-                    if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
-                        #print('Recommend Update to Challenge Thresh!')
-                        serial_list+=['!!!','Warning - False Apnea Likely',
-                                      'Recommend Update to Threshold2',
-                                      '!!!']
-                        logger.warning('Warning - False Apnea Likely. Recommend Update to Threshold2',)
-                        WarningColor=RED
-                        WarningText='[CLEAR]!!Check Threshold2!!'
-
-                #elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1 and numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])>1: #not sure why BT is being compared here...bad edit?
-                # elif SinceLastBreath>=SLB_Trigger and cur_STATUS_Dict['challenge gas']==1:
-                #     cur_STATUS_Dict['challenge air']=1
-                #     cur_STATUS_Dict['challenge gas']=0
-                #     slb_COLOR2=YELLOW
-                #     value_CurrentChallengeRecovery_Start=datetime.now()
                     
-                #     print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
-                #     Challenge_Toggle=0
-                    #print('air mode')
+                    # if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
+                        # #print('Recommend Update to Challenge Thresh!')
+                        # serial_list+=['!!!','Warning - False Apnea Likely',
+                                      # 'Recommend Update to Threshold2',
+                                      # '!!!']
+                        # logger.warning('Warning - False Apnea Likely. Recommend Update to Threshold2',)
+                        # WarningColor=RED
+                        # WarningText='[CLEAR]!!Check Threshold2!!'
+
+
 
                 # test for animal being recovered
                 # !!! added condition for sustained recovery and use of incrementable recovery timer
@@ -1012,8 +1000,7 @@ try:
             
             
             if SinceLastBreath>=CALL_DEATH_trigger:
-                #print('DEATH CALLED')
-                logging.warning('DEATH CALLED')
+                logging.info('DEATH CALLED')
                 serial_list.append('DEATH CALLED')
                 Current_Mode=advance(Current_Mode,0,len(Mode_dict)-1)
                 sdr.stopStreamData()
@@ -1037,7 +1024,6 @@ try:
         #process status changes
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
-            #print('change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
             log_to_file(logger, 'change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
             log_to_console(logger, "only console")
         #%%
@@ -1220,9 +1206,9 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        print('{} - sent'.format(serialtext))
+                        logging.info('{} - sent'.format(serialtext))
                     except:
-                        print('unable to transmit "{} "via serial io'.format(serialtext))
+                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle=1
                     print('override')
@@ -1231,18 +1217,18 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        print('{} - sent'.format(serialtext))
+                        logging.info('{} - sent'.format(serialtext))
                     except:
-                        print('unable to transmit "{} "via serial io'.format(serialtext))
+                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
 
                 elif finish_startup.rect.collidepoint(event.pos) and cur_STATUS_Dict['startup_ready']==1:
                     serialtext='<E,0,0>'
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        print('{} - sent'.format(serialtext))
+                        logging.info('{} - sent'.format(serialtext))
                     except:
-                        print('unable to transmit "{} "via serial io'.format(serialtext))
+                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
                     cur_STATUS_Dict['startup_ready']=2
                     finish_startup.update(BLACK,BLACK,'')
                     
@@ -1477,9 +1463,9 @@ try:
                 
             if event.type==pygame.QUIT:
                 running=False
-                print('exit')
+                logging.info('exit')
         if running==False:
-            print('exit sent')
+            
             sdr.stopStreamData()
             continue
         # update sprites
@@ -1590,7 +1576,7 @@ try:
             ## save the data
             if Mode_dict[Current_Mode] in savable_modes:
                 if Current_Mode!=prev_Mode:
-                    print(Mode_dict[Current_Mode])
+                    
                     header=[
                     'baseline flow:{}'.format(baseline_flow),
                     'thresh flow:{}'.format(thresh_flow),
@@ -1708,7 +1694,7 @@ try:
                 Annot_Color=RED
                 if len(BreathCalls)>=1:
                     gasp_detected = 1
-                    logger.warning('gasp detected')
+                    logger.info('gasp detected')
                     serial_list.append('gasp detected')
             else:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh_flow)
@@ -1745,7 +1731,14 @@ try:
                 vol_scaled=graphScaler(g2_TL,g2_xySize,(ts1[0],ts1[-1]),g2_y_minmax,
                                        vol_lines[l]['ts'],
                                         vol_lines[l]['vol'])
-                vol_lines_graphed.append(pygame.draw.lines(DISPLAYSURF,BLUE,False,vol_scaled))
+                vol_lines_graphed.append(
+                    pygame.draw.lines(
+                        DISPLAYSURF,
+                        BLUE,
+                        False,
+                        [(int(p[0]),int(p[1])) for p in vol_scaled]
+                    )
+                )
 
 
                             
@@ -1753,7 +1746,8 @@ try:
             # if BeatCalls is None or len(BeatCalls)<5 :
             #     BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg2,absthresh_ecg,3)
 
-            BeatCalls = beat_caller(data3, ts3, absthresh=absthresh)
+            BeatCalls = beat_caller(data3, ts3, absthresh=absthresh_ecg)
+            
 
             if BeatCalls is None or len(BeatCalls)<5 :            
                 avgHR='<60'
@@ -1783,9 +1777,7 @@ try:
             SinceLastBreath=elapsed_time_sec-LastBreath
             if SinceLastBreath>=CALL_DEATH_trigger:
                 log_to_file(logger, "Since Last Breath  >= Call_Death")
-                print(SinceLastBreath)
-                print(elapsed_time_sec)
-                print(LastBreath)
+                
                        
             if Mode_dict[Current_Mode]=='Challenge' and SinceLastBreath<=SLB_Trigger:
                 slb_COLOR=GREEN
@@ -1859,12 +1851,14 @@ try:
                         elif  i>RunningBreaths[-1]['TS-I']:
                             RunningBreaths.append(BreathCalls[i])
                 
-                if len(RunningBeats)==0:
+                if len(RunningBeats['ts'])==0:
                     RunningBeats['ts']+=list(BeatCalls['ts'])
                     RunningBeats['rr']+=list(BeatCalls['rr'])
+                    
                 else:
-                    RunningBeats['ts']+=list(BeatCalls[BeatCalls['ts']>RunningBeats['ts'][-1]]['ts'])
-                    RunningBeats['rr']+=list(BeatCalls[BeatCalls['ts']>RunningBeats['ts'][-1]]['rr'])
+                    ts_last_update = RunningBeats['ts'][-1]
+                    RunningBeats['ts']+=list(BeatCalls[BeatCalls['ts']>ts_last_update]['ts'])
+                    RunningBeats['rr']+=list(BeatCalls[BeatCalls['ts']>ts_last_update]['rr'])
 
                 # for i in HL:
                 #     if len(RunningBeats)==0:
@@ -1889,6 +1883,7 @@ try:
                     for k in RunningBreaths:
                         if k['TS-I']>i and k['TS-I']<j:
                             Q_breaths.append(k)
+                    
                     for k,v in enumerate(RunningBeats['ts']):
                         # if k['ts']>i and k['ts']<j:
                         if v>i and v<j:
@@ -1932,12 +1927,12 @@ try:
                             
                         if current_maximum_sustained_recovery_bout >= minimum_sustained_recovery \
                                and consecutive_sustained_recovery_toggle ==0:
-                            logger.warning('sustained recovery detected')
+                            logger.info('sustained recovery detected')
                             serial_list.append('sustained recovery detected')
                             consecutive_sustained_recovery_toggle = 1
                         if accumulated_recovery >= minimum_sustained_recovery \
                                 and accumulated_sustained_recovery_toggle ==0:
-                            logger.warning('accumulated recovery detected')
+                            logger.info('accumulated recovery detected')
                             serial_list.append('accumulated recovery detected')
                             accumulated_sustained_recovery_toggle = 1
                     else:
@@ -1949,7 +1944,7 @@ try:
                             current_maximum_sustained_recovery_bout <= minimum_sustained_recovery:
                         current_minimum_resus_time += recovery_increment
                         serial_list.append('animal not in sustained recovery. {} seconds added.'.format(recovery_increment))
-                        logger.warning('animal not yet reached sustained recovery. {} seconds added.'.format(recovery_increment))
+                        logger.info('animal not yet reached sustained recovery. {} seconds added.'.format(recovery_increment))
                 elif cur_STATUS_Dict['challenge gas']==1:
                     current_recovery = float(minimum_resus_time)
                     current_minimum_resus_time = float(minimum_resus_time)
@@ -1983,7 +1978,6 @@ try:
             try:
                 box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{:#.1F}C'.format(CT_value,CPUTemperature().temperature)) #see note abot regarding labjack internal temp
             except:
-                # print('unable to get RPi CPU Temp - or other error, expected if testing on device other than RPi')
                 box_CT.update(WHITE,BLUE,'RT:{:#.1F}C|Pi:{}'.format(CT_value,'unk')) #see note abot regarding labjack internal temp
             box_BT.update(RED,BLACK,'CT: {:#.1F}C'.format(1000*numpy.average(r['AIN{}'.format(CHANNEL_DICT['BT'])])))
             box_RH.update(BLACK,BLACK,'RH: {:#.2F}V'.format(numpy.average(r['AIN{}'.format(CHANNEL_DICT['RH'])])))
@@ -2016,7 +2010,7 @@ try:
               
         #% stream errors and exiting
         except Queue.Empty:
-            print('empty Q')
+            logging.warning('empty Q')
             pass
 
         data1_graphed=graphScaler(g1_TL,g1_xySize,(ts1[0],ts1[-1]),g1_y_minmax,ts1[:],data1[:]) # resolution re-upscaled formerly [::2]
@@ -2034,17 +2028,17 @@ try:
         thresh3_graphed=graphScaler(g3_TL,g3_xySize,(0,1),g3_y_minmax,[0,1],[absthresh_ecg,absthresh_ecg]) #update to thresh variable
     ##    
 
-        d_graph1=pygame.draw.lines(DISPLAYSURF,BLUE,False,data1_graphed)
-        base1=pygame.draw.lines(DISPLAYSURF,BLACK,False,baseline1_graphed)
-        thresh1=pygame.draw.lines(DISPLAYSURF,RED,False,thresh1_graphed)
-        thresh2flow=pygame.draw.lines(DISPLAYSURF,GREEN,False,thresh2flow_graphed)
+        d_graph1=pygame.draw.lines(DISPLAYSURF,BLUE,False,[(int(p[0]),int(p[1])) for p in data1_graphed])
+        base1=pygame.draw.lines(DISPLAYSURF,BLACK,False,[(int(p[0]),int(p[1])) for p in baseline1_graphed])
+        thresh1=pygame.draw.lines(DISPLAYSURF,RED,False,[(int(p[0]),int(p[1])) for p in thresh1_graphed])
+        thresh2flow=pygame.draw.lines(DISPLAYSURF,GREEN,False,[(int(p[0]),int(p[1])) for p in thresh2flow_graphed])
 
-        base2=pygame.draw.lines(DISPLAYSURF,BLACK,False,baseline2_graphed)
-        thresh2=pygame.draw.lines(DISPLAYSURF,RED,False,thresh2_graphed)
+        base2=pygame.draw.lines(DISPLAYSURF,BLACK,False,[(int(p[0]),int(p[1])) for p in baseline2_graphed])
+        thresh2=pygame.draw.lines(DISPLAYSURF,RED,False,[(int(p[0]),int(p[1])) for p in thresh2_graphed])
 
-        d_graph3=pygame.draw.lines(DISPLAYSURF,BLUE,False,data3_graphed)
-        base3=pygame.draw.lines(DISPLAYSURF,BLACK,False,baseline3_graphed)
-        thresh3=pygame.draw.lines(DISPLAYSURF,RED,False,thresh3_graphed)
+        d_graph3=pygame.draw.lines(DISPLAYSURF,BLUE,False,[(int(p[0]),int(p[1])) for p in data3_graphed])
+        base3=pygame.draw.lines(DISPLAYSURF,BLACK,False,[(int(p[0]),int(p[1])) for p in baseline3_graphed])
+        thresh3=pygame.draw.lines(DISPLAYSURF,RED,False,[(int(p[0]),int(p[1])) for p in thresh3_graphed])
         
         
         try:
