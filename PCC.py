@@ -456,8 +456,8 @@ def save_button():
 def beat_caller(
         CT,
         TS, 
-        absthresh=0.84,
-        minRR=0.05
+        absthresh=0.74,
+        minRR=0.10
         ):
     """
     Extract R-R intervals and calculate heart rate from an ECG signal.
@@ -485,7 +485,7 @@ def beat_caller(
     peak_finding_distance = int(minRR/sampling_time)
     
     # Identify peaks in the ECG signal; adjust parameters as necessary for your data
-    peaks,_ = signal.find_peaks(CT, height=absthresh_ecg, distance=peak_finding_distance)  # Adjust 'distance' as needed    
+    peaks,_ = signal.find_peaks(CT, height=absthresh_ecg, distance=minRR_ecg)  # Adjust 'distance' as needed    
     
     # Extract timestamps for the detected peaks
     timestamps_peaks = numpy.take(TS, peaks, axis=0)
@@ -1746,7 +1746,7 @@ try:
             # if BeatCalls is None or len(BeatCalls)<5 :
             #     BeatCalls=basicRR(data3,ts3,noise_ecg,thresh_ecg2,absthresh_ecg,3)
 
-            BeatCalls = beat_caller(data3, ts3, absthresh=absthresh_ecg)
+            BeatCalls = beat_caller(data3, ts3, absthresh=absthresh_ecg, minRR=minRR_ecg)
             
 
             if BeatCalls is None or len(BeatCalls)<5 :            

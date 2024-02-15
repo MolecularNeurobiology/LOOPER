@@ -6,7 +6,7 @@ Divided by where they are used
 
 """
 
-__VERSION__ = "0.0.3"
+__VERSION__ = "0.0.4"
 
 
 import pygame
@@ -358,7 +358,8 @@ thresh_vol=0.25
 filt_vol='None'
 
 baseline_ecg=0
-absthresh_ecg=0.140
+absthresh_ecg=0.74
+minRR_ecg=0.100
 thresh_ecg1=4.0
 thresh_ecg2=2.0
 noise_ecg=75
