@@ -5,32 +5,9 @@ FMP19 Connector
 # %% import libraries
 #from fmrest import dataAPI
 from fmrest import server
+import os
 # %% define functions
 
-SERVER_IP = "https://3.141.29.47"
-USER = "AWS_admin"
-PASSWORD = "testmicemakemoney"
-DATABASE = "MICE"
-LAYOUT = "Autoresuscitation"
-
-table_keys = [
-    'PlyUID',
-    'RUID',
-    'Project Number'
-]
-
-DATABASE_PM = "Project_Management"
-LAYOUT_PM = "Project_Management"
-
-table_keys_pm = [
-    'Project Identification Number',
-    'Project_ID_Title'
-]
-credentials = {
-    'ip':SERVER_IP,
-    'user':USER,
-    'password':PASSWORD
-}
 
 # %%= fmrest.
 
@@ -115,29 +92,70 @@ def pull_specific_record(credentials,database,layout,search_args,table_keys):
         } for i in records
     }
 
+    # need warning if multiple keys in dict
 
-    return record_dict
+    return record_dict[list(record_dict.keys())[0]]
 
 # %%
 
-projects = pull_the_table(credentials,DATABASE_PM,LAYOUT_PM,table_keys_pm)
-ruids = pull_the_table(credentials,DATABASE,LAYOUT,table_keys)
-# %%
-pm_for_r2222 = pull_specific_record(
-    credentials,
-    DATABASE,
-    LAYOUT,
-    {'RUID':'R2222'},
-    table_keys
-)
+# projects = pull_the_table(credentials,DATABASE_PM,LAYOUT_PM,table_keys_pm)
+# ruids = pull_the_table(credentials,DATABASE,LAYOUT,table_keys)
+# # %%
+# pm_for_r2222 = pull_specific_record(
+#     credentials,
+#     DATABASE,
+#     LAYOUT,
+#     {'RUID':'R2222'},
+#     table_keys
+# )
 
 # %%
 
 
 # %% define main()
 def main():
-    pass
+    #%%
+    SERVER_IP = "https://3.141.29.47"
+    USER = "AWS_admin"
+    PASSWORD = "testmicemakemoney"
+    DATABASE = "MICE"
+    LAYOUT = "Autoresuscitation"
 
+    table_keys = [
+        'PlyUID',
+        'RUID',
+        'Project Number'
+    ]
+
+    credentials = {
+        'ip':SERVER_IP,
+        'user':USER,
+        'password':PASSWORD
+    }
+    # %%
+    ruid_plyuid_pmid = input("RUID_PlyUID_PMID:\n")
+    # %%
+    ruid_plyuid_pmid = "R2222_Ply111_PM???"
+    query_terms = ruid_plyuid_pmid.split("_")
+    query_dict = pull_specific_record(
+        credentials, 
+        DATABASE, 
+        LAYOUT,
+        {'RUID':query_terms[0]},
+        table_keys
+    )
+
+    rigname = "RIGNAME_TBD"
+
+    filepath = os.path.join(
+        "/mnt/pi",
+        rigname,
+        query_dict["Project Number"],
+        ruid_plyuid_pmid+".txt"
+    )
+    print(filepath)
+
+    #%%
 # %% run main
 if __name__ == "__main__":
     main()
