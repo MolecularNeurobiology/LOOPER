@@ -117,6 +117,9 @@ control_offset={'verticalA':{'inc':(-30,-10),'dec':(-30,40),'reset':(-30,0),'flo
                 'verticalD':{'inc':(-30,200),'dec':(-30,250),'reset':(-30,210),'float':(-35,230)},
                 'horizontalA':{'inc':(-10,10),'dec':(40,10),'reset':(0,10),'float':(20,10)}}
 
+#title and version box
+title_version_box = labeledbutton(WHITE,BLACK,300,25,'PCC __version__',TL=(400,0))
+
 #g1 controls
 g1_ymax_inc=adjustbutton(GREEN,
                          control_sizes['vertical']['inc'][0],
@@ -643,7 +646,8 @@ SO9=labeledbutton(DGREY,WHITE,SO9_xySize[0],SO9_xySize[1],
 
 #$$$$
                           
-box_SAVE=labeledbutton(BLACK,WHITE,500,25,'SAVE',(ScreenSize[0]-650,ScreenSize[1]-25))
+box_SAVE=labeledbutton(BLACK,WHITE,450,25,'SAVE',(ScreenSize[0]-650,ScreenSize[1]-25))
+box_oldSave=labeledbutton(RED,WHITE,100,25,'Old SAVE',(450,ScreenSize[1]-25))
 box_NOTIFICATION=labeledbutton(DGREY,WHITE,500,25,'NOTIFICATIONS-OFF',(ScreenSize[0]-650,ScreenSize[1]-50))
 
 box_Synch=labeledbutton(RED,WHITE,250,25,'Synch Stream',(ScreenSize[0]-275,25))
@@ -655,6 +659,10 @@ for i in Mode_dict:
 
 #prep sprite list
 sprite_list=pygame.sprite.Group()
+
+sprite_list.add(title_version_box)
+
+sprite_list.add(box_oldSave)
 
 sprite_list.add(box_MODE)
 

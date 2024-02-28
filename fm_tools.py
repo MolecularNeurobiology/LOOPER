@@ -178,6 +178,8 @@ def generate_rig_save_path(filename):
         "/media/pi",
         rigname,
         query_dict["Project Number"],
+        query_dict["Project Number"]+"_DATA",
+        "rigfiles",
         filename+".txt"
     )
     

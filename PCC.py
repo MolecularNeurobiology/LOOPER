@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__VERSION__ = '42.1.3'
+__version__ = '42.1.4'
 
 """
 Physiology Command Center
@@ -128,6 +128,8 @@ import sys
 import threading
 from copy import deepcopy
 from datetime import datetime
+import fm_tools
+import json
 
 from gpiozero import CPUTemperature
 
@@ -295,45 +297,6 @@ def guiGetText(title,text,default_if_canceled):
         return outputtext
 
 
-# class OptionPanel:
-#     def __init__(self,panel_title, option_dict):
-#         root = tkinter.Tk()
-#         root.title = panel_title
-#         self.Buttons = {}
-#         for k in option_dict:
-#             self.Buttons[k] = tkinter.Button(
-#                 root,
-#                 text = option_dict[k]['text'],
-#                 value = option_dict[k]['value'],
-#                 command = option_dict[k]['command'],
-#                 bg = option_dict[k]['bg_color'],
-#                 height = option_dict[k]['height'],
-#                 width = option_dict[k]['width']
-#                 )
-#             self.Buttons[k].grid(sticky ='S')
-    
-
-# #%% option panel test
-# TestPanel = OptionPanel(
-#     'this is just a test',
-#     {'button1':
-#      {
-#       'text':'button1',
-#       'command':guiGetText('test1','test1 text','default'),
-#       'bg_color':'green',
-#       'height':10,
-#       'width':40
-#       },
-#      'button2':
-#       {
-#        'text':'button2',
-#        'command':guiGetText('test2','test2 text','default'),
-#        'bg_color':'red',
-#        'height':10,
-#        'width':40
-#        }
-#      }
-#         )
                         
 
 
@@ -428,11 +391,17 @@ def advance(state,minstate,maxstate):
     return state
 
 
-    
-def save_button():
+def old_save_button():
     print('save')
     try:
         outputfile=guiSaveFileName({'title':'Save Signal Data','defaultextension':'.txt'})
+        
+        
+        
+        if not os.path.exists(os.path.dirname(outputfile)):
+            os.makedirs(os.path.dirname(outputfile))
+            print(f'making new directory - {os.path.dirname(outputfile)}')
+        
         readytosave=1
         now=datetime.now()
         ##
@@ -447,7 +416,49 @@ def save_button():
             outputfile=None
             readytosave=0
             
-    except:
+    except Exception as e:
+        print(e)
+        outputfile=None
+        readytosave=0
+        
+    return outputfile,readytosave
+    
+    
+def save_button():
+    print('save')
+    try:
+        #outputfile=guiSaveFileName({'title':'Save Signal Data','defaultextension':'.txt'})
+        
+        outputfile=fm_tools.generate_rig_save_path(
+            guiGetText(
+                "Scan Filename Barcode",
+                "Scan Filename Barcode",
+                ''
+            )
+        )
+        if os.path.isfile(outputfile):
+            raise ValueError("Desired output name already exists")
+        
+        if not os.path.exists(os.path.dirname(outputfile)):
+            os.makedirs(os.path.dirname(outputfile))
+            print(f'making new directory - {os.path.dirname(outputfile)}')
+        
+        readytosave=1
+        now=datetime.now()
+        ##
+        if outputfile is not None and outputfile != '':
+            with open(outputfile,'w') as f:
+                f.write('PLETHYSMOGRAPHY COMMAND CENTER DATA FILE\n')
+                f.write('file may contain mutliple sessions, session marker : $$$$$\n')
+                f.write('file created {year:04d}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}\n'.format(
+                        year=now.year, month=now.month, day=now.day,
+                        hour=now.hour, minute=now.minute, second=now.second))
+        else:
+            outputfile=None
+            readytosave=0
+            
+    except Exception as e:
+        print(e)
         outputfile=None
         readytosave=0
         
@@ -895,7 +906,10 @@ Challenge_phrase='Finished: On Anoxic'
 Challenge_Timer=datetime.now()
 Challenge_Delay=5
 
+with open('/home/pi/rig.config') as openfile:
+    rig_config = json.load(openfile)
 
+title_version_box.update(WHITE,BLACK,f"PCC {__version__} [{rig_config['RIGNAME']}]")
 
 
 ##
@@ -1148,6 +1162,18 @@ try:
                 elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode<3: # !!! this will need to be changed when shifted to config file setup - set this so that save is expected before first 'savable' mode
                     
                     new_OUTPUTFILE,new_rts=save_button()
+                    if new_rts == 0:
+                        pass
+                    else:
+                        cur_STATUS_Dict['ready to save']=new_rts
+                        OUTPUTFILE = str(new_OUTPUTFILE)
+                        box_SAVE.update(WHITE,BLUE,os.path.basename(OUTPUTFILE))
+                        logger = setup_logging(OUTPUTFILE[:-4])
+                        print("Logging file setup done")
+                        
+                elif box_oldSave.rect.collidepoint(event.pos) and Current_Mode<3: # !!! this will need to be changed when shifted to config file setup - set this so that save is expected before first 'savable' mode
+                    
+                    new_OUTPUTFILE,new_rts=old_save_button()
                     if new_rts == 0:
                         pass
                     else:
