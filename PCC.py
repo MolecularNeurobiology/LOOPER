@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '42.1.4'
+__version__ = '42.1.5'
 
 """
 Physiology Command Center
@@ -175,22 +175,22 @@ try:
             arduino_list.append(d)
     
     if len(arduino_list) > 1:
-        logging.warning('multiple arduinos found, using first')
+        logger.warning('multiple arduinos found, using first')
         ser.port = arduino_list[0].device
     elif len(arduino_list) == 1:
         ser.port = arduino_list[0].device
     else:
-        logging.warning('unable to locate arduino')
+        logger.warning('unable to locate arduino')
     ser.timeout=1
     ser.open()
     Connected_Arduino=True
 except Exception as e:
-    logging.warning('unable to connect to arduino {}'.format(e))
+    logger.warning('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
    
 ##
 #%% define functions
-##LOGGING SETUPn
+##LOGGING SETUP
 
 def setup_logging(filename, debug = 1):
     log_format = logging.Formatter('%(levelname)s - %(asctime)s - %(message)s',datefmt='%d-%b-%y %H:%M:%S')
@@ -200,9 +200,9 @@ def setup_logging(filename, debug = 1):
         c_handler.setLevel(logging.DEBUG)
     else:
         c_handler = logging.StreamHandler()
-        c_handler.setLevel(logging.INFO)
+        c_handler.setLevel(logger.info)
     f_handler = logging.FileHandler(filename + ".log")
-    f_handler.setLevel(logging.WARNING)
+    f_handler.setLevel(logger.warning)
     c_handler.setFormatter(log_format)
     f_handler.setFormatter(log_format)
     logger.addHandler(c_handler)
@@ -220,8 +220,7 @@ def log_to_file(logger, message):
 def log_to_console(logger, message):
     logger.debug(message)
 
-logger = logging.getLogger(__name__)
-##
+
 
     
 def guiSaveFileName(kwargs={}):
@@ -296,7 +295,72 @@ def guiGetText(title,text,default_if_canceled):
         except: pass
         return outputtext
 
+#%%
+def load_rig_config(config_path=None):
+    if not config_path:
+        config_path = '/home/pi/rig.config'
+    with open(config_path,'r') as openfile:
+        config = json.load(openfile)
+    return config
 
+
+def update_rig_config(field, config_path=None, logger = None):
+    if not config_path:
+        config_path = '/home/pi/rig.config'
+    with open(config_path,'r') as openfile:
+        config = json.load(openfile)
+    
+    new_value = guiGetText(
+        f"update entry for {field}",
+        f"update entry for {field}\nCurrent Value:{config[field]}",
+        ''
+    )
+    
+    config[field] = new_value
+    
+    with open(config_path,'w') as openfile:
+        json.dump(config, openfile, indent = 4)
+        
+    if logger: logger.info(f"rig config updated {field} : {new_value}")
+
+
+def update_rig_log(
+        rigconfig, 
+        filename, 
+        field_dict = None,
+        daily_key = None, 
+        daily_index = None, 
+        logpath = None
+):
+    if not logpath:
+        logpath = '/home/pi/rig_run_log.log'
+
+    with open(logpath,'r') as openfile:
+        riglog = json.load(openfile)
+
+    now = datetime.now()
+    if not daily_key:
+        daily_key = now.strftime('%Y-%m-%d')
+        
+    if daily_key in riglog:
+        riglog[daily_key].append(
+            {
+                "rigname":rigconfig['RIGNAME'],
+                "filename":os.path.basename(filename),
+                "start":now.strftime('%Y-%m-%d %H:%M:%S')
+            }
+        )
+    if not daily_index:
+        daily_index = len(riglog[daily_key])-1
+        
+    if field_dict:
+        for k,v in field_dict.items():
+            riglog[daily_key][daily_index][k] = v
+            
+    with open(logpath,'w') as openfile:
+        json.dump(riglog, openfile, indent=4)
+    
+    return daily_key, daily_index
                         
 
 
@@ -395,7 +459,7 @@ def old_save_button():
     print('save')
     try:
         outputfile=guiSaveFileName({'title':'Save Signal Data','defaultextension':'.txt'})
-        
+        fm_record_dict = {}
         
         
         if not os.path.exists(os.path.dirname(outputfile)):
@@ -421,15 +485,13 @@ def old_save_button():
         outputfile=None
         readytosave=0
         
-    return outputfile,readytosave
+    return outputfile,readytosave,fm_record_dict
     
     
 def save_button():
     print('save')
-    try:
-        #outputfile=guiSaveFileName({'title':'Save Signal Data','defaultextension':'.txt'})
-        
-        outputfile=fm_tools.generate_rig_save_path(
+    try:        
+        outputfile, fm_record_dict=fm_tools.generate_rig_save_path(
             guiGetText(
                 "Scan Filename Barcode",
                 "Scan Filename Barcode",
@@ -462,7 +524,7 @@ def save_button():
         outputfile=None
         readytosave=0
         
-    return outputfile,readytosave
+    return outputfile,readytosave,fm_record_dict
 
 def beat_caller(
         CT,
@@ -716,9 +778,9 @@ def processStatus(status,device,serial_connection,ADC):
         try:
             ser.write(serialtext.encode())
             log_to_file(logger, '{} - sent'.format(serialtext))
-            logging.info('{} - sent'.format(serialtext))
+            logger.info('{} - sent'.format(serialtext))
         except:
-            logging.warning('unablfe to transmit "{}"via serial io'.format(serialtext))
+            logger.warning('unable to transmit "{}" via serial io'.format(serialtext))
     
     return status
 
@@ -841,61 +903,6 @@ arduino_stream=StreamArduino(ser)
 ardThread= threading.Thread(target=arduino_stream.readStreamData)
 ardThread.start()
 
-# ##%% Start Reciving from manger
-# from socket import AF_INET, socket, SOCK_STREAM
-
-# from threading import Thread
-
-# def receive():
-
-#     """Handles receiving of messages."""
-
-#     while True:
-
-#         try:
-
-#             msg = client_socket.recv(BUFSIZ).decode("utf8")
-
-#             print(msg)
-
-#         except OSError:  # Possibly client has left the chat.
-
-#             break
-
- 
-
- 
-
-# def send(msg, event=None):  # event is passed by binders.
-
-#     """Handles sending of messages."""
-
-#     client_socket.send(bytes(msg, "utf8"))
-
-#     if msg == "{quit}":
-
-#         client_socket.close()
- 
-# """
-# HOST = "SMMacbook.local"
-# PORT = 33000
-# BUFSIZ = 1024
-
-# ADDR = (HOST, PORT)
-
- 
-
-# client_socket = socket(AF_INET, SOCK_STREAM)
-
-# client_socket.connect(ADDR)
-
-# send("pi")
-
-# receive_thread = threading.Thread(target=receive)
-
-# receive_thread.start()
-
-# """
 
 #%%   
 #% main loop
@@ -906,12 +913,11 @@ Challenge_phrase='Finished: On Anoxic'
 Challenge_Timer=datetime.now()
 Challenge_Delay=5
 
-with open('/home/pi/rig.config') as openfile:
-    rig_config = json.load(openfile)
+rig_config = load_rig_config()
 
 title_version_box.update(WHITE,BLACK,f"PCC {__version__} [{rig_config['RIGNAME']}]")
-
-
+tank_box.update(VIOLET,BLACK,f"TANK:{rig_config.get('Tank_Number','unk')}")
+mask_box.update(WHITE,VIOLET,f"MASK:{rig_config.get('Facemask_ID','unk')}")
 ##
 try:
     while running==True: # the main game loop
@@ -1014,7 +1020,7 @@ try:
             
             
             if SinceLastBreath>=CALL_DEATH_trigger:
-                logging.info('DEATH CALLED')
+                logger.info('DEATH CALLED')
                 serial_list.append('DEATH CALLED')
                 Current_Mode=advance(Current_Mode,0,len(Mode_dict)-1)
                 sdr.stopStreamData()
@@ -1038,8 +1044,8 @@ try:
         #process status changes
         if cur_STATUS_Dict!=old_STATUS_Dict:
             old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
-            log_to_file(logger, 'change in status - {} - {}'.format(Current_Mode,Mode_dict[Current_Mode]))
-            log_to_console(logger, "only console")
+            logger.warning(f'change in status - {Current_Mode} - {Mode_dict[Current_Mode]}')
+            
         #%%
 
         if old_STATUS_Dict['startup_ready']==1:
@@ -1161,7 +1167,20 @@ try:
                 #elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode==0:
                 elif box_SAVE.rect.collidepoint(event.pos) and Current_Mode<3: # !!! this will need to be changed when shifted to config file setup - set this so that save is expected before first 'savable' mode
                     
-                    new_OUTPUTFILE,new_rts=save_button()
+                    new_OUTPUTFILE,new_rts,fm_record_dict=save_button()
+                    if fm_record_dict:
+                        fm_tools.update_record(
+                            credentials, 
+                            database, 
+                            layout, 
+                            fm_record_dict['recordId'], 
+                            {
+                                'Rig':rig_config['RIGNAME'],
+                                'Gas 1':'0% O2, 3% CO2, Balance Nitrogen',
+                                'Tank 1':rig_config['Tank_Number'],
+                                'FacemaskID':rig_config['Facemask_ID']
+                            }
+                        )
                     if new_rts == 0:
                         pass
                     else:
@@ -1173,7 +1192,7 @@ try:
                         
                 elif box_oldSave.rect.collidepoint(event.pos) and Current_Mode<3: # !!! this will need to be changed when shifted to config file setup - set this so that save is expected before first 'savable' mode
                     
-                    new_OUTPUTFILE,new_rts=old_save_button()
+                    new_OUTPUTFILE,new_rts,fm_record_dict=old_save_button()
                     if new_rts == 0:
                         pass
                     else:
@@ -1232,9 +1251,9 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logging.info('{} - sent'.format(serialtext))
+                        logger.info('{} - sent'.format(serialtext))
                     except:
-                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle=1
                     print('override')
@@ -1243,18 +1262,18 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logging.info('{} - sent'.format(serialtext))
+                        logger.info('{} - sent'.format(serialtext))
                     except:
-                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
 
                 elif finish_startup.rect.collidepoint(event.pos) and cur_STATUS_Dict['startup_ready']==1:
                     serialtext='<E,0,0>'
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logging.info('{} - sent'.format(serialtext))
+                        logger.info('{} - sent'.format(serialtext))
                     except:
-                        logging.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
                     cur_STATUS_Dict['startup_ready']=2
                     finish_startup.update(BLACK,BLACK,'')
                     
@@ -1489,7 +1508,7 @@ try:
                 
             if event.type==pygame.QUIT:
                 running=False
-                logging.info('exit')
+                logger.info('exit')
         if running==False:
             
             sdr.stopStreamData()
@@ -1648,21 +1667,29 @@ try:
             # prep data for graphing
             g1_app_ctr=0
             downsample_rate1=20
-            for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]:
-                g1_app_ctr+=1
-                if g1_app_ctr%downsample_rate1==0:
-                    PreFilt_data1.append(i)
-                else: continue
             g3_app_ctr=0
             downsample_rate3=2
             
-            for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]:
-                g3_app_ctr+=1
-                if g3_app_ctr%downsample_rate3==0:
-                    PreFilt_data3.append(i)
+            # for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]:
+            #     g1_app_ctr+=1
+            #     if g1_app_ctr%downsample_rate1==0:
+            #         PreFilt_data1.append(i)
+            #     else: continue
+            Raw_data1 += r['Ain{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]
+            Raw_data1 = Raw_data1[-10000:]
+            PreFilt_data1 = Raw_data1[-7500::downsample_rate1]
+            
+            Raw_data3 +=  r['Ain{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]
+            Raw_data3 = Raw_data3[-10000:]
+            PreFilt_data3 = Raw_data3[-5000::downsample_rate3]
+            
+            # for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]:
+            #     g3_app_ctr+=1
+            #     if g3_app_ctr%downsample_rate3==0:
+            #         PreFilt_data3.append(i)
             ##crop the data (7.5 seconds) 
-            PreFilt_data1=PreFilt_data1[-375:] #50Hz * 7.5s
-            PreFilt_data3=PreFilt_data3[-1500:] #500Hz * 3s#minimize buffer of prefilt data to help with lag
+            # PreFilt_data1=PreFilt_data1[-375:] #50Hz * 7.5s
+            # PreFilt_data3=PreFilt_data3[-1500:] #500Hz * 3s#minimize buffer of prefilt data to help with lag
             
             ##filter data and sample for calling
             if pleth_filt_state==0:
@@ -2036,7 +2063,7 @@ try:
               
         #% stream errors and exiting
         except Queue.Empty:
-            logging.warning('empty Q')
+            logger.warning('empty Q')
             pass
 
         data1_graphed=graphScaler(g1_TL,g1_xySize,(ts1[0],ts1[-1]),g1_y_minmax,ts1[:],data1[:]) # resolution re-upscaled formerly [::2]
@@ -2098,7 +2125,7 @@ try:
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
-                logging.warning("Experiment Finished")
+                logger.warning("Experiment Finished")
                 print('EXPERIMENT FINISHED')
                 emailnotification(EMAIL_SETTINGS,d)
             except:

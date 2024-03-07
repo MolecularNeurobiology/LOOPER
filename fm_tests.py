@@ -11,7 +11,6 @@ import re
 # %% define functions
 
 
-# %%= fmrest.
 
 def pull_the_table(
     credentials,
@@ -104,18 +103,6 @@ def pull_specific_record(
 
     return record_dict[list(record_dict.keys())[0]]
 
-# %%
-
-# projects = pull_the_table(credentials,DATABASE_PM,LAYOUT_PM,table_keys_pm)
-# ruids = pull_the_table(credentials,DATABASE,LAYOUT,table_keys)
-# # %%
-# pm_for_r2222 = pull_specific_record(
-#     credentials,
-#     DATABASE,
-#     LAYOUT,
-#     {'RUID':'R2222'},
-#     table_keys
-# )
 
 # %%
 
