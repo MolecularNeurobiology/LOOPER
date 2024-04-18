@@ -175,17 +175,17 @@ try:
             arduino_list.append(d)
     
     if len(arduino_list) > 1:
-        logger.warning('multiple arduinos found, using first')
+        if logger: logger.warning('multiple arduinos found, using first')
         ser.port = arduino_list[0].device
     elif len(arduino_list) == 1:
         ser.port = arduino_list[0].device
     else:
-        logger.warning('unable to locate arduino')
+        if logger: logger.warning('unable to locate arduino')
     ser.timeout=1
     ser.open()
     Connected_Arduino=True
 except Exception as e:
-    logger.warning('unable to connect to arduino {}'.format(e))
+    if logger: logger.warning('unable to connect to arduino {}'.format(e))
     Connected_Arduino=False
    
 ##
@@ -498,6 +498,9 @@ def save_button():
                 ''
             )
         )
+        
+        # fm_record_dict initially populated for keys 'PlyUID','RUID','Project Number'
+        
         if os.path.isfile(outputfile):
             raise ValueError("Desired output name already exists")
         
@@ -726,7 +729,7 @@ def butterFilt(CT,sampleHz):
     buttered=signal.lfilter(b,a,CT)
     return buttered        
 
-def processStatus(status,device,serial_connection,ADC):
+def processStatus(status,device,serial_connection,ADC,logger = None):
     device.setDIOState(0,0)
     device.setDIOState(1,0)
     device.setDIOState(2,0)
@@ -778,9 +781,9 @@ def processStatus(status,device,serial_connection,ADC):
         try:
             ser.write(serialtext.encode())
             log_to_file(logger, '{} - sent'.format(serialtext))
-            logger.info('{} - sent'.format(serialtext))
+            if logger: logger.info('{} - sent'.format(serialtext))
         except:
-            logger.warning('unable to transmit "{}" via serial io'.format(serialtext))
+            if logger: logger.warning('unable to transmit "{}" via serial io'.format(serialtext))
     
     return status
 
@@ -915,6 +918,10 @@ Challenge_Delay=5
 
 rig_config = load_rig_config()
 
+logger = None
+
+record_id = None
+
 title_version_box.update(WHITE,BLACK,f"PCC {__version__} [{rig_config['RIGNAME']}]")
 tank_box.update(VIOLET,BLACK,f"TANK:{rig_config.get('Tank_Number','unk')}")
 mask_box.update(WHITE,VIOLET,f"MASK:{rig_config.get('Facemask_ID','unk')}")
@@ -968,7 +975,7 @@ try:
                     value_Challenge_Counter=1
                     value_CurrentChallengeCO2_Start=datetime.now()
                     #print('first challenge')
-                    logger.info('first challenge')
+                    if logger: logger.info('first challenge')
 
                 elif (SinceLastBreath>=SLB_Trigger or Abort_Toggle==1) and cur_STATUS_Dict['challenge gas']==1:
                     cur_STATUS_Dict['challenge air']=1
@@ -980,7 +987,7 @@ try:
                     recovery_detected = 0
                     #print('{:#.2F} sec apnea detected'.format(SinceLastBreath))
                     serial_list.append('apnea detected')
-                    logger.info('apnea detected')
+                    if logger: logger.info('apnea detected')
                     Challenge_Toggle=0
                     
                     # if value_CurrentChallenge_Timer<1+SLB_Trigger+Challenge_Delay:
@@ -1020,7 +1027,7 @@ try:
             
             
             if SinceLastBreath>=CALL_DEATH_trigger:
-                logger.info('DEATH CALLED')
+                if logger: logger.info('DEATH CALLED')
                 serial_list.append('DEATH CALLED')
                 Current_Mode=advance(Current_Mode,0,len(Mode_dict)-1)
                 sdr.stopStreamData()
@@ -1037,14 +1044,16 @@ try:
                 missed=0
                 sdrThread = threading.Thread(target=sdr.readStreamData)
                 sdrThread.start()
-                box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])  
+                box_MODE.update(BLACK,WHITE,Mode_dict[Current_Mode])
+                
+                  
         ## $$$$
                 
         #%%
         #process status changes
         if cur_STATUS_Dict!=old_STATUS_Dict:
-            old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants))
-            logger.warning(f'change in status - {Current_Mode} - {Mode_dict[Current_Mode]}')
+            old_STATUS_Dict=dict(processStatus(cur_STATUS_Dict,d,ser,Arduino_Function_Constants,logger=logger))
+            if logger: logger.warning(f'change in status - {Current_Mode} - {Mode_dict[Current_Mode]}')
             
         #%%
 
@@ -1070,7 +1079,7 @@ try:
                 serial_list.append(
                     f'insufficient baseline {current_QB_duration} of {minimum_cummulative_QB_duration} - {baseline_increment} sec added'
                     )
-                logger.warning(f'insufficient baseline {current_QB_duration} of {minimum_cummulative_QB_duration} - {baseline_increment} sec added')
+                if logger: logger.warning(f'insufficient baseline {current_QB_duration} of {minimum_cummulative_QB_duration} - {baseline_increment} sec added')
                     
             
             
@@ -1251,9 +1260,9 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logger.info('{} - sent'.format(serialtext))
+                        if logger: logger.info('{} - sent'.format(serialtext))
                     except:
-                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        if logger: logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle=1
                     print('override')
@@ -1262,18 +1271,18 @@ try:
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logger.info('{} - sent'.format(serialtext))
+                        if logger: logger.info('{} - sent'.format(serialtext))
                     except:
-                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        if logger: logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
 
                 elif finish_startup.rect.collidepoint(event.pos) and cur_STATUS_Dict['startup_ready']==1:
                     serialtext='<E,0,0>'
                     try:
                         ser.write(serialtext.encode())
                         log_to_file(logger, '{} - sent'.format(serialtext))
-                        logger.info('{} - sent'.format(serialtext))
+                        if logger: logger.info('{} - sent'.format(serialtext))
                     except:
-                        logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
+                        if logger: logger.warning('unable to transmit "{} "via serial io'.format(serialtext))
                     cur_STATUS_Dict['startup_ready']=2
                     finish_startup.update(BLACK,BLACK,'')
                     
@@ -1508,7 +1517,7 @@ try:
                 
             if event.type==pygame.QUIT:
                 running=False
-                logger.info('exit')
+                if logger: logger.info('exit')
         if running==False:
             
             sdr.stopStreamData()
@@ -1542,6 +1551,15 @@ try:
         SO7.update_left(DGREY,WHITE,serial_list[6])
         SO8.update_left(DGREY,WHITE,serial_list[7])
         SO9.update_left(DGREY,WHITE,serial_list[8])
+        
+        # collect important timestamps
+        if Mode_dict[Current_Mode]=='Habituation-1' and Current_Mode!=prev_Mode:
+            fm_record_dict['time started'] = datetime.now().strfmt('%H:%M')
+        
+        if Mode_dict[Current_Mode]=='Habituation-2' and Current_Mode!=prev_Mode:
+            fm_record_dict['Time of Injection'] = datetime.now().strfmt('%H:%M')
+        
+        
         
         
         if cur_STATUS_Dict['challenge gas']==1:
@@ -1618,6 +1636,7 @@ try:
             r = d.processStreamData(result['result'])
             
             
+            
             ## save the data
             if Mode_dict[Current_Mode] in savable_modes:
                 if Current_Mode!=prev_Mode:
@@ -1675,11 +1694,17 @@ try:
             #     if g1_app_ctr%downsample_rate1==0:
             #         PreFilt_data1.append(i)
             #     else: continue
-            Raw_data1 += r['Ain{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]
+            Raw_data1 += r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]
             Raw_data1 = Raw_data1[-10000:]
             PreFilt_data1 = Raw_data1[-7500::downsample_rate1]
             
-            Raw_data3 +=  r['Ain{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]
+            print(r)
+            print(CHANNEL_LIST)
+            print(CHANNEL_DICT)
+            print(r['AIN0'])
+            
+            
+            Raw_data3 +=  r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]
             Raw_data3 = Raw_data3[-10000:]
             PreFilt_data3 = Raw_data3[-5000::downsample_rate3]
             
@@ -1747,7 +1772,7 @@ try:
                 Annot_Color=RED
                 if len(BreathCalls)>=1:
                     gasp_detected = 1
-                    logger.info('gasp detected')
+                    if logger: logger.info('gasp detected')
                     serial_list.append('gasp detected')
             else:
                 BreathCalls=basic_breathcall(data1,ts1,baseline_flow,thresh_flow)
@@ -1829,7 +1854,8 @@ try:
 
             SinceLastBreath=elapsed_time_sec-LastBreath
             if SinceLastBreath>=CALL_DEATH_trigger:
-                log_to_file(logger, "Since Last Breath  >= Call_Death")
+                
+                if logger: logger.info('Since Last Breath  >= Call_Death')
                 
                        
             if Mode_dict[Current_Mode]=='Challenge' and SinceLastBreath<=SLB_Trigger:
@@ -1980,12 +2006,12 @@ try:
                             
                         if current_maximum_sustained_recovery_bout >= minimum_sustained_recovery \
                                and consecutive_sustained_recovery_toggle ==0:
-                            logger.info('sustained recovery detected')
+                            if logger: logger.info('sustained recovery detected')
                             serial_list.append('sustained recovery detected')
                             consecutive_sustained_recovery_toggle = 1
                         if accumulated_recovery >= minimum_sustained_recovery \
                                 and accumulated_sustained_recovery_toggle ==0:
-                            logger.info('accumulated recovery detected')
+                            if logger: logger.info('accumulated recovery detected')
                             serial_list.append('accumulated recovery detected')
                             accumulated_sustained_recovery_toggle = 1
                     else:
@@ -1997,7 +2023,7 @@ try:
                             current_maximum_sustained_recovery_bout <= minimum_sustained_recovery:
                         current_minimum_resus_time += recovery_increment
                         serial_list.append('animal not in sustained recovery. {} seconds added.'.format(recovery_increment))
-                        logger.info('animal not yet reached sustained recovery. {} seconds added.'.format(recovery_increment))
+                        if logger: logger.info('animal not yet reached sustained recovery. {} seconds added.'.format(recovery_increment))
                 elif cur_STATUS_Dict['challenge gas']==1:
                     current_recovery = float(minimum_resus_time)
                     current_minimum_resus_time = float(minimum_resus_time)
@@ -2063,7 +2089,7 @@ try:
               
         #% stream errors and exiting
         except Queue.Empty:
-            logger.warning('empty Q')
+            if logger: logger.warning('empty Q')
             pass
 
         data1_graphed=graphScaler(g1_TL,g1_xySize,(ts1[0],ts1[-1]),g1_y_minmax,ts1[:],data1[:]) # resolution re-upscaled formerly [::2]
@@ -2080,6 +2106,7 @@ try:
         baseline3_graphed=graphScaler(g3_TL,g3_xySize,(0,1),g3_y_minmax,[0,1],[baseline_ecg,baseline_ecg]) #update to baseline variable
         thresh3_graphed=graphScaler(g3_TL,g3_xySize,(0,1),g3_y_minmax,[0,1],[absthresh_ecg,absthresh_ecg]) #update to thresh variable
     ##    
+
 
         d_graph1=pygame.draw.lines(DISPLAYSURF,BLUE,False,[(int(p[0]),int(p[1])) for p in data1_graphed])
         base1=pygame.draw.lines(DISPLAYSURF,BLACK,False,[(int(p[0]),int(p[1])) for p in baseline1_graphed])
@@ -2125,9 +2152,58 @@ try:
 
         if Mode_dict[Current_Mode]=='Finished' and Current_Mode!=prev_Mode:
             try:
-                logger.warning("Experiment Finished")
+                if logger: logger.warning("Experiment Finished")
                 print('EXPERIMENT FINISHED')
+                
                 emailnotification(EMAIL_SETTINGS,d)
+                today = datetime.now().strftime('%Y-%m-%d')
+                last_day_used = rig_config.get('last_day_used',datetime.now().strftime('%Y-%m-%d'))
+                daily_run_number = int(rig_config.get('Daily_run_number',1))
+                
+                if today == last_day_used:
+                    daily_run_number += 1
+                else:
+                    daily_run_number = 1
+                    last_day_used = today
+                
+                rig_odometer = int(rig_config.get('Rig_Odometer',1))+1
+                
+                with open('/home/pi/rig.config','w') as openfile:
+                    json.dump(config, openfile, indent = 4)
+                
+                fm_record_dict['SLB_trigger'] = SLB_Trigger
+                fm_record_dict['Number on Rig'] = daily_run_number
+                fm_record_dict['Number of Episodes'] = value_Challenge_Counter
+                
+                
+                
+                # !!! update fm with results
+                
+                print(fm_record_dict)
+                
+                if not record_id:
+                    record_id = fm_record_dict.pop('recordId')
+                
+                fm_tools.update_record(
+                            credentials, 
+                            database, 
+                            layout, 
+                            record_id, 
+                            **fm_record_dict
+                )
+                
+                # !!! confirm results were populated
+                print(
+                    fm_tools.pull_specific_record(
+                        credentials,
+                        database,
+                        layout,
+                        {'RUID':fm_record_dict['RUID']},
+                        list(fm_record_dict.keys()),
+                        logger = None
+                    )
+                )
+                
             except:
                 print('unable to send notification')
 

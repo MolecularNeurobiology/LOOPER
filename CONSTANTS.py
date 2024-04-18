@@ -159,7 +159,7 @@ qual_dur_xySize=(200,50)
 qual_test_xySize=(200,50)
 
 increment=0.1
-inc_TL=(450,50)
+inc_TL=(450,100)
 
 cur_time=datetime.now()
 
