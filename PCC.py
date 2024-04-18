@@ -202,7 +202,7 @@ def setup_logging(filename, debug = 1):
         c_handler = logging.StreamHandler()
         c_handler.setLevel(logger.info)
     f_handler = logging.FileHandler(filename + ".log")
-    f_handler.setLevel(logger.warning)
+    # f_handler.setLevel(logger.warning)
     c_handler.setFormatter(log_format)
     f_handler.setFormatter(log_format)
     logger.addHandler(c_handler)
@@ -917,6 +917,13 @@ Challenge_Timer=datetime.now()
 Challenge_Delay=5
 
 rig_config = load_rig_config()
+credentials = {
+    'ip':rig_config.get("SERVER_IP"),
+    'user':rig_config.get("USER"),
+    'password':rig_config.get("PASSWORD")
+}
+database = rig_config.get("DATABASE")
+layout = rig_config.get("LAYOUT")
 
 logger = None
 
@@ -1184,10 +1191,10 @@ try:
                             layout, 
                             fm_record_dict['recordId'], 
                             {
-                                'Rig':rig_config['RIGNAME'],
-                                'Gas 1':'0% O2, 3% CO2, Balance Nitrogen',
-                                'Tank 1':rig_config['Tank_Number'],
-                                'FacemaskID':rig_config['Facemask_ID']
+                                'Rig':rig_config['RIGNAME']
+                                #'Gas 1':'0% O2, 3% CO2, Balance Nitrogen'
+                                #'Tank 1':rig_config.get('Tank_Number','unk'),
+                                #'FacemaskID':rig_config.get('Facemask_ID','unk')
                             }
                         )
                     if new_rts == 0:
@@ -1554,10 +1561,10 @@ try:
         
         # collect important timestamps
         if Mode_dict[Current_Mode]=='Habituation-1' and Current_Mode!=prev_Mode:
-            fm_record_dict['time started'] = datetime.now().strfmt('%H:%M')
+            fm_record_dict['time started'] = datetime.now().strftime('%H:%M')
         
         if Mode_dict[Current_Mode]=='Habituation-2' and Current_Mode!=prev_Mode:
-            fm_record_dict['Time of Injection'] = datetime.now().strfmt('%H:%M')
+            fm_record_dict['Time of Injection'] = datetime.now().strftime('%H:%M')
         
         
         
@@ -1698,10 +1705,6 @@ try:
             Raw_data1 = Raw_data1[-10000:]
             PreFilt_data1 = Raw_data1[-7500::downsample_rate1]
             
-            print(r)
-            print(CHANNEL_LIST)
-            print(CHANNEL_DICT)
-            print(r['AIN0'])
             
             
             Raw_data3 +=  r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['ECG']])]
@@ -2155,23 +2158,26 @@ try:
                 if logger: logger.warning("Experiment Finished")
                 print('EXPERIMENT FINISHED')
                 
-                emailnotification(EMAIL_SETTINGS,d)
+                #emailnotification(EMAIL_SETTINGS,d)
                 today = datetime.now().strftime('%Y-%m-%d')
                 last_day_used = rig_config.get('last_day_used',datetime.now().strftime('%Y-%m-%d'))
-                daily_run_number = int(rig_config.get('Daily_run_number',1))
+                daily_run_number = int(rig_config.get('daily_run_number',1))
                 
                 if today == last_day_used:
                     daily_run_number += 1
+                    rig_config['daily_run_number'] = daily_run_number
                 else:
                     daily_run_number = 1
                     last_day_used = today
+                    rig_config['last_day_used'] = last_day_used
                 
-                rig_odometer = int(rig_config.get('Rig_Odometer',1))+1
+                rig_odometer = int(rig_config.get('rig_odometer',1))+1
+                rig_config['rig_odometer'] = rig_odometer
                 
                 with open('/home/pi/rig.config','w') as openfile:
-                    json.dump(config, openfile, indent = 4)
+                    json.dump(rig_config, openfile, indent = 4)
                 
-                fm_record_dict['SLB_trigger'] = SLB_Trigger
+                fm_record_dict['SLB_Trigger'] = SLB_Trigger
                 fm_record_dict['Number on Rig'] = daily_run_number
                 fm_record_dict['Number of Episodes'] = value_Challenge_Counter
                 
@@ -2183,13 +2189,17 @@ try:
                 
                 if not record_id:
                     record_id = fm_record_dict.pop('recordId')
+                    
+                for k in ['recordId','PlyUID']:
+                    if k in fm_record_dict:
+                        fm_record_dict.pop(k)
                 
                 fm_tools.update_record(
                             credentials, 
                             database, 
                             layout, 
                             record_id, 
-                            **fm_record_dict
+                            fm_record_dict
                 )
                 
                 # !!! confirm results were populated
@@ -2204,8 +2214,9 @@ try:
                     )
                 )
                 
-            except:
+            except Exception as e:
                 print('unable to send notification')
+                print(e)
 
         prev_Mode=int(Current_Mode)
         pygame.display.update()
