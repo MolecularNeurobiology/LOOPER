@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = '42.1.5'
+__version__ = '42.1.6'
 
 """
 Physiology Command Center
@@ -2166,8 +2166,10 @@ try:
                 if today == last_day_used:
                     daily_run_number += 1
                     rig_config['daily_run_number'] = daily_run_number
+                    rig_config['last_day_used'] = last_day_used
                 else:
                     daily_run_number = 1
+                    rig_config['daily_run_number'] = daily_run_number
                     last_day_used = today
                     rig_config['last_day_used'] = last_day_used
                 

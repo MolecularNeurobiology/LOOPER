@@ -65,6 +65,66 @@ def pull_the_table(
     return record_dict
 
 
+
+def pull_filtered_records(
+    credentials,
+    database,
+    layout,
+    search_args,
+    table_keys,
+    logger = None
+):
+    SERVER_IP = credentials['ip']
+    USER = credentials['user']
+    PASSWORD = credentials['password']
+    DATABASE = database
+    LAYOUT = layout
+
+    fms =  server.Server(
+        SERVER_IP,
+        user=USER,
+        password=PASSWORD,
+        database=DATABASE,
+        layout=LAYOUT,
+        api_version="v2",
+        verify_ssl=False
+    )
+
+    fms.login()
+
+    records = []
+    offset = 1
+    limit = 100
+    order_by = [{'fieldName':table_keys[0], 'sortOrder':'ascend'}]
+    while True:
+        try:
+            print(f'{offset}-{len(records)}')
+            current_records = fms.find(search_args,sort = order_by, limit = limit, offset = offset) 
+            records+=[i for i in current_records]
+            offset += limit
+            if current_records.is_complete: break
+    
+        except Exception as e:
+            print(e)
+            break
+
+    fms.logout()
+    print(f'{len(records)} records found')
+    if 'recordId' not in table_keys:
+        table_keys.append('recordId')
+    
+    record_dict = {
+        i['recordId']:{
+            k:i[k] for k in table_keys 
+        } for i in records
+    }
+    return record_dict    
+    
+    
+    
+
+
+
 def pull_specific_record(
     credentials,
     database,
