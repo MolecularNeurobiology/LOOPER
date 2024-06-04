@@ -50,7 +50,7 @@ def main():
     # generate log file
     logger = logging.getLogger('rig_clean_up')
     logger_output_path = os.path.join(
-        '/home/pi/',f'rig_cleanup_{datetime.now().strftime("%Y-%m-%d")}'
+        '/home/pi/',f'rig_cleanup_{datetime.datetime.now().strftime("%Y-%m-%d")}'
     )
 
     file_handler = logging.FileHandler(logger_output_path)
