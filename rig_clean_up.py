@@ -35,7 +35,7 @@ def extract_ruid(filename):
     """
     
     # Extracts RUID from anywhere in the filename to allow for maximum flexibility in possible naming conventions.
-    ruid_re = re.compile(r'.*(?P<ruid>[rR][0-9]*).*')
+    ruid_re = re.compile(r'.*(?P<ruid>[rR][0-9]+).*')
     match = ruid_re.match(filename)
     if match:
         return match.group(1)  # Return the matched RUID
@@ -58,7 +58,7 @@ def main():
     
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    
+    logger.setLevel(logging.DEBUG)
     logger.info('logging started')
     
     
@@ -92,8 +92,10 @@ def main():
        
 
     # build list of RUIDS
-    ruid_list = [extract_ruid(v) for k,v in filedict.items()]
+    ruid_list = [extract_ruid(v) for k,v in filedict.items() if extract_ruid(v) is not None]
     logger.info(f'{len(ruid_list)} files found')
+    for ruid in ruid_list:
+        logger.info(f'>{ruid}')
     
     
     fmp_query_by_ruid = [
@@ -121,14 +123,17 @@ def main():
     
     # build set of files ready to delete
     records_to_delete = [
-        v['RUID'] for k,v in records if v['DeleteRecord']=='Yes'
+        v['RUID'] for k,v in records.items() if v['DeleteRecord']=='Yes'
     ]
     
     logger.info(f'{len(records_to_delete)} files ready to delete')
+    for ruid in records_to_delete:
+        logger.info(f'file needs deletion {ruid}')
     
     # delete files
-    for k,v in filedict:
+    for k,v in filedict.items():
         if extract_ruid(v) in records_to_delete:
+            # logger.info(f'file needs deletion {v}')
             if os.path.exists(k):
                 os.remove(k)
                 logger.info(f'deleted {v} at {k}')
