@@ -35,7 +35,7 @@ def extract_ruid(filename):
     """
     
     # Extracts RUID from anywhere in the filename to allow for maximum flexibility in possible naming conventions.
-    ruid_re = re.compile(r'.*(?P<ruid>[rR][0-9]*).*')
+    ruid_re = re.compile(r'.*(?P<ruid>[rR][0-9]+).*')
     match = ruid_re.match(filename)
     if match:
         return match.group(1)  # Return the matched RUID
@@ -45,6 +45,17 @@ def extract_ruid(filename):
 
 
 #%% define main
+
+def filter_to_rig_files(walker):
+    filedict = {}
+    for d,p,f in walker:
+        if '/.' not in d:
+            for filename in f:
+                # skip hidden files
+                if filename[0]!='.':
+                    filedict[os.path.join(d,filename)] = filename
+    return filedict
+
 
 def main():
     # generate log file
@@ -58,7 +69,7 @@ def main():
     
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)
-    
+    logger.setLevel(logging.DEBUG)
     logger.info('logging started')
     
     
@@ -85,15 +96,14 @@ def main():
     )
     
     walker = os.walk(local_storage_path)
-    filedict = {}
-    for d,p,f in walker:
-        for filename in f:
-            filedict[os.path.join(d,filename)] = filename
+    filedict = filter_to_rig_files(walker)
+    #print(filedict)
        
 
     # build list of RUIDS
-    ruid_list = [extract_ruid(v) for k,v in filedict.items()]
+    ruid_list = [extract_ruid(v) for k,v in filedict.items() if extract_ruid(v) is not None]
     logger.info(f'{len(ruid_list)} files found')
+    #print(ruid_list)
     
     
     fmp_query_by_ruid = [
@@ -121,13 +131,15 @@ def main():
     
     # build set of files ready to delete
     records_to_delete = [
-        v['RUID'] for k,v in records if v['DeleteRecord']=='Yes'
+        v['RUID'] for k,v in records.items() if v['DeleteRecord']=='Yes'
     ]
     
     logger.info(f'{len(records_to_delete)} files ready to delete')
+    logger.info(','.join(records_to_delete))
     
     # delete files
-    for k,v in filedict:
+    for k,v in filedict.items():
+        #print(k)
         if extract_ruid(v) in records_to_delete:
             if os.path.exists(k):
                 os.remove(k)
