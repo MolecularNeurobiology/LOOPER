@@ -6,7 +6,7 @@ Divided by where they are used
 
 """
 
-__VERSION__ = "0.0.4"
+__CONSTANTS_version__ = "0.0.5"
 
 
 import pygame
@@ -57,6 +57,7 @@ savable_modes=[
     'Challenge'
     ]
 
+fm_record_dict = {}
 
 Current_Mode=0 # start in first mode
 prev_Mode=-1
@@ -158,7 +159,7 @@ qual_dur_xySize=(200,50)
 qual_test_xySize=(200,50)
 
 increment=0.1
-inc_TL=(450,50)
+inc_TL=(450,100)
 
 cur_time=datetime.now()
 
@@ -270,6 +271,9 @@ CALL_DEATH_trigger_TL=(950,810)
 
 ## buffers and status tags
 # variables to hold error reports - need to make and move this to a log file eventually
+Raw_data1=[0 for i in range(10000)]
+Raw_data3=[0 for i in range(10000)]
+
 
 PreFilt_data1=[0 for i in range(1000)]
 #PreFilt_data2=[0 for i in range(1000)]
@@ -358,7 +362,7 @@ thresh_vol=0.25
 filt_vol='None'
 
 baseline_ecg=0
-absthresh_ecg=0.74
+absthresh_ecg=0.14
 minRR_ecg=0.100
 thresh_ecg1=4.0
 thresh_ecg2=2.0

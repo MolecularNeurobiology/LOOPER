@@ -6,6 +6,7 @@ Setup for the GUI for PCC. Adds all the sprites and initilizes the display
 
 """
 
+__GUI_version__ = "0.0.2"
 
 import pygame
 
@@ -119,7 +120,8 @@ control_offset={'verticalA':{'inc':(-30,-10),'dec':(-30,40),'reset':(-30,0),'flo
 
 #title and version box
 title_version_box = labeledbutton(WHITE,BLACK,300,25,'PCC __version__',TL=(400,0))
-
+tank_box = labeledbutton(WHITE,BLACK,150,25,'TANK:__',TL=(400,25))
+mask_box = labeledbutton(WHITE,BLACK,150,25,'MASK: __',TL=(550,25))
 #g1 controls
 g1_ymax_inc=adjustbutton(GREEN,
                          control_sizes['vertical']['inc'][0],
@@ -661,6 +663,9 @@ for i in Mode_dict:
 sprite_list=pygame.sprite.Group()
 
 sprite_list.add(title_version_box)
+
+sprite_list.add(tank_box)
+sprite_list.add(mask_box)
 
 sprite_list.add(box_oldSave)
 
