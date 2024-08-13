@@ -103,7 +103,10 @@ def main():
     # build list of RUIDS
     ruid_list = [extract_ruid(v) for k,v in filedict.items() if extract_ruid(v) is not None]
     logger.info(f'{len(ruid_list)} files found')
-    #print(ruid_list)
+
+    for ruid in ruid_list:
+        logger.info(f'>{ruid}')
+
     
     
     fmp_query_by_ruid = [
@@ -135,12 +138,13 @@ def main():
     ]
     
     logger.info(f'{len(records_to_delete)} files ready to delete')
+
     logger.info(','.join(records_to_delete))
     
     # delete files
     for k,v in filedict.items():
-        #print(k)
-        if extract_ruid(v) in records_to_delete:
+         if extract_ruid(v) in records_to_delete:
+            # logger.info(f'file needs deletion {v}')
             if os.path.exists(k):
                 os.remove(k)
                 logger.info(f'deleted {v} at {k}')
