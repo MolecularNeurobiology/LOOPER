@@ -46,6 +46,17 @@ def extract_ruid(filename):
 
 #%% define main
 
+def filter_to_rig_files(walker):
+    filedict = {}
+    for d,p,f in walker:
+        if '/.' not in d:
+            for filename in f:
+                # skip hidden files
+                if filename[0]!='.':
+                    filedict[os.path.join(d,filename)] = filename
+    return filedict
+
+
 def main():
     # generate log file
     logger = logging.getLogger('rig_clean_up')
@@ -85,17 +96,17 @@ def main():
     )
     
     walker = os.walk(local_storage_path)
-    filedict = {}
-    for d,p,f in walker:
-        for filename in f:
-            filedict[os.path.join(d,filename)] = filename
+    filedict = filter_to_rig_files(walker)
+    #print(filedict)
        
 
     # build list of RUIDS
     ruid_list = [extract_ruid(v) for k,v in filedict.items() if extract_ruid(v) is not None]
     logger.info(f'{len(ruid_list)} files found')
+
     for ruid in ruid_list:
         logger.info(f'>{ruid}')
+
     
     
     fmp_query_by_ruid = [
@@ -127,12 +138,12 @@ def main():
     ]
     
     logger.info(f'{len(records_to_delete)} files ready to delete')
-    for ruid in records_to_delete:
-        logger.info(f'file needs deletion {ruid}')
+
+    logger.info(','.join(records_to_delete))
     
     # delete files
     for k,v in filedict.items():
-        if extract_ruid(v) in records_to_delete:
+         if extract_ruid(v) in records_to_delete:
             # logger.info(f'file needs deletion {v}')
             if os.path.exists(k):
                 os.remove(k)
