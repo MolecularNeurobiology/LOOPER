@@ -20,6 +20,38 @@ class StreamArduino(object):
             self.data.put_nowait(deepcopy(returnText))
 
 
+class SimulatedArduino():
+    def __init__(self,device):
+        self.device=device
+        self.data=Queue.Queue()
+        self.listener=Queue.Queue()
+        self.finished = False
+    
+    def sendCommand(self,command):
+        self.listener.put_nowait(command)
+
+    def translate_command_to_response(self,command):
+        translation_dict = {
+            '<C':'calibration',
+            '<R':'room air',# update
+            '<A':'challenge gas',# update
+            '<U':'startup sent',
+            '<S':'standby sent',
+            '<Z':'abort sent',
+            '<D':'shutdown',
+            '<E':'finish startup',
+        }
+        return translation_dict.get(command,'unknown')
+
+    def readStreamData(self):
+        while not self.finished:
+            self.finished = False
+
+            if self.listener.empty()==False:
+                command = self.listener.get_nowait()
+                response = self.translate_command_to_response(command)
+                self.data.put_nowait(deepcopy(response))
+        
         
 ##
         

@@ -5,6 +5,13 @@ __version__ = "0.0.1"
 import pandas
 import json
 import ast
+from fmrest import server
+
+testing_credentials = {
+            'ip':'https://3.141.29.47',
+            'user':'Fix_Database',
+            'password':'Fix_Database'
+        }
 
 
 class SETTINGS:
@@ -113,10 +120,13 @@ class SETTINGS:
             "Challenge",
         ]
 
+        self.sim_mode = 0
+
         self.made_for_PCC_version = "43.0.0"
 
         self.expected_fields = {
             "filt_crit_Dict": {},
+            "sim_mode": 1,
             "HR_recovery_thresh": 1.1,
             "BPM_recovery_thresh": 1.1,
             "QB_minimum_duration": 1.1,
@@ -206,21 +216,62 @@ class SETTINGS:
         settings = json.loads(json_string)
         
         for k, v in settings.items():
+            ##
             try:
-                attr_val = float(v)
-            except ValueError:
-                attr_val = v
-            except TypeError:
-                attr_val = v
-
-            if "[" in v or "{" in v:
-                attr_val = ast.literal_eval(v)
+                attr_val = int(v)
+            except:
+                try:
+                    attr_val = float(v)
+                except ValueError:
+                    attr_val = v
+                except TypeError:
+                    attr_val = v
+            try:
+                if "[" in v or "{" in v:
+                    attr_val = ast.literal_eval(v)
+            except:
+                pass
+            ##
+            
 
             setattr(self, k, attr_val)
 
             if logger:
                 logger.info(f'"{k}" set to "{attr_val}" from json')
             else: print(f'"{k}" set to "{attr_val}" from json')
+
+
+    def load_from_fm(self, credentials, database, layout, assay_id, logger=None):
+        return_dict = self.fm_collect_records(
+            credentials,
+            database,
+            layout,
+            assay_id
+        )
+        for k, v in return_dict.items():
+            setting = v['Setting']
+            parameter = v['Parameter']
+            
+            try:
+                attr_val = int(setting)
+            except:
+                try:
+                    attr_val = float(setting)
+                except ValueError:
+                    attr_val = setting
+                except TypeError:
+                    attr_val = setting
+            try:
+                if "[" in setting or "{" in setting:
+                    attr_val = ast.literal_eval(setting)
+            except:
+                pass
+
+            setattr(self, parameter, attr_val)
+
+            if logger:
+                logger.info(f'"{parameter}" set to "{attr_val}" from fm')
+            else: print(f'"{parameter}" set to "{attr_val}" from fm')
 
 
 
@@ -248,17 +299,243 @@ class SETTINGS:
 
     def check_for_expected(self, return_summary=False, logger=None):
         settings = {}
+        duplicate_entries = []
         for k in self.__dict__:
             if k.startswith("__"):
                 continue
+            if k in settings:
+                duplicate_entries.append(k)
             settings[k] = self.__dict__[k]
 
         set_settings = set(list(settings.keys()))
         set_expected = set(list(settings['expected_fields'].keys()))
         summary = [f'settings parameters received as expected: {set_settings==set_expected}']
-
         summary.append(f'received but not expected: {set_settings.difference(set_expected)}')
-        summary.append(f'not received byt expected: {set_expected.difference(set_settings)}')
+        summary.append(f'not received but expected: {set_expected.difference(set_settings)}')
+        summary.append(f'received multiple of the same parameter: {duplicate_entries}')
 
         if logger: logger.info(summary)
         if return_summary: return summary
+
+
+    def fm_collect_records(self,
+        credentials,
+        database,
+        layout,
+        assay_id
+    ):
+        SERVER_IP = credentials['ip']
+        USER = credentials['user']
+        PASSWORD = credentials['password']
+        DATABASE = database
+        LAYOUT = layout
+
+        fms =  server.Server(
+            SERVER_IP,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE,
+            layout=LAYOUT,
+            api_version="v2",
+            verify_ssl=False
+        )
+
+        table_keys = [
+        'Assay_Id',
+        'Parameter',
+        'Setting'
+        ]
+        search_args = [{'Assay_Id':assay_id}]
+
+        fms.login()
+
+        records = []
+        offset = 1
+        limit = 100
+        
+        while True:
+            try:
+                print(f'{offset}-{len(records)}')
+                current_records = fms.find(search_args,limit = limit, offset = offset) 
+                records+=[i for i in current_records]
+                offset += limit
+                if current_records.is_complete: break
+        
+            except Exception as e:
+                print(e)
+                break
+
+        fms.logout()
+        print(f'{len(records)} records found')
+        if 'recordId' not in table_keys:
+            table_keys.append('recordId')
+        
+        record_dict = {
+            i['recordId']:{
+                k:i[k] for k in table_keys 
+            } for i in records
+        }
+        return record_dict
+
+
+
+    def fm_create_update_records(self,
+        credentials,
+        database,
+        layout,
+        assay_id,
+        logger = None
+    ):
+        SERVER_IP = credentials['ip']
+        USER = credentials['user']
+        PASSWORD = credentials['password']
+        DATABASE = database
+        LAYOUT = layout
+
+        fms =  server.Server(
+            SERVER_IP,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE,
+            layout=LAYOUT,
+            api_version="v2",
+            verify_ssl=False
+        )
+
+        settings = {}
+        for k in self.__dict__:
+            if k.startswith("__"):
+                continue
+            settings[k] = self.__dict__[k]
+                
+        if logger:
+            logger.info(f"settings being translated to for FM API")
+
+        fms.login()
+
+        # check if record exists
+        table_keys = [
+        'Assay_Id',
+        'Parameter',
+        'Setting',
+        'recordId'
+        ]
+        for k,v in settings.items():
+            print('\n',assay_id, k)
+            search_args = [{'Assay_Id':assay_id,'Parameter':f'=={k}'}]
+            # if record exists, update it
+            try:
+                current_records = fms.find(search_args) 
+                records=[i for i in current_records]
+            #except Exception('FileMakerError: FileMaker Server returned error 401, No records match the request'):
+            #    records = []
+            #    print('no records returned')
+            except Exception as e:
+                print(f'!!!{e}!!!')
+                if 'No records match the request' in str(e):
+                    print('No records found - making new records')
+                    records = []
+            print(f'\n{len(records)} records found')
+            record_dict = {
+                i['recordId']:{
+                    k:i[k] for k in table_keys 
+                } for i in records
+            }
+            print(record_dict)
+            if len(records)>1 : raise Exception(f'Duplicate Parameter Entries Present in DB: {assay_id}-{k}')
+            elif len(records)==1:
+
+                fms.edit_record(list(record_dict.keys())[0],{'Assay_Id':assay_id,'Parameter':k,'Setting':str(v)})
+            else:
+                fms.create_record({'Assay_Id':assay_id,'Parameter':k,'Setting':str(v)})
+
+
+            # if record doesn't exist create it
+
+
+        fms.logout()
+
+
+
+    def fm_check_for_matching_settings(self,
+        credentials,
+        database,
+        layout
+    ):
+        SERVER_IP = credentials['ip']
+        USER = credentials['user']
+        PASSWORD = credentials['password']
+        DATABASE = database
+        LAYOUT = layout
+
+        fms =  server.Server(
+            SERVER_IP,
+            user=USER,
+            password=PASSWORD,
+            database=DATABASE,
+            layout=LAYOUT,
+            api_version="v2",
+            verify_ssl=False
+        )
+
+        table_keys = [
+        'Assay_Id',
+        'Parameter',
+        'Setting'
+        ]
+        
+        fms.login()
+
+        records = []
+        offset = 1
+        limit = 100
+
+        search_args = [{'Assay_Id':'*'}]
+        
+        while True:
+            try:
+                print(f'{offset}-{len(records)}')
+                current_records = fms.find(search_args,limit = limit, offset = offset) 
+                records+=[i for i in current_records]
+                offset += limit
+                if current_records.is_complete: break
+        
+            except Exception as e:
+                print(e)
+                break
+
+        fms.logout()
+        print(f'{len(records)} records found')
+        if 'recordId' not in table_keys:
+            table_keys.append('recordId')
+
+        assay_dict = {}
+        for i in records:
+            if i['Assay_Id'] not in assay_dict:
+                assay_dict[i['Assay_Id']] = {}
+            try:
+                assay_dict[i['Assay_Id']][i['Parameter']] = int(i['Setting'])
+            except:
+                try:
+                    assay_dict[i['Assay_Id']][i['Parameter']] = float(i['Setting'])
+                except ValueError:
+                    assay_dict[i['Assay_Id']][i['Parameter']] = i['Setting']
+                except TypeError:
+                    assay_dict[i['Assay_Id']][i['Parameter']] = i['Setting']
+            try:
+                if "[" in i['Setting'] or "{" in i['Setting'] or '"' in i['Setting'] or "'" in i['Setting']:
+                    assay_dict[i['Assay_Id']][i['Parameter']] = ast.literal_eval(i['Setting'])
+            except:
+                pass
+        
+        current_settings = {}
+        for k in self.__dict__:
+            if k.startswith("__"):
+                continue
+            current_settings[k] = self.__dict__[k]
+
+        settings_match_list = [
+            (k, d == current_settings) for k,d in assay_dict.items()
+        ]
+
+        return settings_match_list
