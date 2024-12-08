@@ -6,7 +6,7 @@ Setup for the GUI for PCC. Adds all the sprites and initilizes the display
 
 """
 
-__GUI_version__ = "0.0.2"
+__GUI_version__ = "0.1.0"
 
 import pygame
 
