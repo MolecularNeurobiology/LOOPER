@@ -1961,11 +1961,11 @@ try:
                     + value_CurrentChallengeRecovery_Timer.seconds
                 ),
             )
-            LastCO2.update(YELLOW, BLACK, "Last CO2 dur: {}s".format(value_LastCO2))
+            LastCO2.update(YELLOW, BLACK, "Last CO2: {}s".format(value_LastCO2))
             LongestCO2.update(
                 YELLOW,
                 BLACK,
-                "Longest CO2: Ch {}, {}s".format(
+                "Long CO2: Ch{}, {}s".format(
                     value_LongestCO2_challenge, value_LongestCO2_duration
                 ),
             )

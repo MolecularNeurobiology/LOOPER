@@ -168,8 +168,8 @@ SLB_Trigger_Setter_xySize = (200, 25)
 Challenge_Counter_xySize = (200, 25)
 CurrentChallengeCO2_Timer_xySize = (200, 25)
 CurrentChallengeRecovery_Timer_xySize = (200, 25)
-LastCO2_xySize = (200, 25)
-LongestCO2_xySize = (200, 25)
+LastCO2_xySize = (300, 25)
+LongestCO2_xySize = (300, 25)
 
 
 Position_RA_xySize = (200, 25)
@@ -189,8 +189,8 @@ SLB_Trigger_Setter_TL = (700, 50)
 Challenge_Counter_TL = (700, 75)
 CurrentChallengeCO2_Timer_TL = (700, 100)
 CurrentChallengeRecovery_Timer_TL = (700, 125)
-LastCO2_TL = (700, 150)
-LongestCO2_TL = (700, 175)
+LastCO2_TL = (650, 150)
+LongestCO2_TL = (650, 175)
 
 # room until 200 (225)
 

@@ -1063,7 +1063,7 @@ LastCO2 = labeledbutton(
     BLACK,
     LastCO2_xySize[0],
     LastCO2_xySize[1],
-    "Last_CO2 dur: {}".format(value_LastCO2),
+    "Last_CO2: {}s".format(value_LastCO2),
     LastCO2_TL,
 )
 LongestCO2 = labeledbutton(
@@ -1071,9 +1071,7 @@ LongestCO2 = labeledbutton(
     BLACK,
     LongestCO2_xySize[0],
     LongestCO2_xySize[1],
-    "Longest_CO2: Ch{}, {}s".format(
-        value_LongestCO2_challenge, value_LongestCO2_duration
-    ),
+    "Long_CO2: Ch{}, {}s".format(value_LongestCO2_challenge, value_LongestCO2_duration),
     LongestCO2_TL,
 )
 
