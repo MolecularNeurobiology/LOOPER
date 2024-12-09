@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Table of Contents &#8212; Auotres Build Manual N/A documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=0200cdce"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to Auotres Build Manual’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <p><strong>Build Instructions for Looper Platforms</strong></p>
+<p><strong>Goal</strong>: To describe all the mechanical and electrical components
+needed to build and setup a functional automated closed loop neonatal
+phenotyping platform (Looper) to test cardiorespiratory function in
+neonatal mice. The associated software that must be downloaded for the
+capture of cardiorespiratory traces, timestamps for behavioral calls,
+criteria to advance between experimental phases (i.e., habituation,
+baseline, challenge, recovery, injection, call death etc.) is outlined
+in this document and can also be found on our repository on GitHub. The
+additional files for the automated neonatal software analysis pipeline
+can also be found on our GitHub repository for analysis of
+cardiorespiratory traces following successful data collection from
+Looper platforms.</p>
+<section id="table-of-contents">
+<h1>Table of Contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">¶</a></h1>
+<p><a class="reference external" href="#mechanical-components">MECHANICAL COMPONENTS:</a></p>
+<blockquote>
+<div><p><a class="reference external" href="#preparing-the-materials">Preparing the Materials</a></p>
+<p><a class="reference external" href="#building-the-frame">Building the Frame</a></p>
+<p><a class="reference external" href="#stepper-motor-assembly">Stepper Motor Assembly</a></p>
+<p><a class="reference external" href="#syringe-holder-assembly">Syringe Holder Assembly</a></p>
+<p><a class="reference external" href="#valve-rack-assembly">Valve Rack Assembly</a></p>
+<p><a class="reference external" href="#mouse-holder-platform-assembly">Mouse Holder Platform Assembly</a></p>
+<p><a class="reference external" href="#pipette-calibrator-assembly">Pipette Calibrator Assembly</a></p>
+<p><a class="reference external" href="#switch-sensor-assembly">Switch Sensor Assembly</a></p>
+<p><a class="reference external" href="#water-bath-holder-and-ecg-holder-assembly">Water Bath Holder and ECG Holder Assembly</a></p>
+</div></blockquote>
+<p><a class="reference external" href="#acrylic-components">ACRYLIC COMPONENTS:</a></p>
+<blockquote>
+<div><p><a class="reference external" href="#facemask-assembly">Facemask Assembly</a></p>
+<p><a class="reference external" href="#pneumotachograph">Pneumotachograph</a></p>
+<p><a class="reference external" href="#water-bath-assembly">Water bath Assembly</a></p>
+</div></blockquote>
+<p><a class="reference external" href="#electrical-components">ELECTRICAL COMPONENTS:</a></p>
+<blockquote>
+<div><p><a class="reference external" href="#main-electronics-box">Main Electronics Box</a></p>
+<p><a class="reference external" href="#pcb-assembly">PCB Assembly</a></p>
+<p><a class="reference external" href="#assembly-of-components-for-ecg-recording">Assembly of Components for ECG Recording</a></p>
+<p><a class="reference external" href="#undercarriage-assembly">Undercarriage Assembly</a></p>
+<p><a class="reference external" href="#software-installation-instructions">Software Installation Instructions</a></p>
+</div></blockquote>
+</section>
+<section id="mechanical-components">
+<h1>MECHANICAL COMPONENTS:<a class="headerlink" href="#mechanical-components" title="Link to this heading">¶</a></h1>
+<section id="preparing-the-materials">
+<h2><strong>Preparing the Materials:</strong><a class="headerlink" href="#preparing-the-materials" title="Link to this heading">¶</a></h2>
+<p>First, cut <strong>aluminum 20x20 extrusions</strong> at lengths specified below
+using an appropriate circular saw to prepare for building the frame of
+Looper:</p>
+<ul class="simple">
+<li><p>2 x 11.25”</p></li>
+<li><p>1 x 12”</p></li>
+<li><p>1 x 14”</p></li>
+<li><p>1 x 28”</p></li>
+<li><p>1 x 4”</p></li>
+<li><p>2 x 5”</p></li>
+</ul>
+<blockquote>
+<div><p><em>Note: Any connections and attachments are with M5x6 Button Head
+Screws to M5 Slide-in T-Knut unless otherwise specified.</em></p>
+</div></blockquote>
+<ol class="lowerroman simple">
+<li><p>The equipment used to cut the aluminum extrusions is a <strong>Sliding
+Miter Saw</strong>. Below are tutorials provided to demonstrate how to
+utilize the saw to cut the required components needed to build the
+frame:</p></li>
+</ol>
+<ul class="simple">
+<li><p><strong>Tutorial Part 1:</strong></p>
+<ol class="lowerroman simple">
+<li><p><a class="reference external" href="https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EW7XeqLIK4ZEsvS8PCkjKEBpBB_7svKtbz8TSao3XH06g?e=uEZj6z">https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EW7XeqLIK4ZEsvS8PCkjKEBpBB_7svKtbz8TSao3XH06g?e=uEZj6z</a></p></li>
+</ol>
+</li>
+<li><p><strong>Tutorial Part 2:</strong></p>
+<ol class="lowerroman simple">
+<li><p><a class="reference external" href="https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kX6l17">https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kX6l17</a></p></li>
+</ol>
+</li>
+<li><p><strong>Example of Dr. Russell Ray (innovator of Looper) operating the
+saw:</strong></p>
+<ol class="lowerroman simple">
+<li><p><a class="reference external" href="https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kBtnTe">https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kBtnTe</a></p></li>
+<li><p><a class="reference external" href="https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kBtnTe">https://bcmedu.sharepoint.com/:v:/s/RayEngineering/EerbVz6FHZFjAXgdJRLL1EBYOBnSvan6ehht5E2X6YtLQ?e=kBtnTe</a></p></li>
+</ol>
+</li>
+</ul>
+</section>
+<section id="building-the-frame">
+<h2><strong>Building the Frame:</strong><a class="headerlink" href="#building-the-frame" title="Link to this heading">¶</a></h2>
+<p>Below are the components needed to build the frame. The mechanical
+drawings below provide visuals and dimensions for the components
+necessary for the frame build of Looper. You will need:</p>
+<ul class="simple">
+<li><p><strong>All extrusions are 20mm x 20mm T- Slotted - Profile</strong></p></li>
+<li><p>2 x 11.25” extrusions</p></li>
+<li><p>1 x 12” extrusion</p></li>
+<li><p>1 x 14” extrusion</p></li>
+<li><p>1 x 28” extrusion</p></li>
+<li><p>11 x Inside Corner Bracket</p></li>
+<li><p>5 x 2-Hole Flat Plate</p></li>
+<li><p>4 x 4-Hole Rectangular Corner Brackets</p></li>
+<li><p>1 x Rod Holder</p></li>
+<li><p>1 x Linear Bearing</p></li>
+<li><p>28 x M5 Slide-in T-Knut</p></li>
+<li><p>28 x M5x8 Button Head Screws</p></li>
+<li><p>6 x M5x12 Socket Head Screws</p></li>
+</ul>
+<p><strong>How to Build the Frame:</strong></p>
+<ol class="arabic simple">
+<li><p>Hammer the Linear Bearing through the Rod Support so that the
+circular plate at the end of the Linear Bearing is flush with the
+side of the Rod Support.</p></li>
+</ol>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/1_rod_holder_ex.png"><img alt="_images/1_rod_holder_ex.png" src="_images/1_rod_holder_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/1_2_rod_holder_v2_drawing.png"><img alt="_images/1_2_rod_holder_v2_drawing.png" src="_images/1_2_rod_holder_v2_drawing.png" style="width: 49%;" /></a>
+<video controls width="640" height="360">
+   <source src="_static/1_Frame/3m_rod_holder.mp4">
+</video></div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>Slide the Rod Support to about the middle of the 28” extrusion, then
+attach the four 4-hole Rectangular Corner Brackets to the sides of
+the Rod Support to hold it in place.</p></li>
+</ol>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/2_28IN.png"><img alt="_images/2_28IN.png" src="_images/2_28IN.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/2_28IN_back.PNG"><img alt="_images/2_28IN_back.PNG" src="_images/2_28IN_back.PNG" style="width: 49%;" /></a>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p>Attach two 2-hole Flat Plates on one side of the 28” extrusion to
+the right of the Rod Support (as seen in the mechanical drawing
+above) with two extra M5 Slide-in T-Knuts between the two plates.</p></li>
+<li><p>Connect the two 11.25” extrusions to each end of the 14” extrusion
+(as specified by mechanical drawings) using Inside Corner Brackets.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/3_Completed_Rig_Technical_Drawing_14IN.png"><img alt="_images/3_Completed_Rig_Technical_Drawing_14IN.png" src="_images/3_Completed_Rig_Technical_Drawing_14IN.png" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/1_Frame/3m_14_IN_Extrusion.mp4">
+</video><a class="reference internal image-reference" href="_images/4_Completed_Rig_Technical_Drawing_25IN.PNG"><img alt="_images/4_Completed_Rig_Technical_Drawing_25IN.PNG" src="_images/4_Completed_Rig_Technical_Drawing_25IN.PNG" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/1_Frame/4m_11_25_IN_Extrusion.mp4">
+</video><ol class="arabic simple" start="5">
+<li><p>Connect the 28” extrusion to the top of the 14” extrusion using
+Inside Corner Brackets, creating a three-leg base as seen in the
+mechanical drawing.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/5_Full_Rig_1_ex.png"><img alt="_images/5_Full_Rig_1_ex.png" src="_images/5_Full_Rig_1_ex.png" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/1_Frame/6m_Full_Rig_1.mp4">
+</video><ol class="arabic simple" start="6">
+<li><p>Connect the 12” extrusion to the right of the 28” extrusion (as seen
+in the mechanical drawing) using an Inside Corner Bracket.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/6_Full_Rig_2_ex.png"><img alt="_images/6_Full_Rig_2_ex.png" src="_images/6_Full_Rig_2_ex.png" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/1_Frame/6m_Full_Rig_2.mp4">
+</video><ol class="arabic simple" start="7">
+<li><p>At each connection point between extrusions under where the 2-hole
+Flat Plates will be placed as seen in the mechanical drawing, file
+the non-conductive coating and apply copper tape to allow electrical
+connection between extrusions.</p></li>
+<li><p>Attach the 2-hole Flat Plates at connection points on the electrical
+tape to secure joints.</p></li>
+<li><p>Use a digital multimeter (DMM) to ensure all extrusions are
+electrically connected in one node.</p></li>
+<li><p>Attach two Inside Corner Brackets to each leg, then drill holes on
+the cart surface to mount the frame using M5x12 Button Head
+Screws.</p></li>
+</ol>
+</section>
+<section id="stepper-motor-assembly">
+<h2><strong>Stepper Motor Assembly:</strong><a class="headerlink" href="#stepper-motor-assembly" title="Link to this heading">¶</a></h2>
+<p>Below are the components needed to assemble the stepper motor that is a
+part of the Looper system. The mechanical drawings below provide visuals
+and dimensions for the components necessary for assembling the stepper
+motor of Looper. You will need:</p>
+<ul class="simple">
+<li><p>1 x 6” Linear Rail</p></li>
+<li><p>2 x Stepper Motors</p></li>
+<li><p>1 x Motor Mount Plate</p></li>
+<li><p>1 x Wheel Plate</p></li>
+<li><p>1 x Pulley Plate</p></li>
+<li><p>1 x Pulley Kit</p></li>
+<li><p>1 x Motor Mount</p></li>
+<li><p>4 x M5 Slide-in T-Knut</p></li>
+<li><p>4 x M5x10 Low Profile Screws</p></li>
+<li><p>4 x M5x8 Button Head Screws</p></li>
+<li><p>4 x M3x10 Button Head Screws</p></li>
+<li><p>4 x M3x6 Button Head Screws</p></li>
+<li><p>1 x GT2 36 Tooth 5mm Bore</p></li>
+<li><p>21” GT2 Timing Belt</p></li>
+</ul>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/1_motor_mount.PNG"><img alt="_images/1_motor_mount.PNG" src="_images/1_motor_mount.PNG" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/motor_mount_drawing.PNG"><img alt="_images/motor_mount_drawing.PNG" src="_images/motor_mount_drawing.PNG" style="width: 49%;" /></a>
+</div></blockquote>
+<p>How to Assemble the Stepper Motor:</p>
+<ol class="arabic simple">
+<li><p>Assemble the Wheel Plate as seen on the OpenBuilds websit (
+<a class="reference external" href="https://openbuildspartstore.com/mini-v-gantry-kit/">https://openbuildspartstore.com/mini-v-gantry-kit/</a>). Make sure the
+eccentric spacers are on one side of the plate, and the normal
+spacers are on the other.</p></li>
+<li><p>Slide the Wheel Plate onto the 6” Linear Rail (double aluminum
+extrusion) in the correct orientation (as seen on the mechanical
+drawing); while the Wheel Plate is on the rail, adjust the eccentric
+spacers until the wheels tighten appropriately. Tighten just enough
+that the plate does not jiggle on the rail, but not so much that it
+will not roll freely. This will minimize friction and rattling
+during AGE operation.</p></li>
+<li><p>Assemble the Pulley Kit as seen on the OpenBuilds website
+(<a class="reference external" href="https://openbuildspartstore.com/smooth-idler-pulley-kit/">https://openbuildspartstore.com/smooth-idler-pulley-kit/</a>). Attach
+the assembled kit onto the Pulley Plate.</p></li>
+<li><p>Attach the Pulley Plate to the left side of the Linear Rail, keeping
+the edge of the M5 T-Knut flush with the edge of the rail as shown
+in mechanical drawings. Ensure that the pulley wheel can rotate
+freely.</p></li>
+<li><p>Make sure the Wheel Plate is still on the rail, attach the Pulley
+Plate to the other side of the rail, and ensure that the M5 T-Knut
+is flush with the end of the rail.</p></li>
+<li><p>Ensure that all pieces have been fixed in the proper orientation.</p></li>
+<li><p>Using M3x6 screws, fix one Stepper Motor to the Motor Mount Plate.</p></li>
+<li><p>Attach the GT2 36 Tooth Bore onto the axle of the Stepper Motor,
+making sure it is flush with the tip.</p></li>
+<li><p>Cut approximately 21” of GT2 Timing Belt and thread it through one
+of the slits on the bottom right of the wheel plate. Fix it there
+using two zip ties.</p></li>
+<li><p>Thread the GT2 track around the GT2 36 Tooth Bore on the motor axle,
+through the middle of the extrusion, around the pulley wheel, and
+back through the slit on the left side of the Wheel Plate. Pull it
+snug and fix using two zip ties. Remove any excess track.</p></li>
+<li><p>Assess the range of motion of the Wheel Plate. It should glide
+freely on the rail.</p></li>
+<li><p>Attach the 3D-printed Motor Mount to the bottom of the Wheel Plate
+using the four M5x10 Low Profile Screws. Attach the second stepper
+motor to the motor mount part with M3x10 Screws.</p></li>
+<li><p>Attach the Stepper Motor Assembly to the 28” aluminum extrusion on
+the Frame at the location specified in the mechanical drawings.
+Secure in place using the two 2-hole Flat Plates hanging down, and
+ensure the rail is electrically connected to the Frame with copper
+tape.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/2Full_Rig_3_ex.png"><img alt="_images/2Full_Rig_3_ex.png" src="_images/2Full_Rig_3_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/2Full_Rig_3.png"><img alt="_images/2Full_Rig_3.png" src="_images/2Full_Rig_3.png" style="width: 49%;" /></a>
+<video controls width="640" height="360">
+   <source src="_static/2mFull_Rig_3.mp4">
+</video></section>
+<section id="syringe-holder-assembly">
+<h2><strong>Syringe Holder Assembly</strong><a class="headerlink" href="#syringe-holder-assembly" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="_images/1_1_syringe_holder_ex.png"><img alt="_images/1_1_syringe_holder_ex.png" src="_images/1_1_syringe_holder_ex.png" style="width: 100%;" /></a>
+<p>Below are the components needed to assemble the syringe holder that is a
+part of the Looper system. The mechanical drawings below provide visuals
+and dimensions for the components necessary for assembling the syringe
+holder of Looper. You will need:</p>
+<ul class="simple">
+<li><p>1 x 13” Hardened Rod</p></li>
+<li><p>1 x Syringe Holder 1</p></li>
+<li><p>1 x Syringe Holder 2</p></li>
+<li><p>4 x Plastic Syringes</p></li>
+<li><p>1 x Rod Coupling</p></li>
+</ul>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/2_syringe_holder1_v2_drawing.PNG"><img alt="_images/2_syringe_holder1_v2_drawing.PNG" src="_images/2_syringe_holder1_v2_drawing.PNG" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/3_syringe_holder2_v2_drawing.PNG"><img alt="_images/3_syringe_holder2_v2_drawing.PNG" src="_images/3_syringe_holder2_v2_drawing.PNG" style="width: 49%;" /></a>
+</div></blockquote>
+<a class="reference internal image-reference" href="_images/1_syringe_holder_ex.png"><img alt="_images/1_syringe_holder_ex.png" src="_images/1_syringe_holder_ex.png" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/3_SyringeHolder/syringe_holder_assembly.mp4">
+</video><p><strong>How to Assemble the Syringe Holder:</strong></p>
+<ol class="arabic simple">
+<li><p>Push the 3D-printed Syringe Holder components onto the 13” Hardened
+Rod and secure them in place as seen in the mechanical drawing.</p></li>
+<li><p>Slide the four Plastic Syringes into the holes in the Syringe
+Holders; it will be a tight fit.</p></li>
+<li><p>Slide the right side of the 13” Hardened Rod through the Rod Holder
+on the Frame.</p></li>
+<li><p>Slide the Rod Coupling on the right side of the 13” Hardened rod,
+then tighten down the Rod Coupling.</p></li>
+<li><p>Slide the other side of the Rod Coupling onto the axle of the second
+Stepper Motor (the bottom motor of the Stepper Motor Assembly), then
+tighten down the other side of the Rod Coupling.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/3Full_Rig_6.png"><img alt="_images/3Full_Rig_6.png" src="_images/3Full_Rig_6.png" style="width: 100%;" /></a>
+</section>
+<section id="valve-rack-assembly">
+<h2><strong>Valve Rack Assembly</strong><a class="headerlink" href="#valve-rack-assembly" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="_images/valve_rack.png"><img alt="_images/valve_rack.png" src="_images/valve_rack.png" style="width: 100%;" /></a>
+<p>Below are the components needed to assemble the valve rack that is a
+part of the Looper system. The mechanical drawings below provide visuals
+and dimensions for the components necessary for assembling the valve
+rack of Looper. You will need:</p>
+<ul class="simple">
+<li><p>1 x 4” Extrusion</p></li>
+<li><p>4 x Valves</p></li>
+<li><p>8 x Hose Fittings</p></li>
+<li><p>8 x 6-32 1/4” Screws</p></li>
+<li><p>1 x Valve Mount</p></li>
+<li><p>7 x M5x8 Button Head Screws</p></li>
+<li><p>7 x M5 Slide-in T-Knut</p></li>
+<li><p>1 x Inside Corner Bracket</p></li>
+</ul>
+<blockquote>
+<div><a class="reference internal image-reference" href="_images/2_valve_mount_drawing.PNG"><img alt="_images/2_valve_mount_drawing.PNG" src="_images/2_valve_mount_drawing.PNG" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/1_valve_rack_ex.PNG"><img alt="_images/1_valve_rack_ex.PNG" src="_images/1_valve_rack_ex.PNG" style="width: 49%;" /></a>
+</div></blockquote>
+<p><strong>How to Assemble the Valve Rack:</strong></p>
+<ol class="arabic simple">
+<li><p>Screw the Hose Fittings into both sides of each valve.</p></li>
+<li><p>Screw the Valves onto the Valve Mount with 6-32 1/4” Screws. Ensure
+in/out airports are on the correct side.</p></li>
+<li><p>Screw the Valve Mount onto the 4” Extrusion with M5 Screws and
+T-Nuts.</p></li>
+<li><p>Attach the assembly onto the 28” extrusion of the Frame as seen in
+the mechanical drawing.</p></li>
+</ol>
+<video controls width="640" height="360">
+   <source src="_static/4_Valve_Rack/valve_rack.mp4">
+</video><a class="reference internal image-reference" href="_images/4Full_Rig_7.png"><img alt="_images/4Full_Rig_7.png" src="_images/4Full_Rig_7.png" style="width: 100%;" /></a>
+</section>
+<section id="mouse-holder-platform-assembly">
+<h2><strong>Mouse Holder Platform Assembly</strong><a class="headerlink" href="#mouse-holder-platform-assembly" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="_images/1_1_mouse_holder_assembly.png"><img alt="_images/1_1_mouse_holder_assembly.png" src="_images/1_1_mouse_holder_assembly.png" style="width: 100%;" /></a>
+<p>Below are the components needed to assemble the mouse holder platform
+that is a part of the Looper system. The mechanical drawings below
+provide visuals and dimensions for the components necessary for
+assembling the mouse holder platform of Looper. You will need:</p>
+<ul class="simple">
+<li><p>2 x 5” extrusions</p></li>
+<li><p>3 x Inside Corner Bracket</p></li>
+<li><p>2 x M5x12 Socket Head Screws</p></li>
+<li><p>8 x M5x8 Button Head Screws</p></li>
+<li><p>10 x M5 Slide-in T-Knuts</p></li>
+<li><p>1 x Mouse Holder Component 1</p></li>
+<li><p>1 x Mouse Holder Component 2</p></li>
+<li><p>1 x Mouse Holder Component 3</p></li>
+<li><p>1 x Mouse Holder Component 4</p></li>
+<li><p>1 x Rod Support</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/mouseholder1_drawing.png"><img alt="_images/mouseholder1_drawing.png" src="_images/mouseholder1_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/mouseholder2_drawing.png"><img alt="_images/mouseholder2_drawing.png" src="_images/mouseholder2_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/mouseholder3_drawing.png"><img alt="_images/mouseholder3_drawing.png" src="_images/mouseholder3_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/mouseholder4_drawing.png"><img alt="_images/mouseholder4_drawing.png" src="_images/mouseholder4_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/rod_support_drawing.png"><img alt="_images/rod_support_drawing.png" src="_images/rod_support_drawing.png" style="width: 19%;" /></a>
+<p><strong>How to Assemble the Mouse Holder Platform:</strong></p>
+<ol class="arabic simple">
+<li><p>Attach the two 5” extrusions at a right angle, as specified by
+mechanical drawings. Secure the joint with an Inside Corner Bracket.</p></li>
+<li><p>Attach 3D-printed Mouse Holder Components 2 and 3 to the vertical
+extrusion (as shown in mechanical drawings above).</p></li>
+<li><p>Using M5x12 Socket Head Screws, secure Mouse Holder Component 1 to
+the horizontal aluminum extrusion (as specified in mechanical
+drawings above).</p></li>
+<li><p>Slide the 3D-printed Rod Support into the Mouse Holder Component 2,
+then slide the Mouse Holder Component 4 onto the Rod Support.</p></li>
+<li><p>Adjust the placement of the Mouse Holder Components so that Mouse
+Holder 4 is concentric with Mouse Holder 1.</p></li>
+<li><p>Attach the assembly to the top of the 28” extrusion of the Frame with
+two Inside Corner Brackets, close to its junction with the 14”
+extrusion. Check mechanical drawings above for precise locations.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/1_mouse_holder_assembly_ex.png"><img alt="_images/1_mouse_holder_assembly_ex.png" src="_images/1_mouse_holder_assembly_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/2_mouse_holder_assembly.png"><img alt="_images/2_mouse_holder_assembly.png" src="_images/2_mouse_holder_assembly.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/5Full_Rig_8.png"><img alt="_images/5Full_Rig_8.png" src="_images/5Full_Rig_8.png" style="width: 100%;" /></a>
+</section>
+<section id="pipette-calibrator-assembly">
+<h2><strong>Pipette Calibrator Assembly</strong><a class="headerlink" href="#pipette-calibrator-assembly" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="_images/1_pipette_calibrator.png"><img alt="_images/1_pipette_calibrator.png" src="_images/1_pipette_calibrator.png" style="width: 75%;" /></a>
+<p>Below are the components needed to assemble the pipette calibrator that
+is a part of the Looper system. The mechanical drawings below provide
+visuals and dimensions for the components necessary for assembling the
+pipette calibrator of Looper. You will need:</p>
+<ul class="simple">
+<li><p>1 x Linear Actuator Assembly</p></li>
+<li><p>1 x 20mm x hofitti40mm Double Extrusion (16 in)</p></li>
+<li><p>1 x Linear Bearing</p></li>
+<li><p>1 x Bearing Stand</p></li>
+<li><p>2 x M5x12 Button Head Screws</p></li>
+<li><p>4 x M5x8 Button Head Screws</p></li>
+<li><p>2 x M5 Washers</p></li>
+<li><p>4 x M4x16 Screws</p></li>
+<li><p>4 x M4 Nuts</p></li>
+<li><p>2 x M3x16 Screws</p></li>
+<li><p>4 x M3x8 Hex Socket Screws</p></li>
+<li><p>6 x M3 Nuts</p></li>
+<li><p>1 x Actuator Glide</p></li>
+<li><p>1” Aluminum Bar</p></li>
+<li><p>1 x Spring Plunger</p></li>
+<li><p>1 x Pipette Holder</p></li>
+<li><p>1 x Pipette Holder Door</p></li>
+<li><p>1 x 20 uL Pipette</p></li>
+<li><p>2 x Inside Corner Brackets</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/full_pipette_holder_drawings.png"><img alt="_images/full_pipette_holder_drawings.png" src="_images/full_pipette_holder_drawings.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/pipette_holder_door_drawing.png"><img alt="_images/pipette_holder_door_drawing.png" src="_images/pipette_holder_door_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/pipette_holder_drawing.png"><img alt="_images/pipette_holder_drawing.png" src="_images/pipette_holder_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/pipette_rod_holder_drawing.png"><img alt="_images/pipette_rod_holder_drawing.png" src="_images/pipette_rod_holder_drawing.png" style="width: 19%;" /></a>
+<a class="reference internal image-reference" href="_images/pipette_rod_slider_drawing.png"><img alt="_images/pipette_rod_slider_drawing.png" src="_images/pipette_rod_slider_drawing.png" style="width: 19%;" /></a>
+<p><strong>How to Assemble the Pipette Calibrator:</strong></p>
+<ol class="arabic simple">
+<li><p>On the face with four large holes of the Linear Actuator Assembly,
+use the drill press to drill the two holes closest to the other face
+and pull the opening to the left towards the other face.</p></li>
+<li><p>Push the Linear Bearing through the 3D printed Bearing Stand, then
+screw down with the four M3x8 Hex Socket Screws and M3 Nuts.</p></li>
+<li><p>On the Linear Actuator Assembly, unscrew and remove the rectangular
+prism at the end of the actuator rod. Then, unscrew and remove the
+original attached linear bearing.</p></li>
+<li><p>Slide the actuator rod through the Linear Bearing, then screw in the
+Bearing Stand where the original linear bearing once was with three
+M4x16 screws and M4 Nuts.</p></li>
+<li><p>Slide the Actuator Glide under the rectangular prism at the top of
+the actuator rod, then screw in with one M4x16 Screw and M4 Nut at
+the bottom and two M3x16 Screws and M3 Nuts at the top.</p></li>
+<li><p>On the 1” Aluminum Bar, drill 15/64 lengthwise all the way through.
+Then using the same hole, drill 7mm halfway through. On “-28. On the
+half with the larger hole, tap with 8mm-1.0.</p></li>
+<li><p>Screw the 1” Aluminum Bar onto the actuator rod, then screw the
+Spring Plunger onto the 1” Aluminum Bar.</p></li>
+<li><p>Attach what has been assembled so far to the top of the Double
+Extrusion with M5x12 Hex Socket Screws, as seen in the mechanical
+drawing. Use M5 Washers if needed.</p></li>
+<li><p>Slide the Pipette Holder onto the Double Extrusion as seen in the
+mechanical drawings and screw in place.</p></li>
+<li><p>Place the 20 uL Pipette into the Pipette Holder and secure it with
+the Pipette Holder Door. Adjust the Pipette Holder so that the
+Pipette is pressed with the full range of motion of the Linear
+Actuator.</p></li>
+<li><p>Attach the assembly to the far leg of the Frame with two Inside
+Corner Brackets.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/6full_rig_22.png"><img alt="_images/6full_rig_22.png" src="_images/6full_rig_22.png" style="width: 100%;" /></a>
+</section>
+<section id="switch-sensor-assembly">
+<h2><strong>Switch Sensor Assembly</strong><a class="headerlink" href="#switch-sensor-assembly" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="_images/1_ButtonHolder.png"><img alt="_images/1_ButtonHolder.png" src="_images/1_ButtonHolder.png" style="width: 100%;" /></a>
+<p>Below are the components needed to assemble the switch sensors that are
+a part of the Looper system. The mechanical drawings below provide
+visuals and dimensions for the components necessary for assembling the
+switch sensors of Looper. You will need:</p>
+<ul class="simple">
+<li><p>3 x Switch Sensors</p></li>
+<li><p>1 x Button Holder Left</p></li>
+<li><p>1 x Button Holder Right</p></li>
+<li><p>2 x Button Screw Holders</p></li>
+<li><p>1 x Button Holder Syringe</p></li>
+<li><p>2 x M5x20 Socket Head Screws</p></li>
+<li><p>2 x M5x8 Button Head Screws</p></li>
+<li><p>4 x M5 Slide-in T-Knut</p></li>
+<li><p>2 x M5 Washers</p></li>
+<li><p>6 x M2x14 Button Head Screws</p></li>
+<li><p>6 x M2 Nuts</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/4_buttonholder_left_drawing.png"><img alt="_images/4_buttonholder_left_drawing.png" src="_images/4_buttonholder_left_drawing.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/5_buttonholder_right_drawing.png"><img alt="_images/5_buttonholder_right_drawing.png" src="_images/5_buttonholder_right_drawing.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/buttonholder_screw_drawing.png"><img alt="_images/buttonholder_screw_drawing.png" src="_images/buttonholder_screw_drawing.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/buttonholder_syringe_drawing.png"><img alt="_images/buttonholder_syringe_drawing.png" src="_images/buttonholder_syringe_drawing.png" style="width: 24%;" /></a>
+<p><strong>How to Assemble the Switch Sensors:</strong></p>
+<ol class="arabic simple">
+<li><p>Attach Switch Sensors to the back of both Button Holder Left and
+Button Holder Right with two M2x14 Screws and M2 Nuts each. Attach
+the third Switch Sensor to the outside of the Button Holder Syringe
+(as seen in the mechanical drawings above).</p></li>
+<li><p>Slide in the Button Screw Holders behind the Button Holder Left and
+Button Holder Right.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/2_Button_Holder_Left_ex.png"><img alt="_images/2_Button_Holder_Left_ex.png" src="_images/2_Button_Holder_Left_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/3_Button_Holder_Left.png"><img alt="_images/3_Button_Holder_Left.png" src="_images/3_Button_Holder_Left.png" style="width: 49%;" /></a>
+<ol class="arabic simple" start="3">
+<li><p>Attach Left and Right Button Holders to the Frame on both sides of
+the Stepper Motor Rail with M5x20 Socket Head Screws and M5 Washers
+(as seen in the mechanical drawing above).</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/7Full_Rig_4_ex.png"><img alt="_images/7Full_Rig_4_ex.png" src="_images/7Full_Rig_4_ex.png" style="width: 49%;" /></a>
+<video controls width="320" height="180">
+   <source src="_static/7mFull_Rig_4.mp4">
+</video><ol class="arabic simple" start="4">
+<li><p>Attach the Button Holder Syringe to the Frame near the Syringe
+Holders with M5x8 Button Head Screws.</p></li>
+</ol>
+<a class="reference internal image-reference" href="_images/6_buttonholder_syringe_assembly_ex.png"><img alt="_images/6_buttonholder_syringe_assembly_ex.png" src="_images/6_buttonholder_syringe_assembly_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/7_buttonholder_syringe_assembly.png"><img alt="_images/7_buttonholder_syringe_assembly.png" src="_images/7_buttonholder_syringe_assembly.png" style="width: 49%;" /></a>
+<ol class="arabic simple" start="5">
+<li><p>Adjust all three switch buttons so they are all in the correct place
+on the Frame.</p></li>
+</ol>
+</section>
+<section id="waterbath-holder-and-ecg-holder-assembly">
+<h2><strong>Waterbath Holder and ECG Holder Assembly</strong><a class="headerlink" href="#waterbath-holder-and-ecg-holder-assembly" title="Link to this heading">¶</a></h2>
+<p><strong>Please go to Acrylic Section for waterbath construction</strong></p>
+<a class="reference internal image-reference" href="_images/1_Water_Chamber_and_ECG_Holder_Assembly_ex.png"><img alt="_images/1_Water_Chamber_and_ECG_Holder_Assembly_ex.png" src="_images/1_Water_Chamber_and_ECG_Holder_Assembly_ex.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/2_Water_Chamber_and_ECG_Holder_Assembly.png"><img alt="_images/2_Water_Chamber_and_ECG_Holder_Assembly.png" src="_images/2_Water_Chamber_and_ECG_Holder_Assembly.png" style="width: 49%;" /></a>
+<video controls width="640" height="360">
+   <source src="_static/8_Water_Bath_Holder/Water_Chamber_and_ECG_Holder_Assembly.mp4">
+</video><p>Below are the components needed to assemble the water bath holder and
+ECG holder that is a part of the Looper system. The mechanical drawings
+below provide visuals and dimensions for the components necessary for
+assembling the water bath holder and ECG holder of Looper. You will
+need:</p>
+<ul class="simple">
+<li><p>1x ECG Holder</p></li>
+<li><p>1x Water Jacket Holder</p></li>
+<li><p>1x Water Chamber</p></li>
+<li><p>3x M4x8 Screws</p></li>
+<li><p>3x M4 Nuts</p></li>
+<li><p>1x M5x40 Screw</p></li>
+<li><p>1x M5 Nut</p></li>
+<li><p>1x Water Chamber</p></li>
+</ul>
+<p><strong>How to Assemble the Water Bath Holder and ECG Holder:</strong></p>
+<ul class="simple">
+<li><p><strong>Attach the ECG Holder:</strong> Slide the ECG Holder onto the extrusion, ensuring it is properly positioned.</p></li>
+<li><p><strong>Align the Water Jacket Holder:</strong> Align the slots on the Water Jacket Holder with the corresponding holes on the ECG Holder.</p></li>
+<li><p><strong>Secure with M4 Screws:</strong> Use M4x8 screws and corresponding M4 nuts to secure the ECG Holder and Water Jacket Holder together through the aligned slots and holes. Tighten securely.</p></li>
+<li><p><strong>Position the Water Chamber:</strong> Align the hole at the top of the Water Chamber with the bottom of the Water Jacket Holder.</p></li>
+<li><p><strong>Secure the Water Chamber:</strong> Use an M5x40 screw and an M5 nut to secure the Water Chamber in place, ensuring a firm connection.</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/8Fullrig.png"><img alt="_images/8Fullrig.png" src="_images/8Fullrig.png" style="width: 100%;" /></a>
+</section>
+</section>
+<section id="acrylic-components">
+<h1>ACRYLIC COMPONENTS<a class="headerlink" href="#acrylic-components" title="Link to this heading">¶</a></h1>
+<section id="facemask-assembly">
+<h2><strong>Facemask Assembly</strong><a class="headerlink" href="#facemask-assembly" title="Link to this heading">¶</a></h2>
+<p>Below are the components needed to assemble the face mask that is a part
+of the Looper system. The mechanical drawings below provide visuals and
+dimensions for the components necessary for assembling the face mask of
+Looper. You will need:</p>
+<ul class="simple">
+<li><p>Acrylic Tubing, OD: ½’’ ID: ¼’’</p></li>
+<li><p>45-degree router bit</p></li>
+<li><p>Gasket - Durameter Rating of 10A; 1/32’’ thickness, 1mm; 3M 300LSE
+backing</p></li>
+<li><p>Flat Acrylic piece - 2mm thick</p></li>
+<li><p>Groz v-block</p></li>
+<li><p>PPCS Weld-On 4 Acrylic Adhesive - 4 Oz and Weld-On</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/Facemask_FrontFace_Drawing.png"><img alt="_images/Facemask_FrontFace_Drawing.png" src="_images/Facemask_FrontFace_Drawing.png" style="width: 32%;" /></a>
+<a class="reference internal image-reference" href="_images/Facemask_Snorkel_Drawing.png"><img alt="_images/Facemask_Snorkel_Drawing.png" src="_images/Facemask_Snorkel_Drawing.png" style="width: 32%;" /></a>
+<a class="reference internal image-reference" href="_images/Full_Facemask_Drawing.png"><img alt="_images/Full_Facemask_Drawing.png" src="_images/Full_Facemask_Drawing.png" style="width: 32%;" /></a>
+<p><strong>How to Build and Assemble the Facemask:</strong></p>
+<ol class="arabic simple">
+<li><p>Measure and Cut Acrylic Tubing:</p>
+<ol class="loweralpha simple">
+<li><p>Measure and cut a piece of acrylic tubing to a length of 18mm.</p></li>
+</ol>
+</li>
+<li><p>Deface Side with Less Chipping/Imperfections:</p>
+<ol class="loweralpha simple">
+<li><p>Use the file ‘tiny tube first side deface’ to deface the side of
+the tubing with fewer imperfections.</p></li>
+<li><p>Iterate until the edge is completely perfect around the edges.</p></li>
+</ol>
+</li>
+<li><p>Deface the Other Side to 15mm:</p>
+<ol class="loweralpha simple">
+<li><p>Use file ‘tall tiny tube to 15 mm’ to deface the other side of
+the tubing down to 15mm.</p></li>
+</ol>
+</li>
+<li><p>Pecking:</p>
+<ol class="loweralpha simple">
+<li><p>Use the file ‘hole pecking for facemask tube’ to perform pecking
+on the acrylic tubing.</p></li>
+</ol>
+</li>
+<li><p>CNC Mill Setup:</p>
+<ol class="loweralpha simple">
+<li><p>Use a 3/8’’ end mill in a collet for defacing.</p></li>
+<li><p>Use a 45-degree router bit in a 1/4” American collet for pecking.</p></li>
+<li><p>Ensure the router bit is sharp to prevent acrylic shattering
+during drilling.</p></li>
+</ol>
+</li>
+<li><p>Defacing Procedure:</p>
+<ol class="loweralpha simple">
+<li><p>Use the small Groz v-block to clamp the tubing.</p></li>
+<li><p>Set zero as the center of the tube at its top face height.</p></li>
+</ol>
+</li>
+<li><p>Pecking Procedure:</p>
+<ol class="loweralpha simple">
+<li><p>Use the small Groz v-block to clamp the tubing, adjusting the
+height to 9mm between the bar and the top face of the Groz
+v-block.</p></li>
+<li><p>Zero the z-axis to the surface of the Groz v-block and x, y to
+the top right corner of the Groz v-block at the transition
+between the top face and bevel.</p></li>
+</ol>
+</li>
+<li><p>Secondary Defacing:</p>
+<ol class="loweralpha simple">
+<li><p>After initial defacing and pecking, deface the side again to make
+the tubing 10mm tall using file ‘tiny tube 10mm deface’.</p></li>
+<li><p>Set x0 and y0 as the center of the tube, and z0 as the top
+surface of the Groz v-block.</p></li>
+</ol>
+</li>
+<li><p>Execution and Safety Measures:</p>
+<ol class="loweralpha simple">
+<li><p>Execute the files.</p></li>
+<li><p>Wear goggles during the process to prevent eye injury from
+chipping.</p></li>
+<li><p>Finished piece: <a href="#id1"><span class="problematic" id="id2">|A person holding a small plastic object
+Description automatically generated|</span></a></p></li>
+</ol>
+</li>
+<li><p>Cutting Square Acrylic Piece:</p>
+<ol class="loweralpha simple">
+<li><p>Cut the square acrylic piece into a 1 and ½’’ circle.</p></li>
+</ol>
+</li>
+<li><p>Drilling Hole in Acrylic Piece:</p>
+<ol class="loweralpha simple">
+<li><p>Use the Praxxon drill with ¼’’ drill bit to drill a hole in the
+center of the flat acrylic piece.</p></li>
+<li><p>Place a scratch piece of acrylic below the drilling piece to
+avoid damaging the bit.</p></li>
+<li><p>Peck at the flat acrylic piece rather than drilling straight
+through.</p></li>
+</ol>
+</li>
+<li><p>Assembly:</p>
+<ol class="loweralpha simple">
+<li><p>Place a small piece of aluminum (¼’’ diameter) in the drilled
+flat acrylic piece.</p></li>
+<li><p>Apply acrylic adhesive #4 to the cylindrical acrylic piece using a 1
+mL syringe and green needle.</p></li>
+<li><p>Carefully apply the circular piece to the flat acrylic piece.</p></li>
+<li><p>Apply a metal block to apply pressure and leave it to set overnight.</p></li>
+</ol>
+</li>
+<li><p>Finalization:</p>
+<ol class="loweralpha simple">
+<li><p>Apply the gasket and punch a hole in the gasket that lines up
+with the opening on the acrylic piece.</p></li>
+</ol>
+</li>
+</ol>
+</section>
+<section id="pneumotachograph">
+<h2><strong>Pneumotachograph</strong><a class="headerlink" href="#pneumotachograph" title="Link to this heading">¶</a></h2>
+<p>Below are instructions on how to assemble the pneumotachograph that is a
+part of the Looper system. The mechanical drawings below provide visuals
+and dimensions for the components necessary for assembling the main
+pneumotachograph of Looper. You will need:</p>
+<ul class="simple">
+<li><p>Clear Scratch and UV-Resistant Acrylic Round Tube, 1/8” Wall
+Thickness, 1/2” OD, 1/4” ID, 6 Feet Long</p></li>
+<li><p>Flat Acrylic piece - 2mm thick (2”x 2” square?)</p></li>
+<li><p>Clear Scratch- and UV-Resistant Cast Acrylic Rod, 1-1/2” Diameter</p></li>
+<li><p>3/8’’ endmill</p></li>
+<li><p>Sherline 1012 Sherline Sensitive drilling attachment</p></li>
+<li><p>¼’’ drilling bit</p></li>
+<li><p>¼’’ Collet</p></li>
+<li><p>1/32’’ drilling bit</p></li>
+<li><p>Groz Stainless Steel Engineers’ Square</p></li>
+<li><p>PPCS Weld-On 4 Acrylic Adhesive - 4 Oz and Weld-On</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/Pneumotachograph_FrontFace_Drawings.png"><img alt="_images/Pneumotachograph_FrontFace_Drawings.png" src="_images/Pneumotachograph_FrontFace_Drawings.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/Pneumotachograph_MainBody_Drawings.png"><img alt="_images/Pneumotachograph_MainBody_Drawings.png" src="_images/Pneumotachograph_MainBody_Drawings.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/Pneumotachograph_Snorkel_Drawing.png"><img alt="_images/Pneumotachograph_Snorkel_Drawing.png" src="_images/Pneumotachograph_Snorkel_Drawing.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/Full_Pneumotachograph_Drawing.png"><img alt="_images/Full_Pneumotachograph_Drawing.png" src="_images/Full_Pneumotachograph_Drawing.png" style="width: 24%;" /></a>
+<p><strong>Code Used for the CNC Mills and Guiding Files:</strong></p>
+<p>The files to aid in creating the appropriate pieces necessary for
+building the pneumotachograph are saved onto the CNC Mills Computer. The
+files themselves contain additional guiding information. Below outlines
+where to locate the files:</p>
+<ul class="simple">
+<li><p>Configuration: /home/sherline/emc2/configs/Sherline4Axis ==&gt; all of
+the files will be in this location</p></li>
+</ul>
+<p><strong>Below are guiding file information:</strong></p>
+<blockquote>
+<div><p><strong>Cylinder Defacing:</strong></p>
+<ol class="arabic simple">
+<li><p>‘1st side deface w subroutine’</p></li>
+<li><p>‘2nd side deface w subroutine’</p></li>
+</ol>
+<p><strong>Hole Tapping with 1/32” Bit:</strong></p>
+<ul class="simple">
+<li><p>Center Hole</p>
+<ul>
+<li><p>‘center hole tap’</p></li>
+<li><p>‘center hole tap long’</p></li>
+</ul>
+</li>
+<li><p>Side Holes</p>
+<ul>
+<li><p>‘center hole tap’</p></li>
+<li><p>‘side hole tap long’</p></li>
+</ul>
+</li>
+<li><p>Hole 7mm From Edge</p>
+<ul>
+<li><p>‘center hole tap’</p></li>
+<li><p>‘not quite to center’</p></li>
+</ul>
+</li>
+<li><p>Hole Connecting to 7mm From Edge Hole:</p>
+<ul>
+<li><p>‘tap to 7mm hole’</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>4 Equally Spaced Holes With 1/4” Bit</strong></p>
+<ol class="arabic simple">
+<li><p>‘4 equally spaced holes’</p></li>
+</ol>
+<ol class="arabic simple">
+<li><p>Defacing of Side Hole</p></li>
+</ol>
+<ol class="arabic simple">
+<li><p>‘square deface’</p></li>
+<li><p>Defacing of ½” OD, ¼” ID tubes</p></li>
+</ol>
+<ol class="arabic simple">
+<li><p>‘tiny tube first side deface’</p></li>
+<li><p>‘tiny tube second side deface’</p></li>
+</ol>
+</div></blockquote>
+<p><strong>How to Build and Assemble the Pneumotachograph:</strong></p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Defacing:</p>
+<ol class="loweralpha simple">
+<li><p>Cut the acrylic rod to a length of 28.5mm.</p></li>
+<li><p>Square the cylinder to the Groz to ensure the face will be defaced
+level.</p></li>
+<li><p>Verify alignment using a square edge.</p></li>
+<li><p>Ensure the cylinder is tight enough in the Groz, which is
+tightened into the clamp held by two L-shaped metal pieces onto
+the CNC mill.</p></li>
+</ol>
+</li>
+</ol>
+<blockquote>
+<div><p><a href="#id3"><span class="problematic" id="id4">|A machine with a blue tube on it Description automatically
+generated|</span></a></p>
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p>1/32” Tapping:</p>
+<ol class="loweralpha simple">
+<li><p>Find the center of the cylinder using the center square.</p></li>
+<li><p>Draw intersecting lines on the face to locate the center.</p></li>
+<li><p>Use a long 1/32” bit only for tapping the center hole.</p></li>
+<li><p>For other tapping steps, use a short bit with about 10 mm exposed.</p></li>
+<li><p>Ensure the cylinder is centered over the gap in the clamp to avoid
+drilling into the metal.</p></li>
+<li><p>Adjust the airflow to blow chips effectively without misaligning
+the bit.</p></li>
+<li><p>Monitor the tapping process to clear chips and prevent melting.</p></li>
+<li><p>Replace the bit when the black coating wears off to reduce chip
+buildup.</p></li>
+</ol>
+</li>
+<li><p>Side Holes:</p>
+<ol class="loweralpha simple">
+<li><p>Align the cylinder on the mill.</p></li>
+<li><p>Place a long bit through the center hole and align the short bit
+in the chuck perpendicular to the long bit.</p></li>
+<li><p>Zero the X axis.</p></li>
+<li><p>Ensure the center hole and clamp are not slanted for accurate
+alignment of side holes.</p></li>
+<li><p>Tap the first hole about 8-10 mm from the front face to
+accommodate automatic movement for the second hole.</p></li>
+</ol>
+</li>
+<li><p>7 mm Side Hole:</p>
+<ol class="loweralpha simple">
+<li><p>Tap the 7 mm hole 90 degrees counterclockwise from the side holes.</p></li>
+<li><p>Define the front face of the cylinder.</p></li>
+<li><p>Use a caliper to score the cylinder 7 mm from the front face where
+the hole will be tapped.</p></li>
+<li><p>Mark the location of the end of the 7 mm hole with a pen while
+holding the cylinder to align the hole from the front face.</p></li>
+</ol>
+</li>
+<li><p>Magnets:</p>
+<ol class="loweralpha simple">
+<li><p>Once the four ¼” equally spaced holes are tapped through the front
+face, place ten small magnets in each hole.</p></li>
+<li><p>Ensure all magnets are level with the acrylic surface.</p></li>
+<li><p>Use a rubber mallet to pound down if needed.</p></li>
+<li><p>Orient each stack of ten magnets in the same direction.</p></li>
+</ol>
+</li>
+<li><p>Gluing Steps</p>
+<ol class="loweralpha">
+<li><p>Preparation and Safety Measures:</p>
+<ol class="lowerroman simple">
+<li><p>Ensure to use a syringe for applying acrylic cement.</p></li>
+<li><p>Recap the syringe when not in use and keep it within sight.</p></li>
+<li><p>Dispose of used needles and syringe tubes properly.</p></li>
+<li><p>Consider using a new syringe if gluing over a longer period</p></li>
+</ol>
+<blockquote>
+<div><p>to prevent melting the rubber plunger.</p>
+</div></blockquote>
+</li>
+<li><p>Acrylic Sheet to Front Face:</p>
+<ol class="lowerroman simple">
+<li><p>Place a 1/32” bit in each tapped hole to prevent cement from
+entering.</p></li>
+<li><p>Cut a square piece of ⅛” acrylic sheet with a 1/4” hole in
+the center.</p></li>
+<li><p>Clean both surfaces.</p></li>
+<li><p>Apply #4 acrylic cement using a 1mL syringe and green
+needle.</p></li>
+<li><p>Apply cement to both faces, align the sheet, and press down.</p></li>
+<li><p>Apply cement around the hole’s inner and outer edges.</p></li>
+<li><p>Place a weight over the sheet.</p></li>
+<li><p>Check alignment and adjust if necessary.</p></li>
+<li><p>Allow it to set for at least 24 hours.</p></li>
+<li><p>Use a Dremel to make the sheet flush with the cylinder.</p></li>
+</ol>
+</li>
+<li><p>Side Hole Air Gasket:</p>
+<ol class="lowerroman simple">
+<li><p>Place a 1/32” bit in the side hole to prevent glue from</p></li>
+</ol>
+<blockquote>
+<div><p>entering.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="2">
+<li><p>Use #16 acrylic glue to adhere small air gaskets with punched</p></li>
+</ol>
+<blockquote>
+<div><p>holes to the defaced surface.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="3">
+<li><p>Apply glue along the rim of the air gasket base and press</p></li>
+</ol>
+<blockquote>
+<div><p>down.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="4">
+<li><p>Place a weight over the gaskets.</p></li>
+<li><p>Use vice grips and a twisting motion to remove the bits if</p></li>
+</ol>
+<blockquote>
+<div><p>necessary.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="6">
+<li><p>Allow it to set for 24 hours.</p></li>
+</ol>
+</li>
+<li><p>Tiny Tube Defacing:</p>
+<ol class="lowerroman simple">
+<li><p>Deface tiny tubes using a similar Groz and clamp setup.</p></li>
+<li><p>Aim for tubes about 15 mm tall after defacing both sides.</p></li>
+</ol>
+</li>
+<li><p>Back Face Cylinder:</p>
+<ol class="lowerroman simple">
+<li><p>Place a bit in the center hole of the tiny tubes.</p></li>
+<li><p>Apply #4 cement on one edge of the tiny tubes using a 1mL</p></li>
+</ol>
+<blockquote>
+<div><p>syringe and green needle.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="3">
+<li><p>Place the tubes on the back face of the cylinder, align, and</p></li>
+</ol>
+<blockquote>
+<div><p>press down.</p>
+</div></blockquote>
+<ol class="lowerroman simple" start="4">
+<li><p>Apply additional cement around the outer edge of the tubes.</p></li>
+<li><p>Place a weight on top of the tubes.</p></li>
+<li><p>Allow it to set for at least 24 hours.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><dl>
+<dt>Final Product:</dt><dd><a class="reference internal image-reference" href="_images/Built_Pneumotach.png"><img alt="_images/Built_Pneumotach.png" src="_images/Built_Pneumotach.png" style="width: 50%;" /></a>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+</section>
+<section id="water-bath-assembly">
+<h2><strong>Water Bath Assembly</strong><a class="headerlink" href="#water-bath-assembly" title="Link to this heading">¶</a></h2>
+<p>Below are instructions on how to assemble the water bath that is a part
+of the Looper system. The mechanical drawings below provide visuals and
+dimensions for the components necessary for assembling the water bath of
+Looper. You will need:</p>
+<dl class="simple">
+<dt><strong>Equipment:</strong></dt><dd><ul class="simple">
+<li><p>CNC Mill</p></li>
+<li><p>Drill Press</p></li>
+<li><p>Hand Router</p></li>
+<li><p>1/4” Drill Bit (Round Head)</p></li>
+<li><p>15/64” Drill Bit (Round Head)</p></li>
+<li><p>1/4”-20 Tap</p></li>
+<li><p>1/4”-28 Tap</p></li>
+<li><p>Concentric Hold (3D printed)</p></li>
+<li><p>Steady End (3D printed from Sherline Steady End design)</p></li>
+<li><p>Dremel</p></li>
+<li><p>Table Saw</p></li>
+<li><p>Soapy Water</p></li>
+<li><p>Metal Clippers</p></li>
+</ul>
+</dd>
+<dt><strong>Materials:</strong></dt><dd><ul class="simple">
+<li><p>1” ID, 1/8” thick wall acrylic pipe (one piece)</p></li>
+<li><p>1.75” ID, 1/8” thick wall acrylic pipe (one piece)</p></li>
+<li><p>Female Iver to thread (two pieces)</p></li>
+<li><p>#4 Acrylic Adhesive</p></li>
+<li><p>#40 Acrylic Adhesive</p></li>
+<li><p>#16 Acrylic Adhesive</p></li>
+<li><p>1/8” thick acrylic sheet</p></li>
+<li><p>1”x1”x~0.5” thick acrylic block (one piece)</p></li>
+<li><p>1/4”-20 plastic screws (two pieces)</p></li>
+</ul>
+</dd>
+</dl>
+<a class="reference internal image-reference" href="_images/base_0.25in_hole_drawing.png"><img alt="_images/base_0.25in_hole_drawing.png" src="_images/base_0.25in_hole_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/base_1in_hole_drawing.png"><img alt="_images/base_1in_hole_drawing.png" src="_images/base_1in_hole_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/big_tube_drawing.png"><img alt="_images/big_tube_drawing.png" src="_images/big_tube_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/block_drawing.png"><img alt="_images/block_drawing.png" src="_images/block_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/small_tube_base_drawing.png"><img alt="_images/small_tube_base_drawing.png" src="_images/small_tube_base_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/small_tube_drawing.png"><img alt="_images/small_tube_drawing.png" src="_images/small_tube_drawing.png" style="width: 16%;" /></a>
+<a class="reference internal image-reference" href="_images/Water_Chamber_Full_Drawings.png"><img alt="_images/Water_Chamber_Full_Drawings.png" src="_images/Water_Chamber_Full_Drawings.png" style="width: 100%;" /></a>
+<dl>
+<dt><strong>Procedure:</strong></dt><dd><ol class="arabic">
+<li><p><strong>Cut Acrylic Pipes</strong>
+- Cut both pipes slightly longer than the desired chamber length:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Outer pipe: Initial length ~72–73 mm</p></li>
+<li><p>Inner pipe: Initial length ~70–71 mm</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Final chamber lengths:</dt><dd><ul>
+<li><p>Outer chamber: 2.75” (including face)</p></li>
+<li><p>Inner chamber: 2.5” (including face)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</li>
+<li><p><strong>Flatten Ends</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the CNC Mill to flatten and square one end of each pipe.</p></li>
+<li><dl class="simple">
+<dt>Use the files saved on the Sherline 4-axis CNC under:</dt><dd><ul>
+<li><p>“large tube edge smooth”</p></li>
+<li><p>“small tube edge smooth”</p></li>
+<li><p>“concentric tube smooth”</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><p><strong>Create Base</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Glue each pipe to an acrylic sheet using #4 Acrylic Adhesive to create a closed base.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><p><strong>Trim and Attach Back Plate</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use a router to trim excess acrylic from the smaller pipe.</p></li>
+<li><p>Cut a rectangle from the 1/8” acrylic sheet to fit inside the smaller pipe base.</p></li>
+<li><p>Glue the rectangle to the smaller pipe using #4 Acrylic Adhesive.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="5">
+<li><p><strong>Assemble Concentric Pipes</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Glue the smaller pipe’s base to the larger pipe’s base using #16 Acrylic Adhesive.</p></li>
+<li><p>Use the concentric hold to align and stabilize the pipes while the adhesive dries.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="6">
+<li><p><strong>Drill Holes in Pipes</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="simple">
+<dt>Use the drill press to create:</dt><dd><ul>
+<li><p>One 15/64” hole through the bottom of the concentric pipes.</p></li>
+<li><p>Two 15/64” holes on opposite sides of the larger pipe (do not penetrate the inner pipe).</p></li>
+<li><p>One 1/4” diameter hole in the 1”x1”x~0.5” acrylic block.</p></li>
+<li><p>Two 15/64” diameter holes in the block leading to the 1/4” hole.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="7">
+<li><p><strong>Tap Holes</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use the 1/4”-20 Tap with soapy water to tap the two holes in the acrylic block.</p></li>
+<li><p>Use the 1/4”-28 Tap to tap the two holes in the concentric acrylic pipes.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="8">
+<li><p><strong>Glue Ivers and Screws</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Glue the Female Ivers into the threaded holes in the pipes using #4 Acrylic Adhesive.</p></li>
+<li><p>Cut 1/4”-20 plastic screws to ~0.8” length using metal clippers and a Dremel.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="9">
+<li><p><strong>Final Sealing</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use #40 Acrylic Adhesive to glue the inner pipe to a 1/8” acrylic sheet.</p></li>
+<li><p>Glue the larger pipe to the same sheet using #4 Acrylic Adhesive.</p></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="10">
+<li><p><strong>Trim and Finish</strong></p></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><p>Use a router and Dremel to trim the acrylic sheet, ensuring a smooth finish.</p></li>
+<li><p>Create an opening in the smaller pipe by cutting through the top acrylic sheet.</p></li>
+<li><p>Ensure all edges are flush and clean for final use.</p></li>
+</ul>
+</div></blockquote>
+</dd>
+<dt><strong>Notes:</strong></dt><dd><ul class="simple">
+<li><p>Always wear appropriate safety gear when using tools.</p></li>
+<li><p>Allow adhesives to dry fully before prceeding to the next step.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</section>
+<section id="electrical-components">
+<h1>ELECTRICAL COMPONENTS<a class="headerlink" href="#electrical-components" title="Link to this heading">¶</a></h1>
+<section id="main-electronics-box">
+<h2><strong>Main Electronics Box</strong><a class="headerlink" href="#main-electronics-box" title="Link to this heading">¶</a></h2>
+<p>Below are instructions on how to assemble the main electronics box that
+is a part of the Looper system. The mechanical drawings below provide
+visuals and dimensions for the components necessary for assembling the
+main electronics box of Looper.</p>
+<a class="reference internal image-reference" href="_images/arduino_holder_drawing1.png"><img alt="_images/arduino_holder_drawing1.png" src="_images/arduino_holder_drawing1.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/arduino_holder_drawing2.png"><img alt="_images/arduino_holder_drawing2.png" src="_images/arduino_holder_drawing2.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/arduino_holder_drawing3.png"><img alt="_images/arduino_holder_drawing3.png" src="_images/arduino_holder_drawing3.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/arduino_MEGA_bumper_drawing.png"><img alt="_images/arduino_MEGA_bumper_drawing.png" src="_images/arduino_MEGA_bumper_drawing.png" style="width: 24%;" /></a>
+<a class="reference internal image-reference" href="_images/Ebox_Assembly_drawing.png"><img alt="_images/Ebox_Assembly_drawing.png" src="_images/Ebox_Assembly_drawing.png" style="width: 100%;" /></a>
+<p>How to Assemble the Main Electronic Box:</p>
+<ol class="arabic simple">
+<li><p>Print the Arduino Holder at 35% infill with support everywhere.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>Print with a brim. After the brim has printed tape down the brim
+to the printer base Because the Arduino Holder is such a large
+piece it will leave up easily from the printer base.</p></li>
+<li><p>After the print has been completed take off the supports. If the
+supports are stuck onto the Arduino Holder DO NOT PULL. This could
+cause the piece to break. Cut the sides of the supports with a
+clipper and slowly push them out.</p></li>
+</ol>
+</li>
+<li><p>Place 2 stepper motor drivers, Arduino Mega, and corresponding
+Arduino Shield into the Arduino Holder.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>The stepper motor drives are tight when put into the Arduino
+Holder, you must push the Arduino Holder legs apart for it to fit.</p></li>
+</ol>
+</li>
+<li><p>Slide the 12V power supply box into the bottom cavity of the
+3D-printed Arduino holder.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>Screw in two M4X16 HEX screws on either side of the Arduino Holder
+and crew in two M4X8 HEX screws on the base of the Arduino Holder
+to secure the power supply box.</p></li>
+<li><p>The Arduino Shield Bumper sits on top of the stepper motors.</p></li>
+</ol>
+</li>
+<li><p>Connect the power supply to stepper motor drivers and switch as
+specified in circuit diagrams.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>When connecting wires onto the module plug use Glarks 22-16 Gauge
+<strong>Fully Insulated</strong>. The Glarks connected to the 12-volt power
+supply are Ring Tongue Terminals, M4, 22-16 AWG.</p></li>
+</ol>
+</li>
+<li><p>Cut wires at lengths needed to reach from stepper motor drivers to
+the PCB. Crimp one end of each wire and insert it into the 6-pin
+female connector.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>When crimping makes sure that there is no wire exposed. It is best
+to crimp a piece of the wire covering instead of only the wire. If
+you crimp a small piece of covering, there is a smaller chance of
+having wire exposed and the connector is more stable. This also
+helps in the reduction of noise.</p></li>
+</ol>
+</li>
+<li><p>Expose opposite ends of the wires and apply some solder to the bare
+metal. This will help keep the wires in place in the stepper motor
+drivers.</p>
+<ol class="loweralpha simple" start="3">
+<li><p>DO NOT expose too much of the wires. The part of the wire that is
+not in the stepper motor must be fully covered. Having them
+exposed is a safety hazard and adds to the overall noise.</p></li>
+</ol>
+</li>
+<li><p>Tighten wires into the stepper motor drivers.</p></li>
+<li><p>Repeat steps for all wires coming out of the stepper motor drivers.</p></li>
+<li><p>Apply the E-box cover to the Arduino Holder before powering on the
+device. This maximizes safety and minimizes the risk of damaging the
+electrical components.</p></li>
+</ol>
+</section>
+<section id="pcb-assembly">
+<h2><strong>PCB Assembly</strong><a class="headerlink" href="#pcb-assembly" title="Link to this heading">¶</a></h2>
+<p>Below are the instructions to assemble the PCB that is a part of the
+Looper system. The mechanical drawings below provide visuals and
+dimensions for the components necessary for assembling the PCB of
+Looper. You will need:</p>
+<ul class="simple">
+<li><p>Geebat Connector Kit</p>
+<ul>
+<li><p>2 of 1 x 2pin male header</p></li>
+<li><p>4 of 1 x 4pin male header</p></li>
+<li><p>2 of 1 x 6pin male header</p></li>
+</ul>
+</li>
+<li><p>3 of 1K Ohm Resistors</p></li>
+<li><p>1 of 2 x 18pin female double row straight pin header strip</p></li>
+<li><p>Pin Header Connectors</p>
+<ul>
+<li><p>1 of 1 x 8pin long needle Arduino stackable header</p></li>
+<li><p>2 of 1 x 10pin long needle Arduino stackable header</p></li>
+<li><p>1 of 2 x 3pin short needle Arduino stackable header</p></li>
+</ul>
+</li>
+<li><p>Breakable Pin Header</p>
+<ul>
+<li><p>1 of red single-row male header</p></li>
+<li><p>1 of green single-row male header</p></li>
+</ul>
+</li>
+<li><p>5 of Transistors:</p>
+<ul>
+<li><p><a class="reference external" href="https://www.amazon.com/BOJACK-Epitaxial-Transistor-Darlington-Transistors/dp/B08BFYYK7D/ref=sr_1_3?crid=3AE53SRDQL3FX&amp;keywords=tip120+transistor+bojack+20+pcs&amp;qid=1654194523&amp;s=industrial&amp;sprefix=tip120+transistor+bojack+20+pcs%2Cindustrial%2C68&amp;sr=1-3">https://www.amazon.com/BOJACK-Epitaxial-Transistor-Darlington-Transistors/dp/B08BFYYK7D/ref=sr_1_3?crid=3AE53SRDQL3FX&amp;keywords=tip120+transistor+bojack+20+pcs&amp;qid=1654194523&amp;s=industrial&amp;sprefix=tip120+transistor+bojack+20+pcs%2Cindustrial%2C68&amp;sr=1-3</a></p></li>
+</ul>
+</li>
+<li><p>Red and black Sharpie</p></li>
+<li><p>1 of PCB</p></li>
+<li><p>Soldering Station</p></li>
+<li><p>Rosin Core Solder Wire</p></li>
+<li><p>Flux</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/Picture1.png"><img alt="_images/Picture1.png" src="_images/Picture1.png" style="width: 100%;" /></a>
+<a class="reference internal image-reference" href="_images/Picture2.png"><img alt="_images/Picture2.png" src="_images/Picture2.png" style="width: 49%;" /></a>
+<a class="reference internal image-reference" href="_images/Picture3.png"><img alt="_images/Picture3.png" src="_images/Picture3.png" style="width: 49%;" /></a>
+<p><strong>How to Assemble the PCB:</strong></p>
+<p>Flux must be added in small quantities to each hole on the pcb as you go
+along. If it is accidentally spilled water can be used to clean it off
+nonelectrical surfaces. If spilled over an electrical surface such as
+the pcb use a paper towel wipe with a small amount of rubbing alcohol
+and wipe it off.</p>
+<ol class="arabic simple">
+<li><p>Solder on the 3 resistors, then cut off the extra wire.</p></li>
+<li><p>Solder on the 2 x 3pin short needle header with the pins facing the
+top of the pcb.</p></li>
+<li><p>Solder on the 2 x 18pin female header.</p>
+<ol class="lowerroman simple">
+<li><p>Solder on the corners first so that your pin does not move from
+its position. Make sure that it is flush against the pcb.</p></li>
+</ol>
+</li>
+<li><p>Solder on the 1 x 8pin long needle header and the 1 x 10pin long
+needle header on the left side of the pcb.</p></li>
+<li><p>Solder on the 12 V 1 x 2pin male header. Using your thumb or a
+tweezer hold the header flush against the pcb and straight.</p></li>
+<li><p>Solder on the 1 x 8pin long needle header on the left side of the
+pcb.</p></li>
+<li><p>Solder on the green and red single row male headers to the +5V and
+ground holes respectively onto the pcb.</p></li>
+<li><p>Solder on P1,P2 and P3,LED 1 x 4pin male headers.</p></li>
+<li><p>Solder on the M1 and M2 1 x 6pin male headers.</p></li>
+<li><p>Solder on V1,V2 and V3,V4 1 x 4pin male headers.</p></li>
+<li><p>Solder on the MMTR 1 x 2pin male headers.</p></li>
+<li><p>Solder on 5 transistors.</p></li>
+</ol>
+</section>
+<section id="assembly-of-components-for-ecg-recording">
+<h2><strong>Assembly of Components for ECG Recording</strong><a class="headerlink" href="#assembly-of-components-for-ecg-recording" title="Link to this heading">¶</a></h2>
+<p>How to Assemble the Switch Sensors:</p>
+<ol class="arabic simple">
+<li><p>Slide the 3D-printed ECG Holder component onto the 28” aluminum
+extrusion. Secure large end of ECG Cable to the ECG Holder using zip
+ties.</p></li>
+<li><p>Connect the ECG Cable to the amplifier and plug in the amplifier
+power cable.</p></li>
+<li><p>To create electrodes, cut the desired length of thin electrode wire
+and strip ends using a fingernail.</p></li>
+<li><p>Attach one end of the wire to the electrode holders using solder.
+Plug the three holders into the ECG cable.</p></li>
+<li><p>When ready for animal tests, attach ECG electrodes to the animal
+using conductive paste and glue.</p></li>
+<li><p>Modify bandpass filter cutoff frequencies as needed (typically, 100Hz
+for low-pass and 0.1Hz for high-pass gives a good signal).</p></li>
+</ol>
+</section>
+<section id="undercarriage-assembly">
+<h2><strong>Undercarriage Assembly</strong><a class="headerlink" href="#undercarriage-assembly" title="Link to this heading">¶</a></h2>
+<p>Below are the instructions to assemble the undercarriage that is a part
+of the Looper system. The wiring diagrams below provide visuals and
+instructions for connection of the components necessary for assembling
+the undercarraige of Looper. You will need:</p>
+<ul class="simple">
+<li><p>18 Gauge Wire (red, black, green)</p></li>
+<li><p>4x Banana Plugs (2 red, 2 black)</p></li>
+<li><p>1x Phone Jack</p></li>
+<li><p>1x BNC-Banana Adapter</p></li>
+</ul>
+<a class="reference internal image-reference" href="_images/Picture11.png"><img alt="_images/Picture11.png" src="_images/Picture11.png" style="width: 100%;" /></a>
+<p><strong>How to Assemble the Switch Sensors:</strong></p>
+<ol class="arabic simple">
+<li><p>On the back of the ECG Amplifier, connect the BNC-Banana Adapter to
+the “Amplifier Output”.</p></li>
+<li><p>The V+, V-, and GND wiring will need to be fabricated with 18 Gauge
+wiring.</p>
+<ol class="lowerroman simple">
+<li><p>Connections to the ECG Amplifier and Pressure Demodulator need to
+be made with Banana Plugs.</p></li>
+<li><p>Connection to the Thermometer needs to be made with the Phone
+Jack.</p></li>
+</ol>
+</li>
+<li><p>The V+ wires connecting sensors to AIN0, AIN1, and AIN2 ports of the
+Labjack will need to be connected to Female Jumper Wires that plug
+into GPIO pins 2, 3, and 4 on the Raspberry Pi, respectively. This
+can be done in one of two ways:</p>
+<ol class="lowerroman simple">
+<li><p>Put both the sensor V+ end and the GPIO Jumper Wire end in the
+same port of the Labjack.</p></li>
+<li><p>Solder the Female Jumper Wires to the sensor V+ wire.</p></li>
+</ol>
+</li>
+</ol>
+</section>
+<section id="software-installation-instructions">
+<h2><strong>Software Installation Instructions</strong><a class="headerlink" href="#software-installation-instructions" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Download or transfer the files “Berryconda3-2.0.0-Linux-armv7l.sh”
+and “setup_PCC.sh” to pi folder.</p></li>
+<li><p>Transfer “PCCv45.py” and “run_PCC.sh” to the desktop.</p></li>
+<li><p>In command terminal, type and execute: chmod +x
+Berryconda3-2.0.0-Linux-armv7l.sh setup_PCC.sh Desktop/run_PCC.sh</p></li>
+<li><p>Run “Berryconda3-2.0.0-Linux-armv7l.sh” in the pi folder.</p></li>
+<li><p>Restart the pi.</p></li>
+<li><p>In command terminal, type and execute: conda create -n py36
+python=3.6</p></li>
+<li><p>Run “setup_PCC.sh” file in the pi folder.</p></li>
+<li><p>Restart the pi.</p></li>
+<li><p>“run_PCC.sh” program is ready to execute.</p></li>
+</ol>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Auotres Build Manual</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Table of Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#mechanical-components">MECHANICAL COMPONENTS:</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#preparing-the-materials"><strong>Preparing the Materials:</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-the-frame"><strong>Building the Frame:</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#stepper-motor-assembly"><strong>Stepper Motor Assembly:</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#syringe-holder-assembly"><strong>Syringe Holder Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#valve-rack-assembly"><strong>Valve Rack Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mouse-holder-platform-assembly"><strong>Mouse Holder Platform Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pipette-calibrator-assembly"><strong>Pipette Calibrator Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#switch-sensor-assembly"><strong>Switch Sensor Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#waterbath-holder-and-ecg-holder-assembly"><strong>Waterbath Holder and ECG Holder Assembly</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#acrylic-components">ACRYLIC COMPONENTS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#facemask-assembly"><strong>Facemask Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pneumotachograph"><strong>Pneumotachograph</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#water-bath-assembly"><strong>Water Bath Assembly</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#electrical-components">ELECTRICAL COMPONENTS</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#main-electronics-box"><strong>Main Electronics Box</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pcb-assembly"><strong>PCB Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#assembly-of-components-for-ecg-recording"><strong>Assembly of Components for ECG Recording</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#undercarriage-assembly"><strong>Undercarriage Assembly</strong></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#software-installation-instructions"><strong>Software Installation Instructions</strong></a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Auotres Build Manual’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Ray Lab.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/Build.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
