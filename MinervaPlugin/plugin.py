@@ -1,9 +1,21 @@
 import time
 import json
 import threading
-from command import GoToNextStep, StartCommand
-from rabbitmq_client import RabbitMQClient
-from config import PING_QUEUE, COMMAND_QUEUE
+try: 
+    from command import GoToNextStep, StartCommand
+except:
+    print('attempting relative import of command')
+    from .command import GoToNextStep, StartCommand
+try:
+    from rabbitmq_client import RabbitMQClient
+except:
+    print('attempting relative import of rabbitmqclient')
+    from .rabbitmq_client import RabbitMQClient
+try:
+    from config import PING_QUEUE, COMMAND_QUEUE
+except:
+    print('attempting relative import of config')
+    from .config import PING_QUEUE, COMMAND_QUEUE
 from datetime import datetime
 from dataclasses import dataclass, asdict
 

@@ -24,6 +24,7 @@ and general refactoring and reoganization of modules and functions.
 import argparse
 import logging
 import os
+import psutil
 from PySide6.QtCore import QTimer, QFile
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication, QWidget
@@ -36,64 +37,21 @@ import sys
 import DATA
 import DETECTORS
 import EFFECTORS
+from MinervaPlugin import plugin as mp
 import SETTINGS
 import STREAMS
 
+
 # %% define functions
+def get_mac():
+    interfaces = psutil.net_if_addrs()
+    for i_name, i_addr in interfaces.items():
+        for addr in i_addr:
+            if addr.family == psutil.AF_LINK or addr.family == psutil.AF_PACKET:
+                return addr.address
 
 
 # %% define classes
-class DATA:
-    def __init__(self):
-        self.current_mode = 0
-        self.prev_mode = -1
-
-        self.flow_signal = []
-        self.ecg_signal = []
-        self.vol_signal = []  # remove ?
-
-        self.breath_list = []
-        self.beat_list = []
-
-        self.now = datetime.now()
-        self.cur_status_dict = {
-            "standby": 0,
-            "startup": 0,
-            "streaming": 0,
-            "ready to save": 0,
-            "calibration": 0,
-            "challenge air": 0,
-            "challenge gas": 0,
-            "pulse": {
-                "calibration": {"state": 0, "start": now, "pin": 1},
-                "challenge air": {"state": 0, "start": now, "pin": 3},
-                "challenge gas": {"state": 0, "start": now, "pin": 2},
-            },
-            "startup_ready": 0,
-        }
-        self.old_status_dict = {
-            "standby": 0,
-            "startup": 0,
-            "streaming": 0,
-            "ready to save": 0,
-            "calibration": 0,
-            "challenge air": 0,
-            "challenge gas": 0,
-            "pulse": {
-                "calibration": {"state": 0, "start": now, "pin": 1},
-                "challenge air": {"state": 0, "start": now, "pin": 3},
-                "challenge gas": {"state": 0, "start": now, "pin": 2},
-            },
-            "startup_ready": 0,
-        }
-
-    def prepare_data_json(attr_list):
-        """
-        prepare a json string populated from the attributes specified by attr_list
-        """
-        pass
-
-
 class MainWindow(QWidget):
     def __init__(self, version, ui):
         super().__init__()
@@ -105,13 +63,30 @@ class MainWindow(QWidget):
 
         self.setWindowTitle(f"PCC-client {version}")
 
+        # get mac - used for registering with Minerva Server
+        self.mac = get_mac()
+        print(self.mac)
+
+        # create a logger
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
         # load settings
         self.settings = SETTINGS.SETTINGS()
 
         # populate data class
+        self.data = DATA.DATA()
 
         # configure i/o
-        self.
+        self.settings.sim_mode = 1  # dev !!!
+        if self.settings.sim_mode == 1:
+            self.arduino_stream = STREAMS.SimulatedArduino()
+            self.labjack_stream = STREAMS.SimulatedDataReader()
+        else:
+            self.arduino_stream = STREAMS.StreamArduino()
+            self.labjack_stream = STREAMS.StreamDataReader()
+
+        self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
 
         # set up timers
 
@@ -143,6 +118,8 @@ class MainWindow(QWidget):
         # collect minerva stream
 
         # append to output
+
+        # refresh gui (if needed)
 
     ## Timers (to create event loops)
     # receiver_timer

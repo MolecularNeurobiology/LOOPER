@@ -2,7 +2,10 @@ import json
 import time
 import pika
 import logging
-from config import RABBITMQ_SERVER
+try:
+    from config import RABBITMQ_SERVER
+except:
+    from .config import RABBITMQ_SERVER
 class RabbitMQClient:
     def __init__(self, logger, queue, id = None):
         self.logger = logger

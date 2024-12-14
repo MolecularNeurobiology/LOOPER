@@ -10,6 +10,9 @@ class DATA:
         self.pneumo = []
         self.ecg = []
 
+        self.breath_list = []
+        self.beat_list = []
+
         # instantaneous_arrays
         self.new_time = []
         self.new_pneumo = []
@@ -20,8 +23,50 @@ class DATA:
         self.avg_hr = None
         self.avd_tv = None
         self.current_time = None
+        self.curreng_lag = None
+        self.current_mode = None
 
-        # persistent
+        self.cur_status_dict = {
+            "standby": 0,
+            "startup": 0,
+            "streaming": 0,
+            "ready to save": 0,
+            "calibration": 0,
+            "challenge air": 0,
+            "challenge gas": 0,
+            "pulse": {
+                "calibration": {"state": 0, "start": 0, "pin": 1},
+                "challenge air": {"state": 0, "start": 0, "pin": 3},
+                "challenge gas": {"state": 0, "start": 0, "pin": 2},
+            },
+            "startup_ready": 0,
+        }
+
+        # persistent / semi-persistant
         self.challenge_history = {}
         self.recovery_bpm = None
         self.recovery_hr = None
+        self.stage_start_time = None
+        self.prev_mode = -1
+
+        self.old_status_dict = {
+            "standby": 0,
+            "startup": 0,
+            "streaming": 0,
+            "ready to save": 0,
+            "calibration": 0,
+            "challenge air": 0,
+            "challenge gas": 0,
+            "pulse": {
+                "calibration": {"state": 0, "start": 0, "pin": 1},
+                "challenge air": {"state": 0, "start": 0, "pin": 3},
+                "challenge gas": {"state": 0, "start": 0, "pin": 2},
+            },
+            "startup_ready": 0,
+        }
+
+    def prepare_data_json(attr_list):
+        """
+        prepare a json string populated from the attributes specified by attr_list
+        """
+        pass

@@ -37,3 +37,7 @@ plugin = Plugin(PluginRegistration(mac_address=mac_address), logger)
 - *get_metrics()* Retrieves the current metrics used for pings.
 - *set_step()* Updates the current step in the metrics.
 - *get_is_running()* Retrieves the current is_running flag
+
+### Notes for setting up dev/testing environment
+- use of the plugin requires a rabbitmq server to connect to
+- if not present on your system, or no remote server is available - install rabbitmq and erlang.
