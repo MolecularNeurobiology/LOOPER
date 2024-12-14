@@ -6,9 +6,9 @@ pandas
 pyserial
 python-dateutil
 python-fmrest
+pyqtgraph
 pytz
 requests
-RPi.GPIO
 scipy
 six
 tzdata
