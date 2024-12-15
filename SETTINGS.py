@@ -35,7 +35,7 @@ class SETTINGS:
         self.thresh_flow = 0.050
         self.thresh2_flow = 0.100
 
-        self.pleth_filt_state = 1  # either 1 or 0
+        self.flow_filt_state = 1  # either 1 or 0
         self.ecg_filt_state = 0  # either 1 or 0
 
         self.baseline_vol = 0.0
@@ -133,7 +133,7 @@ class SETTINGS:
             "baseline_flow": 1.1,
             "thresh_flow": 1.1,
             "thresh2_flow": 1.1,
-            "pleth_filt_state": 1,
+            "flow_filt_state": 1,
             "ecg_filt_state": 1,
             "baseline_vol": 1.1,
             "thresh_vol": 1.1,

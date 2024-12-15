@@ -110,39 +110,39 @@ class MainWindow(QWidget):
         self.graph2 = pyqtgraph.PlotWidget()
         self.legend1 = self.graph1.addLegend()
         self.legend1.setColumnCount(5)
-        self.legend1.setOffset([0.1, -0.1])
+        self.legend1.setOffset([1, -1])
+        self.legend1.anchor(itemPos=(0.5, 1), parentPos=(0.5, 1), offset=(0, 15))
         self.legend2 = self.graph2.addLegend()
         self.legend2.setColumnCount(5)
-        self.legend2.setOffset([0.1, -0.1])
+        self.legend2.setOffset([1, -1])
+        self.legend2.anchor(itemPos=(0.5, 1), parentPos=(0.5, 1), offset=(0, 15))
         self.verticalLayout_graph_1.addWidget(self.graph1)
         self.verticalLayout_graph_2.addWidget(self.graph2)
-        # self.graph1.setXRange()
-        # self.graph2.setXRange()
         self.graph1.setBackground("w")
         self.graph2.setBackground("w")
 
         self.line1_threshold_1 = self.graph1.plot(
-            x=[0, 5000],
+            x=[-5, 0],
             y=[self.settings.thresh_flow, self.settings.thresh_flow],
             name="threshold 1",
-            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
-            symbol=None,
-            symbolBrush=None,
-            symbolPen=None,
-            symbolSize=14,
-        )
-        self.line1_threshold_2 = self.graph1.plot(
-            x=[0, 5000],
-            y=[self.settings.thresh2_flow, self.settings.thresh2_flow],
-            name="threshold 2",
             pen=pyqtgraph.mkPen("Red", width=1, style=Qt.PenStyle.SolidLine),
             symbol=None,
             symbolBrush=None,
             symbolPen=None,
             symbolSize=14,
         )
+        self.line1_threshold_2 = self.graph1.plot(
+            x=[-5, 0],
+            y=[self.settings.thresh2_flow, self.settings.thresh2_flow],
+            name="threshold 2",
+            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
         self.line1_baseline = self.graph1.plot(
-            x=[0, 5000],
+            x=[-5, 0],
             y=[self.settings.baseline_flow, self.settings.baseline_flow],
             name="baseline",
             pen=pyqtgraph.mkPen("Black", width=1, style=Qt.PenStyle.SolidLine),
@@ -173,27 +173,27 @@ class MainWindow(QWidget):
         )
 
         self.line2_threshold_1 = self.graph2.plot(
-            x=[0, 5000],
+            x=[-5, 0],
             y=[self.settings.thresh_ecg1, self.settings.thresh_ecg1],
             name="threshold 1",
-            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
-            symbol=None,
-            symbolBrush=None,
-            symbolPen=None,
-            symbolSize=14,
-        )
-        self.line2_threshold_2 = self.graph2.plot(
-            x=[0, 5000],
-            y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
-            name="threshold 2",
             pen=pyqtgraph.mkPen("Red", width=1, style=Qt.PenStyle.SolidLine),
             symbol=None,
             symbolBrush=None,
             symbolPen=None,
             symbolSize=14,
         )
+        self.line2_threshold_2 = self.graph2.plot(
+            x=[-5, 0],
+            y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
+            name="threshold 2",
+            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
         self.line2_baseline = self.graph2.plot(
-            x=[0, 5000],
+            x=[-5, 0],
             y=[self.settings.baseline_ecg, self.settings.baseline_ecg],
             name="baseline",
             pen=pyqtgraph.mkPen("Black", width=1, style=Qt.PenStyle.SolidLine),
@@ -270,13 +270,71 @@ class MainWindow(QWidget):
             self.data.new_ecg = processed_result[f"AIN{ecg_channel}"]
 
             self.data.pneumo = (self.data.pneumo + self.data.new_pneumo)[
-                self.data.window * -1 :
+                self.data.window * -2 :
             ]
-            self.data.ecg = (self.data.ecg + self.data.new_ecg)[self.data.window * -1 :]
+            self.data.ecg = (self.data.ecg + self.data.new_ecg)[self.data.window * -2 :]
+
+            # apply inversion/filter as appropriate
+            if self.settings.flow_filt_state == 1:
+                if self.settings.INVERT_FLOW == 1:
+                    trimmed_pneumo = [
+                        -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, 50)
+                    ][self.data.window * -1 :]
+                else:
+                    trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
+                        self.data.window * -1 :
+                    ]
+            else:
+                if self.settings.INVERT_FLOW == 1:
+                    trimmed_pneumo = [-1 * i for i in self.data.pneumo][
+                        self.data.window * -1 :
+                    ]
+                else:
+                    trimmed_pneumo = self.data.pneumo[self.data.window * -1 :]
+            if self.settings.ecg_filt_state == 1:
+                if self.settings.INVERT_ECG == 1:
+                    trimmed_ecg = [
+                        -1 * i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
+                    ][self.data.window * -1 :]
+                else:
+                    trimmed_ecg = [
+                        i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
+                    ][self.data.window * -1 :]
+            else:
+                if self.settings.INVERT_ECG == 1:
+                    trimmed_ecg = [-1 * i for i in self.data.ecg][
+                        self.data.window * -1 :
+                    ]
+                else:
+                    trimmed_ecg = self.data.ecg[self.data.window * -1 :]
+
+            # call breaths and beats with thresh as appropriate
+            if self.data.flow_thresh_to_use == 2:
+                flow_thresh = self.settings.thresh2_flow
+            else:
+                flow_thresh = self.settings.thresh_flow
+
+            self.data.breath_list = DETECTORS.basic_breathcall(
+                trimmed_pneumo, self.data.time, self.settings.baseline_flow, flow_thresh
+            )
+            self.data.beat_list = DETECTORS.beat_caller(
+                trimmed_ecg,
+                self.data.time,
+                absthresh=self.settings.thresh_ecg1,
+                minRR=self.settings.minRR_ecg,
+            )
 
             # update plot
-            self.line1.setData(self.data.time, self.data.pneumo)
-            self.line2.setData(self.data.time, self.data.ecg)
+            self.line1.setData(self.data.time, trimmed_pneumo)
+            self.line2.setData(self.data.time, trimmed_ecg)
+            self.markers1.setData(
+                [v["TS-I"] for v in self.data.breath_list.values()],
+                [0 for i in self.data.breath_list],
+            )
+            self.markers2.setData(
+                list(self.data.beat_list["ts"]),
+                [0 for i in range(self.data.beat_list.shape[0])],
+            )
 
             # call breaths
 

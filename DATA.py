@@ -7,7 +7,7 @@ class DATA:
     def __init__(self):
         # short term
         self.window = 5000  # !!! this should probably be a setting ...
-        self.time = [i for i in range(self.window)]
+        self.time = [round(-5 + i / 1000, 3) for i in range(self.window)]
         self.pneumo = [0 for i in range(self.window)]
         self.ecg = [0 for i in range(self.window)]
 
@@ -27,6 +27,7 @@ class DATA:
         self.current_time = None
         self.curreng_lag = None
         self.current_mode = None
+        self.flow_thresh_to_use = 1
 
         self.cur_status_dict = {
             "standby": 0,

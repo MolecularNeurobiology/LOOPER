@@ -5,6 +5,7 @@ __version__ = "0.1.0"
 # %% import libraries
 import numpy
 from scipy import signal
+import pandas
 
 # %% define functions
 
@@ -160,7 +161,7 @@ def beat_caller(CT, TS, absthresh=0.74, minRR=0.10):
 
     # Identify peaks in the ECG signal; adjust parameters as necessary for your data
     peaks, _ = signal.find_peaks(
-        CT, height=absthresh_ecg, distance=peak_finding_distance
+        CT, height=absthresh, distance=peak_finding_distance
     )  # Adjust 'distance' as needed
 
     # Extract timestamps for the detected peaks
