@@ -25,7 +25,7 @@ import argparse
 import logging
 import os
 import psutil
-from PySide6.QtCore import QTimer, QFile
+from PySide6.QtCore import QFile, Qt, QTimer
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtUiTools import QUiLoader
@@ -53,7 +53,7 @@ def get_mac():
 
 # %% define classes
 class MainWindow(QWidget):
-    def __init__(self, version, ui):
+    def __init__(self, version, ui, parsed_args):
         super().__init__()
 
         self.ui = ui
@@ -74,11 +74,15 @@ class MainWindow(QWidget):
         # load settings
         self.settings = SETTINGS.SETTINGS()
 
+        # override and set sim mode if CL option provided
+        if parsed_args.simulation:
+            self.settings.sim_mode = 1
+
         # populate data class
         self.data = DATA.DATA()
 
         # configure i/o
-        self.settings.sim_mode = 1  # dev !!!
+        # !!! self.settings.sim_mode = 1  # dev !!!
         if self.settings.sim_mode == 1:
             self.arduino_stream = STREAMS.SimulatedArduino()
             self.labjack_stream = STREAMS.SimulatedDataReader()
@@ -98,6 +102,127 @@ class MainWindow(QWidget):
         self.stream_timer = QTimer()
         self.stream_timer.timeout.connect(self.action_stream_timer)
 
+        # prepare graph windows
+        self.prepare_graphs()
+
+    def prepare_graphs(self):
+        self.graph1 = pyqtgraph.PlotWidget()
+        self.graph2 = pyqtgraph.PlotWidget()
+        self.legend1 = self.graph1.addLegend()
+        self.legend1.setColumnCount(5)
+        self.legend1.setOffset([0.1, -0.1])
+        self.legend2 = self.graph2.addLegend()
+        self.legend2.setColumnCount(5)
+        self.legend2.setOffset([0.1, -0.1])
+        self.verticalLayout_graph_1.addWidget(self.graph1)
+        self.verticalLayout_graph_2.addWidget(self.graph2)
+        # self.graph1.setXRange()
+        # self.graph2.setXRange()
+        self.graph1.setBackground("w")
+        self.graph2.setBackground("w")
+
+        self.line1_threshold_1 = self.graph1.plot(
+            x=[0, 5000],
+            y=[self.settings.thresh_flow, self.settings.thresh_flow],
+            name="threshold 1",
+            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line1_threshold_2 = self.graph1.plot(
+            x=[0, 5000],
+            y=[self.settings.thresh2_flow, self.settings.thresh2_flow],
+            name="threshold 2",
+            pen=pyqtgraph.mkPen("Red", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line1_baseline = self.graph1.plot(
+            x=[0, 5000],
+            y=[self.settings.baseline_flow, self.settings.baseline_flow],
+            name="baseline",
+            pen=pyqtgraph.mkPen("Black", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line1 = self.graph1.plot(
+            x=self.data.time,
+            y=self.data.pneumo,
+            name="line 1",
+            pen=pyqtgraph.mkPen("Blue", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.markers1 = self.graph1.plot(
+            x=[i for i in self.data.breath_list],
+            y=[0 for i in self.data.breath_list],
+            name="markers 1",
+            pen=pyqtgraph.mkPen("Blue", width=1, style=Qt.PenStyle.SolidLine),
+            symbol="o",
+            symbolBrush=(255, 0, 0),
+            symbolPen=(0, 0, 0),
+            symbolSize=8,
+        )
+
+        self.line2_threshold_1 = self.graph2.plot(
+            x=[0, 5000],
+            y=[self.settings.thresh_ecg1, self.settings.thresh_ecg1],
+            name="threshold 1",
+            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line2_threshold_2 = self.graph2.plot(
+            x=[0, 5000],
+            y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
+            name="threshold 2",
+            pen=pyqtgraph.mkPen("Red", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line2_baseline = self.graph2.plot(
+            x=[0, 5000],
+            y=[self.settings.baseline_ecg, self.settings.baseline_ecg],
+            name="baseline",
+            pen=pyqtgraph.mkPen("Black", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.line2 = self.graph2.plot(
+            x=self.data.time,
+            y=self.data.ecg,
+            name="line 2",
+            pen=pyqtgraph.mkPen("Blue", width=1, style=Qt.PenStyle.SolidLine),
+            symbol=None,
+            symbolBrush=None,
+            symbolPen=None,
+            symbolSize=14,
+        )
+        self.markers2 = self.graph2.plot(
+            x=[i for i in self.data.beat_list],
+            y=[0 for i in self.data.beat_list],
+            name="markers 2",
+            pen=pyqtgraph.mkPen("Blue", width=1, style=Qt.PenStyle.SolidLine),
+            symbol="o",
+            symbolBrush=(255, 0, 0),
+            symbolPen=(0, 0, 0),
+            symbolSize=8,
+        )
+
     def action_start_timers(self):
         self.pulse_timer.start(1000)
         self.stream_timer.start(10)
@@ -107,11 +232,55 @@ class MainWindow(QWidget):
         self.pulse_counter += 1
 
         if self.pulse_counter >= 10:
+
             sys.exit()
 
     def action_stream_timer(self):
         pass
         # collect labjack stream
+        # Pull results out of the Queue in a blocking manner.
+        if not self.labjack_stream.data.empty():
+            result = self.labjack_stream.data.get(True, 1)
+
+            # If there were errors, print that.
+            if result["errors"] != 0:
+                # !!!
+                self.data.errors += result["errors"]
+                self.data.error_list.append(result["errors"])
+                self.data.missed += result["missed"]
+                print(
+                    "+++++ Total Errors: %s, Total Missed: %s +++++" % (errors, missed)
+                )
+
+            # Convert the raw bytes (result['result']) to voltage data.
+            if self.settings.sim_mode == 0:
+                processed_result = self.labjack_stream.device.processStreamData(
+                    result["result"]
+                )
+            elif self.settings.sim_mode == 1:
+                processed_result = result["result"]
+            # parse channels and migrate into short term streams
+            flow_channel = self.labjack_stream.channel_list[
+                self.labjack_stream.channel_dict["FLOW"]
+            ]
+            ecg_channel = self.labjack_stream.channel_list[
+                self.labjack_stream.channel_dict["ECG"]
+            ]
+            self.data.new_pneumo = processed_result[f"AIN{flow_channel}"]
+            self.data.new_ecg = processed_result[f"AIN{ecg_channel}"]
+
+            self.data.pneumo = (self.data.pneumo + self.data.new_pneumo)[
+                self.data.window * -1 :
+            ]
+            self.data.ecg = (self.data.ecg + self.data.new_ecg)[self.data.window * -1 :]
+
+            # update plot
+            self.line1.setData(self.data.time, self.data.pneumo)
+            self.line2.setData(self.data.time, self.data.ecg)
+
+            # call breaths
+
+            # call heartbeats
 
         # collect arduino stream
 
@@ -120,6 +289,8 @@ class MainWindow(QWidget):
         # append to output
 
         # refresh gui (if needed)
+
+        # check for effector or auto_advance
 
     ## Timers (to create event loops)
     # receiver_timer
@@ -168,7 +339,7 @@ def main():
 
     ui = loader.load(ui_file)
 
-    window = MainWindow(__version__, ui)
+    window = MainWindow(__version__, ui, parsed_args)
 
     window.version_info = {
         "main": __version__,
@@ -177,8 +348,6 @@ def main():
         "STREAMS": STREAMS.__version__,
         "SETTINGS": SETTINGS.__version__,
     }
-    if parsed_args.simulation:
-        window.settings.sim_mode = 1
 
     window.ui.show()
     window.action_start_timers()

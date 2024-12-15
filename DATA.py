@@ -6,9 +6,10 @@ __version__ = "0.1.0"
 class DATA:
     def __init__(self):
         # short term
-        self.time = []
-        self.pneumo = []
-        self.ecg = []
+        self.window = 5000  # !!! this should probably be a setting ...
+        self.time = [i for i in range(self.window)]
+        self.pneumo = [0 for i in range(self.window)]
+        self.ecg = [0 for i in range(self.window)]
 
         self.breath_list = []
         self.beat_list = []
@@ -17,6 +18,7 @@ class DATA:
         self.new_time = []
         self.new_pneumo = []
         self.new_ecg = []
+        self.errors = []
 
         # instantaneous_values
         self.avg_bpm = None
@@ -48,6 +50,8 @@ class DATA:
         self.recovery_hr = None
         self.stage_start_time = None
         self.prev_mode = -1
+        self.error_list = []
+        self.missed = 0
 
         self.old_status_dict = {
             "standby": 0,

@@ -10,6 +10,8 @@ import threading
 from copy import deepcopy
 from datetime import datetime
 import math
+from PySide6.QtCore import QTimer
+import u6
 
 
 # Arduino Related
@@ -65,17 +67,37 @@ class SimulatedArduino:
 class SimulatedDataReader:
     def __init__(self):
         self.finished = True
+
+        self.channel_list = [0, 1, 2, 3, 4, 5]
+        self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
+        self.channel_dict = dict(zip(self.channel_key, self.channel_list))
+        self.number_channels = len(self.channel_list)
+
         self.data = Queue.Queue()
         self.start = 0
         self.current = 0
         self.duration = 0.0
         self.captured_time = 0
-        self.SCAN_FREQUENCY = 0
-        self.NUM_CHANNELS = 0
+
         self.lag = 0
         self.missed = []
         self.errors = []
-        # self.clock = pygame.time.Clock()
+        self.data_sim_timer = QTimer()
+        self.data_sim_timer.timeout.connect(self.readStreamData)
+
+        self.sim_sig_3Hz = [math.sin(i * 6.28 * 3) for i in range(60000)]
+        self.sim_sig_30Hz = [math.sin(i * 6.28 * 30) * 5 for i in range(60000)]
+        self.counter = 0
+        self.counter_limit = 60000
+        self.scan_frequency = 1000
+        self.num_channels = 6
+        self.sample_frequency = self.scan_frequency * self.num_channels
+        self.update_interval_ms = 100
+        self.samples_per_interval = int(
+            self.update_interval_ms / 1000 * self.sample_frequency
+        )
+
+        self.data_sim_timer.start(self.update_interval_ms)
 
     def setDIOState(self, *args):
         pass
@@ -88,50 +110,50 @@ class SimulatedDataReader:
         self.start = datetime.now()
         self.readCount = 0
 
-        while not self.finished:
-            # Calling with convert = False, because we are going to convert in
-            # the main thread.
+        if self.counter + self.update_interval_ms >= self.counter_limit:
+            self.counter = 0
 
-            # 16 samples per frame
-
-            # simulate 2Hz and 10Hz signals
-
-            # t = datetime.now().microsecond / 1000000
-
-            # ain0 = math.sin(t*6.28*2)
-            # ain1 = math.sin(t*6.28*10)
+        if not self.finished:
 
             returnDict = {
                 "errors": 0,
                 "missed": [],
                 "result": {
-                    "AIN0": [math.sin(i * 6.28 * 2) for i in range(1000)],
-                    "AIN1": [math.sin(i * 6.28 * 10) for i in range(1000)],
-                    "AIN2": [0.2 for i in range(1000)],
-                    "AIN3": [0.3 for i in range(1000)],
-                    "AIN4": [0.4 for i in range(1000)],
-                    "AIN5": [0.5 for i in range(1000)],
+                    "AIN0": self.sim_sig_3Hz[
+                        self.counter : self.counter + self.update_interval_ms
+                    ],
+                    "AIN1": self.sim_sig_30Hz[
+                        self.counter : self.counter + self.update_interval_ms
+                    ],
+                    "AIN2": [0.2 for i in range(self.update_interval_ms)],
+                    "AIN3": [0.3 for i in range(self.update_interval_ms)],
+                    "AIN4": [0.4 for i in range(self.update_interval_ms)],
+                    "AIN5": [0.5 for i in range(self.update_interval_ms)],
                 },
             }
             if returnDict is None:
                 print("No stream data")
-                continue
 
             self.data.put_nowait(deepcopy(returnDict))
 
             self.missed += returnDict["missed"]
             self.readCount += 1
+            self.counter += self.update_interval_ms
             self.current = datetime.now()
-
-            self.clock.tick(1)
 
     def stopStreamData(self):
         self.finished = True
 
 
 class StreamDataReader(object):
-    def __init__(self, device):
-        self.device = device
+    def __init__(self):
+        self.device = u6.U6()
+
+        self.channel_list = [0, 1, 2, 3, 4, 5]
+        self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
+        self.channel_dict = dict(zip(self.channel_key, self.channel_list))
+        self.number_channels = len(self.channel_list)
+
         self.data = Queue.Queue()
         self.readCount = 0
         self.missed = 0
@@ -140,9 +162,37 @@ class StreamDataReader(object):
         self.current = 0
         self.duration = 0.0
         self.captured_time = 0
-        self.SCAN_FREQUENCY = 0
-        self.NUM_CHANNELS = 0
+        self.scan_frequency = 1000
+        self.sample_frequency = self.scan_frequency * self.number_channels
+        self.update_interval_ms = 100
+        self.samples_per_interval = int(
+            self.update_interval / 1000 * self.sample_frequency
+        )
+
         self.lag = 0
+
+        self.device.getCalibrationData()
+        try:
+            self.device.streamStop()
+            print("stream found running - now stopped")
+        except:
+            print("labjack pre-stream checked")
+
+        self.device.streamConfig(
+            NumChannels=self.number_channels,
+            ChannelNumbers=self.channel_list,
+            ChannelOptions=[0 for i in self.channel_list],
+            SettlingFactor=1,
+            ResolutionIndex=1,
+            ScanFrequency=self.scan_frequency,
+        )
+
+        # set packets per datastream call - maybe this is not neccessary - just go with default rate?
+        self.device.packetsPerRequest = int(self.samples_per_interval / 25)
+        self.device.setDIOState(0, 0)
+        self.device.setDIOState(1, 0)
+        self.device.setDIOState(2, 0)
+        self.device.setDIOState(3, 0)
 
     def readStreamData(self):
         self.finished = False
