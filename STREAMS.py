@@ -12,14 +12,45 @@ from datetime import datetime
 import math
 from PySide6.QtCore import QTimer
 import u6
+import serial
 
 
 # Arduino Related
 class StreamArduino(object):
-    def __init__(self, device):
-        self.device = device
+    def __init__(self, logger):
+        
+        self.logger = logger
+        self.device=serial.Serial()
+        self.device.baudrate = 9600
         self.data = Queue.Queue()
-        self.finished = False
+        self.finished = True
+        self.Connected_Arduino=False
+
+        try:                
+            # search for Arduino on comports
+            arduino_list = []
+            device_list = [d for d in serial.tools.list_ports.comports()]
+            for d in device_list:
+                if d.manufacturer is not None and 'Arduino' in d.manufacturer:
+                    arduino_list.append(d)
+                elif d.description is not None and 'Arduino' in d.description:
+                    arduino_list.append(d)
+            
+            if len(arduino_list) > 1:
+                if self.logger: self.logger.warning('multiple arduinos found, using first')
+                self.device.port = arduino_list[0].device
+            elif len(arduino_list) == 1:
+                self.device.port = arduino_list[0].device
+            else:
+                if self.logger: self.logger.warning('unable to locate arduino')
+            self.device.timeout=1
+            self.device.open()
+            self.Connected_Arduino=True
+
+            self.data = Queue.Queue()
+            self.finished = False
+        except:
+            self.Connected_Arduino=False
 
     def readStreamData(self):
         while not self.finished:
@@ -29,10 +60,15 @@ class StreamArduino(object):
 
 
 class SimulatedArduino:
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
         self.data = Queue.Queue()
         self.listener = Queue.Queue()
         self.finished = False
+        self.Connected_Arduino=True
+        self.device='Simulated_Arduino'
+
+        if self.logger: self.logger.info('using simulated arduino')
 
     def sendCommand(self, command):
         self.listener.put_nowait(command)
@@ -65,8 +101,11 @@ class SimulatedArduino:
 
 # LabJack Related
 class SimulatedDataReader:
-    def __init__(self):
+    def __init__(self, logger):
+
+        self.logger = logger
         self.finished = True
+        if self.logger: self.logger.info('using simulated labjack interface')
 
         self.channel_list = [0, 1, 2, 3, 4, 5]
         self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
@@ -104,6 +143,9 @@ class SimulatedDataReader:
 
     def close(self, *args):
         pass
+
+    def get_labjack_temperature(self):
+        return 42
 
     def readStreamData(self):
         self.finished = False
@@ -178,6 +220,8 @@ class StreamDataReader(object):
         except:
             print("labjack pre-stream checked")
 
+        
+
         self.device.streamConfig(
             NumChannels=self.number_channels,
             ChannelNumbers=self.channel_list,
@@ -193,6 +237,11 @@ class StreamDataReader(object):
         self.device.setDIOState(1, 0)
         self.device.setDIOState(2, 0)
         self.device.setDIOState(3, 0)
+
+
+    def get_labjack_temperature(self):
+        return self.device.getTemperature()-273.15
+
 
     def readStreamData(self):
         self.finished = False

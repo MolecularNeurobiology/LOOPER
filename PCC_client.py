@@ -78,17 +78,20 @@ class MainWindow(QWidget):
         if parsed_args.simulation:
             self.settings.sim_mode = 1
 
+        # set kill mode if CL option provided
+        self.kill_after_count = parsed_args.kill
+
         # populate data class
         self.data = DATA.DATA()
 
         # configure i/o
         # !!! self.settings.sim_mode = 1  # dev !!!
         if self.settings.sim_mode == 1:
-            self.arduino_stream = STREAMS.SimulatedArduino()
-            self.labjack_stream = STREAMS.SimulatedDataReader()
+            self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
+            self.labjack_stream = STREAMS.SimulatedDataReader(self.logger)
         else:
-            self.arduino_stream = STREAMS.StreamArduino()
-            self.labjack_stream = STREAMS.StreamDataReader()
+            self.arduino_stream = STREAMS.StreamArduino(self.logger)
+            self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
 
@@ -231,13 +234,16 @@ class MainWindow(QWidget):
         print(self.pulse_counter)
         self.pulse_counter += 1
 
-        if self.pulse_counter >= 10:
+        if self.kill_after_count and self.pulse_counter >= self.kill_after_count:
 
             sys.exit()
 
     def action_stream_timer(self):
-        pass
-        # collect labjack stream
+        # reset labjack stream if needed 
+
+
+        
+        # collect labjack stream !!! move this over into a function call
         # Pull results out of the Queue in a blocking manner.
         if not self.labjack_stream.data.empty():
             result = self.labjack_stream.data.get(True, 1)
@@ -336,9 +342,6 @@ class MainWindow(QWidget):
                 [0 for i in range(self.data.beat_list.shape[0])],
             )
 
-            # call breaths
-
-            # call heartbeats
 
         # collect arduino stream
 
@@ -360,9 +363,7 @@ class MainWindow(QWidget):
     # experiment_loop_timer
 
     ## METHODS
-    # read in data from streams
-
-    # send out data
+    
 
     # send out pulse
 
@@ -377,6 +378,7 @@ def main():
     parser = argparse.ArgumentParser("PCC_client")
     parser.add_argument("-i", "--interactive", action="store_true")
     parser.add_argument("-s", "--simulation", action="store_true")
+    parser.add_argument("-k","--kill", type=int, help="kill process after __ seconds" )
     parsed_args = parser.parse_args()
 
     args = sys.argv.copy()
