@@ -25,12 +25,13 @@ import argparse
 import logging
 import os
 import psutil
-from PySide6.QtCore import QFile, Qt, QTimer
+from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication, QWidget
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
 import sys
+from datetime import datetime
 
 
 # internal libraries
@@ -52,6 +53,46 @@ def get_mac():
 
 
 # %% define classes
+class LogEmitter(QObject):
+    """
+    LogEmitter is used by QTextEditLogger to enable access to
+    QObject Signal for emitting to and
+    """
+
+    log = Signal(str)
+
+
+class QTextEditLogger(logging.Handler):
+    """
+    QTextEditLogger serves as a logging handler to display logging messages
+    within the GUI if running the client in interactive mode
+    """
+
+    def __init__(self, text_edit_widget):
+        super().__init__()
+        self.widget = text_edit_widget
+        self.widget.setReadOnly(True)
+        self.widget.setStyleSheet("background-color: lightgray;")
+
+        self.log_emitter = LogEmitter()
+        self.log_emitter.log.connect(self.widget.insertHtml)
+
+    def emit(self, record):
+        msg = self.format(record)
+        # color code messages
+        if "| INFO |" in msg:
+            msg = f'<span style="color:black">{msg}</span><br>'
+        elif "| DEBUG |" in msg:
+            msg = f'<span style="color:green">{msg}</span><br>'
+        elif "| WARNING |" in msg:
+            msg = f'<span style="color:red">{msg}</span><br>'
+        elif "| ERROR |" in msg:
+            msg = f'<span style="color:red"><strong>{msg}</strong></span><br>'
+        else:
+            msg = f'<span style="color:black"><strong>{msg}</strong></span><br>'
+        self.log_emitter.log.emit(msg)
+
+
 class MainWindow(QWidget):
     def __init__(self, version, ui, parsed_args):
         super().__init__()
@@ -70,9 +111,25 @@ class MainWindow(QWidget):
         # create a logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
+        self.logging_format = logging.Formatter(
+            "%(asctime)s | %(name)s | %(levelname)s | %(message)s\n"
+        )
+        self.logging_text_browser = QTextEditLogger(self.textBrowser_Status)
+        self.logging_text_browser.setFormatter(self.logging_format)
+        self.logger.addHandler(self.logging_text_browser)
 
-        # load settings
+        # test logging output
+        self.logger.debug("DEBUG")
+        self.logger.info("INFO")
+        self.logger.warning("WARNING")
+        self.logger.error("ERROR")
+
+        # load default settings
+        self.logger.debug("loading settings")
         self.settings = SETTINGS.SETTINGS()
+        self.prepare_stages()
+
+        ## TODO !!! load settings based on signal from Minerva
 
         # override and set sim mode if CL option provided
         if parsed_args.simulation:
@@ -87,9 +144,11 @@ class MainWindow(QWidget):
         # configure i/o
         # !!! self.settings.sim_mode = 1  # dev !!!
         if self.settings.sim_mode == 1:
+            self.logger.debug("Simulation Mode")
             self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
             self.labjack_stream = STREAMS.SimulatedDataReader(self.logger)
         else:
+            self.logger.debug("Live Stream Mode")
             self.arduino_stream = STREAMS.StreamArduino(self.logger)
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
@@ -107,6 +166,14 @@ class MainWindow(QWidget):
 
         # prepare graph windows
         self.prepare_graphs()
+
+        # connect buttons and widgets
+        self.pushButton_Send_Arduino_Command.clicked.connect(
+            self.action_send_serial_to_arduino
+        )
+        self.comboBox_Jump_To_Stage.currentTextChanged.connect(
+            self.action_jump_to_stage
+        )
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -226,6 +293,41 @@ class MainWindow(QWidget):
             symbolSize=8,
         )
 
+    def prepare_stages(self):
+        # clear comboBox_Jump_To_Stage
+        self.comboBox_Jump_To_Stage.clear()
+
+        # repopulate comboBox_Jump_To_Stage
+        self.comboBox_Jump_To_Stage.addItems(
+            [v for k, v in self.settings.Mode_dict.items()]
+        )
+        # create a dictionary of stages
+
+        # load the active stage (provide settings and data class as arguments)
+
+        # stage methods
+        # on_load
+        # on_exit ... runs just before moving to the next stage (includes a default next stage if multiple following stages are possible, next stage can also be an argument or derived from an ordered list of stages)
+        # event_loop
+        # exit_condition_test ... runs at end of event loop
+
+        pass
+
+    def action_jump_to_stage(self):
+        self.logger.info(
+            f"jumping to stage: {self.comboBox_Jump_To_Stage.currentText()}"
+        )
+        pass
+
+    def action_next_stage(self):
+        pass
+
+    def action_send_serial_to_arduino(self):
+        command = self.lineEdit_Arduino_Command.text()
+        self.logger.info(f"Sending: {command}")
+        self.arduino_stream.sendCommand(command)
+        self.lineEdit_Arduino_Command.clear()
+
     def action_start_timers(self):
         self.pulse_timer.start(1000)
         self.stream_timer.start(10)
@@ -239,10 +341,8 @@ class MainWindow(QWidget):
             sys.exit()
 
     def action_stream_timer(self):
-        # reset labjack stream if needed 
+        # reset labjack stream if needed
 
-
-        
         # collect labjack stream !!! move this over into a function call
         # Pull results out of the Queue in a blocking manner.
         if not self.labjack_stream.data.empty():
@@ -342,8 +442,21 @@ class MainWindow(QWidget):
                 [0 for i in range(self.data.beat_list.shape[0])],
             )
 
-
         # collect arduino stream
+        Arduino_Dump_Toggle = 0
+        if self.arduino_stream.data.empty() == False:
+            Arduino_Dump_Toggle = 1
+            arduino_out = self.arduino_stream.data.get_nowait()
+            arduino_list = [
+                i.decode() for i in arduino_out.split(b"\r\n") if i != b" " and i != b""
+            ]
+            for i in arduino_list:
+                self.logger.info(f"ARDUINO:{i}")
+                ### !!! TODO finish this to process arduino outputs for triggering stage changes
+                if self.settings.Challenge_phrase in i:
+                    if Challenge_Toggle == 0:
+                        Challenge_Timer = datetime.now()
+                    Challenge_Toggle = 1
 
         # collect minerva stream
 
@@ -363,7 +476,6 @@ class MainWindow(QWidget):
     # experiment_loop_timer
 
     ## METHODS
-    
 
     # send out pulse
 
@@ -378,7 +490,7 @@ def main():
     parser = argparse.ArgumentParser("PCC_client")
     parser.add_argument("-i", "--interactive", action="store_true")
     parser.add_argument("-s", "--simulation", action="store_true")
-    parser.add_argument("-k","--kill", type=int, help="kill process after __ seconds" )
+    parser.add_argument("-k", "--kill", type=int, help="kill process after __ seconds")
     parsed_args = parser.parse_args()
 
     args = sys.argv.copy()
