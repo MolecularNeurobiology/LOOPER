@@ -80,20 +80,36 @@ class SETTINGS:
         self.Challenge_phrase = "Finished: On Anoxic"
         self.Challenge_Delay = 5.0
 
+        self.Mode_settings = {
+            'startup':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'standby':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'signal_preview_1':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'calibration':{'duration':120,'savable':True, 'special_exit':'na'},
+            'signal_preview_2':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'habituation_1':{'duration':30*60,'savable':True, 'special_exit':'na'},
+            'signal_preview_3':{'duration':0,'savable':False, 'special_exit':'na'},
+            'pre_inject':{'duration':0,'savable':True, 'special_exit':'na'},
+            'inject':{'duration':0,'savable':True, 'special_exit':'na'},
+            'habituation_2':{'duration':0,'savable':True, 'special_exit':'na'},
+            'baseline':{'duration':2*60,'savable':True, 'special_exit':'na'},
+            'challenge':{'duration':-1,'savable':True, 'special_exit':'na'},
+            'finished':{'duration':-1,'savable':False, 'special_exit':'na'}
+        }
+
         self.Mode_dict = {
             0: "startup",
             1: "standby",
-            2: "Signal Preview 1",
+            2: "signal_preview_1",
             3: "calibration",
-            4: "Signal Preview 2",
-            5: "Habituation-1",
-            6: "Signal Preview 3",
-            7: "Pre-Inject",
-            8: "Inject",
-            9: "Habituation-2",
-            10: "Baseline",
-            11: "Challenge",
-            12: "Finished",
+            4: "signal_preview_2",
+            5: "habituation_1",
+            6: "signal_preview_3",
+            7: "pre_inject",
+            8: "inject",
+            9: "habituation_2",
+            10: "baseline",
+            11: "challenge",
+            12: "finished",
         }
         self.Mode_timing = {
             0: -0.02,

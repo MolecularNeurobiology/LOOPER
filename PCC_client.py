@@ -41,6 +41,7 @@ import EFFECTORS
 from MinervaPlugin import plugin as mp
 import SETTINGS
 import STREAMS
+import STAGES
 
 
 # %% define functions
@@ -124,10 +125,14 @@ class MainWindow(QWidget):
         self.logger.warning("WARNING")
         self.logger.error("ERROR")
 
+        # create some default variable values
+        self.stage_dict = {}
+
         # load default settings
         self.logger.debug("loading settings")
         self.settings = SETTINGS.SETTINGS()
         self.prepare_stages()
+        self.automated = False
 
         ## TODO !!! load settings based on signal from Minerva
 
@@ -170,6 +175,9 @@ class MainWindow(QWidget):
         # connect buttons and widgets
         self.pushButton_Send_Arduino_Command.clicked.connect(
             self.action_send_serial_to_arduino
+        )
+        self.pushButton_Next_Stage.clicked.connect(
+            self.action_next_stage
         )
         self.comboBox_Jump_To_Stage.currentTextChanged.connect(
             self.action_jump_to_stage
@@ -302,8 +310,14 @@ class MainWindow(QWidget):
             [v for k, v in self.settings.Mode_dict.items()]
         )
         # create a dictionary of stages
+        
+        for k in self.settings.Mode_settings.keys():
+            self.stage_dict[k] = getattr(STAGES,k)(k,self)
+        for k,v in self.stage_dict.items():
+            v.register_data()
 
         # load the active stage (provide settings and data class as arguments)
+        self.active_stage = self.stage_dict[self.settings.Mode_dict[0]]
 
         # stage methods
         # on_load
@@ -317,11 +331,14 @@ class MainWindow(QWidget):
         self.logger.info(
             f"jumping to stage: {self.comboBox_Jump_To_Stage.currentText()}"
         )
-        pass
+        if not self.automated:
+            self.active_stage.on_exit()
+        self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
 
     def action_next_stage(self):
-        pass
-
+        self.active_stage.on_jump_exit()
+        self.comboBox_Jump_To_Stage.setCurrentIndex(self.comboBox_Jump_To_Stage.currentIndex()+1)
+        
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
         self.logger.info(f"Sending: {command}")
@@ -444,13 +461,14 @@ class MainWindow(QWidget):
 
         # collect arduino stream
         Arduino_Dump_Toggle = 0
+        self.arduino_list = []
         if self.arduino_stream.data.empty() == False:
             Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
-            arduino_list = [
+            self.arduino_list = [
                 i.decode() for i in arduino_out.split(b"\r\n") if i != b" " and i != b""
             ]
-            for i in arduino_list:
+            for i in self.arduino_list:
                 self.logger.info(f"ARDUINO:{i}")
                 ### !!! TODO finish this to process arduino outputs for triggering stage changes
                 if self.settings.Challenge_phrase in i:
@@ -465,6 +483,7 @@ class MainWindow(QWidget):
         # refresh gui (if needed)
 
         # check for effector or auto_advance
+        self.active_stage.event_loop()
 
     ## Timers (to create event loops)
     # receiver_timer
