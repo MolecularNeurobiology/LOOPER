@@ -155,6 +155,7 @@ class MainWindow(QWidget):
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
+        self.minerva_stream_reader = STREAMS.MinervaReceiver(self.minerva_stream,self.logger)
 
 
         self.prepare_stages()
@@ -493,6 +494,10 @@ class MainWindow(QWidget):
                     Challenge_Toggle = 1
 
         # collect minerva stream
+        if self.minerva_stream_reader.data:
+            self.logger.info(self.minerva_stream_reader.data)
+            print(f'minerva - {self.minerva_stream_reader.data}')
+            self.minerva_stream_reader.data = None
 
         # append to output
 

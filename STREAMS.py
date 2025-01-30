@@ -313,8 +313,12 @@ class StreamDataReader(object):
 
 # Minerva related
 class MinervaReceiver:
-    def __init__(self, minerva_plugin_object):
+    def __init__(self, minerva_plugin_object, logger):
+        self.data = None
         pass
 
     def process_data(self, data_object, settings_object, callbacks_object):
         pass
+
+    def readStreamData(self):
+        self.data = minerva_plugin_object.pop_commands
