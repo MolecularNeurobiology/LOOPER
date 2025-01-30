@@ -222,7 +222,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_Jump_To_Stage">
+   <widget class="QLabel" name="time_in_stage">
     <property name="geometry">
      <rect>
       <x>844</x>
@@ -232,7 +232,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Jump</string>
+     <string>__sec</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_Next_Stage">

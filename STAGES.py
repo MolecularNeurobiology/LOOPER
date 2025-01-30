@@ -55,22 +55,22 @@ class STAGE(ABC):
     def exit_condition_test(self):
         pass  
 
-class startup(STAGE):
+class startup1(STAGE):
     def register_data(self):
-        self.pcc.arduino_startup_motion_tested = False
-        self.pcc.arduino_startup_motion_tested = False
+        self.pcc.data.arduino_startup_motion_tested = False
 
     def on_load(self):
-        self.pcc.logger.info('STAGE: startup')
-        self.automated = False
+        self.pcc.start_time = datetime.now()
+        self.pcc.logger.info('STAGE: startup1')
+        self.pcc.automated = False
         self.pcc.arduino_startup_motion_tested = False
-        self.pcc.arduino_startup_motion_tested = False
+        
         self.pcc.logger.debug('starting up arduino tests')
-        self.pcc.arduino_stream.sendCommand('[U')
+        self.pcc.arduino_stream.sendCommand(b'[U')
         pass
     def on_exit(self):
         
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText('standby')
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText('startup2')
 
 
     def on_jump_exit(self):
@@ -82,7 +82,7 @@ class startup(STAGE):
 
 
         if self.exit_condition_test():
-            self.automated = True
+            self.pcc.automated = True
             self.on_exit()
 
     def exit_condition_test(self):
@@ -91,8 +91,44 @@ class startup(STAGE):
                 self.on_exit()
 
             # test for startup tests passed
-            if "finish startup-sim" in self.pcc.arduino_list:
+            if "startup sent" in self.pcc.arduino_string:
                 self.on_exit()
+
+class startup2(STAGE):
+    def register_data(self):
+        self.pcc.data.arduino_startup_motion_tested = False
+        
+    def on_load(self):
+        self.pcc.start_time = datetime.now()
+        self.pcc.logger.info('STAGE: startup2')
+        self.automated = False
+        self.pcc.arduino_startup_motion_tested = False
+        self.pcc.logger.debug('starting up arduino tests')
+        self.pcc.arduino_stream.sendCommand(b'[E')
+        pass
+    def on_exit(self):
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText('standby')
+
+
+    def on_jump_exit(self):
+        pass
+
+    def event_loop(self):
+        self.current_time = datetime.now()
+        
+        if self.exit_condition_test():
+            self.pcc.automated = True
+            self.on_exit()
+
+    def exit_condition_test(self):
+        # test for time
+        if self.test_time_in_stage():
+            self.on_exit()
+
+        # test for startup tests passed
+        if "finish startup" in self.pcc.arduino_string:
+            self.pcc.data.arduino_startup_motion_tested = True
+            self.on_exit()
             
 
 class standby(STAGE):
@@ -100,14 +136,34 @@ class standby(STAGE):
         pass
 
     def on_load(self):
-        pass
+        self.pcc.start_time = datetime.now()
+        self.pcc.logger.info('STAGE: standby')
+        self.automated = False
+        self.pcc.arduino_startup_motion_tested = False
+        self.pcc.logger.debug('moving to standby position')
+        self.pcc.arduino_stream.sendCommand(b'[S')
+        
     def on_exit(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText('standby')
+
     def on_jump_exit(self):
         pass
     def event_loop(self):
-        pass
+        self.current_time = datetime.now()
+        
+        if self.exit_condition_test():
+            self.pcc.automated = True
+            self.on_exit()
+
     def exit_condition_test(self):
+        # test for time
+        if self.test_time_in_stage():
+            self.on_exit()
+
+        # test for standby mode completed
+        if "standby sent" in self.pcc.arduino_string:
+            self.pcc.data.arduino_startup_motion_tested = True
+            self.on_exit()
         pass
 
 class signal_preview_1(STAGE):

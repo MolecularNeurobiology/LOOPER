@@ -81,7 +81,8 @@ class SETTINGS:
         self.Challenge_Delay = 5.0
 
         self.Mode_settings = {
-            'startup':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'startup1':{'duration':-1,'savable':False, 'special_exit':'na'},
+            'startup2':{'duration':-1,'savable':False, 'special_exit':'na'},
             'standby':{'duration':-1,'savable':False, 'special_exit':'na'},
             'signal_preview_1':{'duration':-1,'savable':False, 'special_exit':'na'},
             'calibration':{'duration':120,'savable':True, 'special_exit':'na'},
@@ -95,46 +96,6 @@ class SETTINGS:
             'challenge':{'duration':-1,'savable':True, 'special_exit':'na'},
             'finished':{'duration':-1,'savable':False, 'special_exit':'na'}
         }
-
-        self.Mode_dict = {
-            0: "startup",
-            1: "standby",
-            2: "signal_preview_1",
-            3: "calibration",
-            4: "signal_preview_2",
-            5: "habituation_1",
-            6: "signal_preview_3",
-            7: "pre_inject",
-            8: "inject",
-            9: "habituation_2",
-            10: "baseline",
-            11: "challenge",
-            12: "finished",
-        }
-        self.Mode_timing = {
-            0: -0.02,
-            1: -0.02,
-            2: -0.02,
-            3: 60 * 2,
-            4: -0.02,
-            5: 30 * 60,
-            6: 0,
-            7: 0,
-            8: 0,
-            9: 0,
-            10: 2 * 60,
-            11: -0.02,
-            12: -0.02,
-        }
-
-        self.savable_modes = [
-            "calibration",
-            "Habituation-1",
-            "Pre-Inject",
-            "Habituation-2",
-            "Baseline",
-            "Challenge",
-        ]
 
         self.sim_mode = 0
 

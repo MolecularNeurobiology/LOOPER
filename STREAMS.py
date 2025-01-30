@@ -81,6 +81,7 @@ class SimulatedArduino:
             self.logger.info("using simulated arduino")
 
     def sendCommand(self, command):
+        self.logger.debug(f'Arduino Command Sent: {command}')
         self.listener.put_nowait(command)
         self.readStreamData()
 
@@ -92,21 +93,12 @@ class SimulatedArduino:
             b"[C": b"calibration-sim",
             b"[R": b"room air-sim",  # update
             b"[A": b"challenge gas-sim",  # update
-            b"[U": b"startup sent-sim",
+            b"[U": b"startup sent",
             b"[S": b"standby sent-sim",
             b"[Z": b"abort sent-sim",
             b"[D": b"shutdown-sim",
-            b"[E": b"finish startup-sim",
-            b"unknown": b"unknown command",
-            "[C": b"calibration-sim",
-            "[R": b"room air-sim",  # update
-            "[A": b"challenge gas-sim",  # update
-            "[U": b"startup sent-sim",
-            "[S": b"standby sent-sim",
-            "[Z": b"abort sent-sim",
-            "[D": b"shutdown-sim",
-            "[E": b"finish startup-sim",
-            "unknown": b"unknown command",
+            b"[E": b"finish startup",
+            b"unknown": b"unknown command"
         }
 
         translated_command = translation_dict.get(command[:2], b"unknown")
@@ -215,7 +207,8 @@ class SimulatedDataReader:
 
 
 class StreamDataReader(object):
-    def __init__(self):
+    def __init__(self,logger):
+        self.logger = logger
         self.device = u6.U6()
 
         self.channel_list = [0, 1, 2, 3, 4, 5]

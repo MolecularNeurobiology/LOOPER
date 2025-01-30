@@ -127,27 +127,24 @@ class MainWindow(QWidget):
 
         # create some default variable values
         self.stage_dict = {}
+        self.automated = False
+
+        # populate data class
+        self.data = DATA.DATA()
 
         # load default settings
         self.logger.debug("loading settings")
         self.settings = SETTINGS.SETTINGS()
-        self.prepare_stages()
-        self.automated = False
 
-        ## TODO !!! load settings based on signal from Minerva
-
-        # override and set sim mode if CL option provided
+        # override settings with CL arguments if provided
         if parsed_args.simulation:
             self.settings.sim_mode = 1
 
         # set kill mode if CL option provided
         self.kill_after_count = parsed_args.kill
 
-        # populate data class
-        self.data = DATA.DATA()
 
         # configure i/o
-        # !!! self.settings.sim_mode = 1  # dev !!!
         if self.settings.sim_mode == 1:
             self.logger.debug("Simulation Mode")
             self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
@@ -159,6 +156,15 @@ class MainWindow(QWidget):
 
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
 
+
+        self.prepare_stages()
+        
+        ## TODO !!! load settings based on signal from Minerva
+
+        
+
+
+        
         # set up timers
 
         self.pulse_counter = 0
@@ -303,21 +309,23 @@ class MainWindow(QWidget):
 
     def prepare_stages(self):
         # clear comboBox_Jump_To_Stage
+        self.logger.info('preparing STAGES')
         self.comboBox_Jump_To_Stage.clear()
-
         # repopulate comboBox_Jump_To_Stage
         self.comboBox_Jump_To_Stage.addItems(
-            [v for k, v in self.settings.Mode_dict.items()]
+            [k for k in self.settings.Mode_settings.keys()]
         )
         # create a dictionary of stages
-        
         for k in self.settings.Mode_settings.keys():
+            self.logger.debug(f'adding STAGE: {k}')
             self.stage_dict[k] = getattr(STAGES,k)(k,self)
+        # register stage specific data attributes
         for k,v in self.stage_dict.items():
             v.register_data()
 
         # load the active stage (provide settings and data class as arguments)
-        self.active_stage = self.stage_dict[self.settings.Mode_dict[0]]
+        self.active_stage = self.stage_dict[list(self.settings.Mode_settings.keys())[0]]
+        self.active_stage.on_load()
 
         # stage methods
         # on_load
@@ -333,11 +341,16 @@ class MainWindow(QWidget):
         )
         if not self.automated:
             self.active_stage.on_exit()
+        self.automated = False
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
+        self.active_stage.on_load()
 
     def action_next_stage(self):
         self.active_stage.on_jump_exit()
-        self.comboBox_Jump_To_Stage.setCurrentIndex(self.comboBox_Jump_To_Stage.currentIndex()+1)
+        if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict)-1:
+            self.logger.error('Already at last stage - use "Jump To" function to choose a stage')
+        else:
+            self.comboBox_Jump_To_Stage.setCurrentIndex(self.comboBox_Jump_To_Stage.currentIndex()+1)
         
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
@@ -462,12 +475,15 @@ class MainWindow(QWidget):
         # collect arduino stream
         Arduino_Dump_Toggle = 0
         self.arduino_list = []
+
+        # !!! TODO do we need to worry about arduino outputs being split across entries?
         if self.arduino_stream.data.empty() == False:
             Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
             self.arduino_list = [
                 i.decode() for i in arduino_out.split(b"\r\n") if i != b" " and i != b""
             ]
+            self.arduino_string = ''.join(self.arduino_list)
             for i in self.arduino_list:
                 self.logger.info(f"ARDUINO:{i}")
                 ### !!! TODO finish this to process arduino outputs for triggering stage changes
@@ -481,7 +497,7 @@ class MainWindow(QWidget):
         # append to output
 
         # refresh gui (if needed)
-
+        self.time_in_stage.setText(f'{self.active_stage.time_in_stage_seconds:.0f} sec')
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
