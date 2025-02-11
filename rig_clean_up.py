@@ -128,7 +128,7 @@ def main():
 
     # build set of files ready to delete
     records_to_delete = [
-        v["RUID"] for k, v in records.items() if v["DeleteRecord"] == "Yes"
+        v["RUID"] for k, v in records.items() if "yes" in v["DeleteRecord"].lower()
     ]
 
     logger.info(f"{len(records_to_delete)} files ready to delete")
