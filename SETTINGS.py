@@ -81,20 +81,84 @@ class SETTINGS:
         self.Challenge_Delay = 5.0
 
         self.Mode_settings = {
-            'startup1':{'duration':-1,'savable':False, 'special_exit':'na'},
-            'startup2':{'duration':-1,'savable':False, 'special_exit':'na'},
-            'standby':{'duration':-1,'savable':False, 'special_exit':'na'},
-            'signal_preview_1':{'duration':-1,'savable':False, 'special_exit':'na'},
-            'calibration':{'duration':120,'savable':True, 'special_exit':'na'},
-            'signal_preview_2':{'duration':-1,'savable':False, 'special_exit':'na'},
-            'habituation_1':{'duration':30*60,'savable':True, 'special_exit':'na'},
-            'signal_preview_3':{'duration':0,'savable':False, 'special_exit':'na'},
-            'pre_inject':{'duration':0,'savable':True, 'special_exit':'na'},
-            'inject':{'duration':0,'savable':True, 'special_exit':'na'},
-            'habituation_2':{'duration':0,'savable':True, 'special_exit':'na'},
-            'baseline':{'duration':2*60,'savable':True, 'special_exit':'na'},
-            'challenge':{'duration':-1,'savable':True, 'special_exit':'na'},
-            'finished':{'duration':-1,'savable':False, 'special_exit':'na'}
+            "startup1": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "startup2": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "standby": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "signal_preview_1": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "calibration": {
+                "duration": 120,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "timed",
+            },
+            "signal_preview_2": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "habituation_1": {
+                "duration": 30 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "state_type": "timed",
+            },
+            "pre_inject": {
+                "duration": 2 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "inject": {
+                "duration": -1,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "habituation_2": {
+                "duration": 30 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "timed",
+            },
+            "baseline": {
+                "duration": 2 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "challenge": {
+                "duration": -1,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "finished": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
         }
 
         self.sim_mode = 0

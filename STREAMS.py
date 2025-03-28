@@ -81,7 +81,7 @@ class SimulatedArduino:
             self.logger.info("using simulated arduino")
 
     def sendCommand(self, command):
-        self.logger.debug(f'Arduino Command Sent: {command}')
+        self.logger.debug(f"Arduino Command Sent: {command}")
         self.listener.put_nowait(command)
         self.readStreamData()
 
@@ -98,7 +98,7 @@ class SimulatedArduino:
             b"[Z": b"abort sent-sim",
             b"[D": b"shutdown-sim",
             b"[E": b"finish startup",
-            b"unknown": b"unknown command"
+            b"unknown": b"unknown command",
         }
 
         translated_command = translation_dict.get(command[:2], b"unknown")
@@ -207,7 +207,7 @@ class SimulatedDataReader:
 
 
 class StreamDataReader(object):
-    def __init__(self,logger):
+    def __init__(self, logger):
         self.logger = logger
         self.device = u6.U6()
 

@@ -23,6 +23,7 @@ and general refactoring and reoganization of modules and functions.
 # external libraries
 import argparse
 import logging
+import numpy
 import os
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
@@ -143,7 +144,6 @@ class MainWindow(QWidget):
         # set kill mode if CL option provided
         self.kill_after_count = parsed_args.kill
 
-
         # configure i/o
         if self.settings.sim_mode == 1:
             self.logger.debug("Simulation Mode")
@@ -155,17 +155,15 @@ class MainWindow(QWidget):
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
-        self.minerva_stream_reader = STREAMS.MinervaReceiver(self.minerva_stream,self.logger)
-
+        self.minerva_stream.start()
+        self.minerva_stream_reader = STREAMS.MinervaReceiver(
+            self.minerva_stream, self.logger
+        )
 
         self.prepare_stages()
-        
+
         ## TODO !!! load settings based on signal from Minerva
 
-        
-
-
-        
         # set up timers
 
         self.pulse_counter = 0
@@ -183,9 +181,7 @@ class MainWindow(QWidget):
         self.pushButton_Send_Arduino_Command.clicked.connect(
             self.action_send_serial_to_arduino
         )
-        self.pushButton_Next_Stage.clicked.connect(
-            self.action_next_stage
-        )
+        self.pushButton_Next_Stage.clicked.connect(self.action_next_stage)
         self.comboBox_Jump_To_Stage.currentTextChanged.connect(
             self.action_jump_to_stage
         )
@@ -310,7 +306,7 @@ class MainWindow(QWidget):
 
     def prepare_stages(self):
         # clear comboBox_Jump_To_Stage
-        self.logger.info('preparing STAGES')
+        self.logger.info("preparing STAGES")
         self.comboBox_Jump_To_Stage.clear()
         # repopulate comboBox_Jump_To_Stage
         self.comboBox_Jump_To_Stage.addItems(
@@ -318,10 +314,10 @@ class MainWindow(QWidget):
         )
         # create a dictionary of stages
         for k in self.settings.Mode_settings.keys():
-            self.logger.debug(f'adding STAGE: {k}')
-            self.stage_dict[k] = getattr(STAGES,k)(k,self)
+            self.logger.debug(f"adding STAGE: {k}")
+            self.stage_dict[k] = getattr(STAGES, k)(k, self)
         # register stage specific data attributes
-        for k,v in self.stage_dict.items():
+        for k, v in self.stage_dict.items():
             v.register_data()
 
         # load the active stage (provide settings and data class as arguments)
@@ -348,11 +344,17 @@ class MainWindow(QWidget):
 
     def action_next_stage(self):
         self.active_stage.on_jump_exit()
-        if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict)-1:
-            self.logger.error('Already at last stage - use "Jump To" function to choose a stage')
+        self.logger.debug(f"stages: {len(self.stage_dict)}")
+        self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
+        if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
+            self.logger.error(
+                'Already at last stage - use "Jump To" function to choose a stage'
+            )
         else:
-            self.comboBox_Jump_To_Stage.setCurrentIndex(self.comboBox_Jump_To_Stage.currentIndex()+1)
-        
+            self.comboBox_Jump_To_Stage.setCurrentIndex(
+                self.comboBox_Jump_To_Stage.currentIndex() + 1
+            )
+
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
         self.logger.info(f"Sending: {command}")
@@ -414,64 +416,123 @@ class MainWindow(QWidget):
             # apply inversion/filter as appropriate
             if self.settings.flow_filt_state == 1:
                 if self.settings.INVERT_FLOW == 1:
-                    trimmed_pneumo = [
+                    self.trimmed_pneumo = [
                         -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, 50)
                     ][self.data.window * -1 :]
                 else:
-                    trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
+                    self.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
                         self.data.window * -1 :
                     ]
             else:
                 if self.settings.INVERT_FLOW == 1:
-                    trimmed_pneumo = [-1 * i for i in self.data.pneumo][
+                    self.trimmed_pneumo = [-1 * i for i in self.data.pneumo][
                         self.data.window * -1 :
                     ]
                 else:
-                    trimmed_pneumo = self.data.pneumo[self.data.window * -1 :]
+                    self.trimmed_pneumo = self.data.pneumo[self.data.window * -1 :]
             if self.settings.ecg_filt_state == 1:
                 if self.settings.INVERT_ECG == 1:
-                    trimmed_ecg = [
+                    self.trimmed_ecg = [
                         -1 * i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
                     ][self.data.window * -1 :]
                 else:
-                    trimmed_ecg = [
+                    self.trimmed_ecg = [
                         i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
                     ][self.data.window * -1 :]
             else:
                 if self.settings.INVERT_ECG == 1:
-                    trimmed_ecg = [-1 * i for i in self.data.ecg][
+                    self.trimmed_ecg = [-1 * i for i in self.data.ecg][
                         self.data.window * -1 :
                     ]
                 else:
-                    trimmed_ecg = self.data.ecg[self.data.window * -1 :]
+                    self.trimmed_ecg = self.data.ecg[self.data.window * -1 :]
 
-            # call breaths and beats with thresh as appropriate
-            if self.data.flow_thresh_to_use == 2:
-                flow_thresh = self.settings.thresh2_flow
-            else:
-                flow_thresh = self.settings.thresh_flow
+        # call breaths and beats with thresh as appropriate
+        if self.data.flow_thresh_to_use == 2:
+            flow_thresh = self.settings.thresh2_flow
+        else:
+            flow_thresh = self.settings.thresh_flow
 
-            self.data.breath_list = DETECTORS.basic_breathcall(
-                trimmed_pneumo, self.data.time, self.settings.baseline_flow, flow_thresh
+        self.data.breath_list = DETECTORS.basic_breathcall(
+            self.trimmed_pneumo,
+            self.data.time,
+            self.settings.baseline_flow,
+            flow_thresh,
+        )
+        self.data.beat_list = DETECTORS.beat_caller(
+            self.trimmed_ecg,
+            self.data.time,
+            absthresh=self.settings.thresh_ecg1,
+            minRR=self.settings.minRR_ecg,
+        )
+        # update instantaneous summary parameters
+        self.data.avg_bsd = abs(
+            numpy.average(self.trimmed_pneumo) - self.settings.baseline_flow
+        )
+        if self.data.breath_list is None or len(self.data.breath_list) < 2:
+            self.data.avg_bpm = "<12"
+            self.data.avg_tv = "-----"
+            self.data.avg_tt = 999
+            self.data.cv_tt = 999
+            self.data.avg_dvtv = 999
+        else:
+            self.data.avg_tt = numpy.average(
+                [
+                    self.data.breath_list[i]["TT"]
+                    for i in self.data.breath_list
+                    if "TT" in self.data.breath_list[i].keys()
+                ]
             )
-            self.data.beat_list = DETECTORS.beat_caller(
-                trimmed_ecg,
-                self.data.time,
-                absthresh=self.settings.thresh_ecg1,
-                minRR=self.settings.minRR_ecg,
+            self.data.cv_tt = (
+                numpy.std(
+                    [
+                        self.data.breath_list[i]["TT"]
+                        for i in self.data.breath_list
+                        if "TT" in self.data.breath_list[i].keys()
+                    ]
+                )
+                / self.data.avg_tt
             )
+            self.data.avg_tv = numpy.average(
+                [
+                    self.data.breath_list[i]["iTV"]
+                    for i in self.data.breath_list
+                    if "iTV" in self.data.breath_list[i].keys()
+                ]
+            )
+            self.data.avg_bpm = (
+                60 / self.data.avg_tt
+            )  # this creates a 'less' transformed BPM (division transform) - relationship between TT and BPM modified by Irregularity
+            self.data.avg_dvtv = numpy.average(
+                [
+                    self.data.breath_list[i]["DVTV"]
+                    for i in self.data.breath_list
+                    if "DVTV" in self.data.breath_list[i].keys()
+                ]
+            )
+        if self.data.beat_list is None or len(self.data.beat_list) < 5:
+            self.data.avg_hr = "low"
+            self.data.avg_rr = 999
+            self.data.cv_rr = 999
+        else:
+            self.data.avg_rr = self.data.beat_list["rr"].mean()
+            self.data.avg_hr = 60 / self.data.avg_rr
+            self.data.cv_rr = self.data.beat_list["rr"].std() / self.data.avg_rr
 
-            # update plot
-            self.line1.setData(self.data.time, trimmed_pneumo)
-            self.line2.setData(self.data.time, trimmed_ecg)
-            self.markers1.setData(
-                [v["TS-I"] for v in self.data.breath_list.values()],
-                [0 for i in self.data.breath_list],
-            )
-            self.markers2.setData(
-                list(self.data.beat_list["ts"]),
-                [0 for i in range(self.data.beat_list.shape[0])],
-            )
+        # update plot
+        self.line1.setData(self.data.time, self.trimmed_pneumo)
+        self.line2.setData(self.data.time, self.trimmed_ecg)
+        self.markers1.setData(
+            [v["TS-I"] for v in self.data.breath_list.values()],
+            [0 for i in self.data.breath_list],
+        )
+        self.markers2.setData(
+            list(self.data.beat_list["ts"]),
+            [0 for i in range(self.data.beat_list.shape[0])],
+        )
+
+        # update widgets
+        # !!!
 
         # collect arduino stream
         Arduino_Dump_Toggle = 0
@@ -484,7 +545,7 @@ class MainWindow(QWidget):
             self.arduino_list = [
                 i.decode() for i in arduino_out.split(b"\r\n") if i != b" " and i != b""
             ]
-            self.arduino_string = ''.join(self.arduino_list)
+            self.arduino_string = "".join(self.arduino_list)
             for i in self.arduino_list:
                 self.logger.info(f"ARDUINO:{i}")
                 ### !!! TODO finish this to process arduino outputs for triggering stage changes
@@ -496,13 +557,13 @@ class MainWindow(QWidget):
         # collect minerva stream
         if self.minerva_stream_reader.data:
             self.logger.info(self.minerva_stream_reader.data)
-            print(f'minerva - {self.minerva_stream_reader.data}')
+            print(f"minerva - {self.minerva_stream_reader.data}")
             self.minerva_stream_reader.data = None
 
         # append to output
 
         # refresh gui (if needed)
-        self.time_in_stage.setText(f'{self.active_stage.time_in_stage_seconds:.0f} sec')
+        self.time_in_stage.setText(f"{self.active_stage.time_in_stage_seconds:.0f} sec")
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
