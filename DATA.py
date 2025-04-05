@@ -9,14 +9,20 @@ class DATA:
     def __init__(self):
         # short term
         self.window = 5000  # !!! this should probably be a setting ...
+        self.data_frequency = 1000 # this should probably be a setting ...
         self.time = [round(-5 + i / 1000, 3) for i in range(self.window)]
+        self.rel_time = [round(-5 + i / 1000, 3) for i in range(self.window)]
         self.pneumo = [0 for i in range(self.window)]
         self.trimmed_pneumo = [0 for i in range(self.window)]
         self.ecg = [0 for i in range(self.window)]
         self.trimmed_ecg = [0 for i in range(self.window)]
 
+        self.data_time = 0
+
         self.breath_list = []
         self.beat_list = []
+
+        self.flow_thresh_to_use = 1
 
         # instantaneous_arrays
         # self.new_time = []

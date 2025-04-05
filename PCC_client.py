@@ -96,8 +96,10 @@ class QTextEditLogger(logging.Handler):
 
 
 class MainWindow(QWidget):
-    def __init__(self, version, ui, parsed_args):
+    def __init__(self, version, ui, parsed_args, app):
         super().__init__()
+
+        self.app = app
 
         self.ui = ui
         # migrate ui children to parent level of class
@@ -157,7 +159,7 @@ class MainWindow(QWidget):
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
         self.minerva_stream.start()
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
-            self.minerva_stream, self.logger
+           self.minerva_stream, self.logger
         )
 
         self.prepare_stages()
@@ -370,8 +372,15 @@ class MainWindow(QWidget):
         self.pulse_counter += 1
 
         if self.kill_after_count and self.pulse_counter >= self.kill_after_count:
+            self.kill_app()
+            
 
+            #app.quit()
             sys.exit()
+
+    def kill_app(self):
+        # wait on threads for clean exit?
+        self.minerva_stream.stop()
 
     def action_stream_timer(self):
         # reset labjack stream if needed
@@ -405,8 +414,17 @@ class MainWindow(QWidget):
             ecg_channel = self.labjack_stream.channel_list[
                 self.labjack_stream.channel_dict["ECG"]
             ]
+
+            
             self.data.new_pneumo = processed_result[f"AIN{flow_channel}"]
             self.data.new_ecg = processed_result[f"AIN{ecg_channel}"]
+
+            new_samples = len(self.data.new_pneumo)
+            time_increment = round(new_samples/self.labjack_stream.scan_frequency,3)
+
+            self.data.data_time += time_increment
+            self.data.time = [round((int(self.data.data_time * self.data.data_frequency) - self.data.window + i) / 1000, 3) for i in range(self.data.window)]
+
 
             self.data.pneumo = (self.data.pneumo + self.data.new_pneumo)[
                 self.data.window * -2 :
@@ -416,36 +434,36 @@ class MainWindow(QWidget):
             # apply inversion/filter as appropriate
             if self.settings.flow_filt_state == 1:
                 if self.settings.INVERT_FLOW == 1:
-                    self.trimmed_pneumo = [
+                    self.data.trimmed_pneumo = [
                         -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, 50)
                     ][self.data.window * -1 :]
                 else:
-                    self.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
+                    self.data.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
                         self.data.window * -1 :
                     ]
             else:
                 if self.settings.INVERT_FLOW == 1:
-                    self.trimmed_pneumo = [-1 * i for i in self.data.pneumo][
+                    self.data.trimmed_pneumo = [-1 * i for i in self.data.pneumo][
                         self.data.window * -1 :
                     ]
                 else:
-                    self.trimmed_pneumo = self.data.pneumo[self.data.window * -1 :]
+                    self.data.trimmed_pneumo = self.data.pneumo[self.data.window * -1 :]
             if self.settings.ecg_filt_state == 1:
                 if self.settings.INVERT_ECG == 1:
-                    self.trimmed_ecg = [
+                    self.data.trimmed_ecg = [
                         -1 * i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
                     ][self.data.window * -1 :]
                 else:
-                    self.trimmed_ecg = [
+                    self.data.trimmed_ecg = [
                         i for i in DETECTORS.basicFilt(self.data.ecg, 1000, 60, 30)
                     ][self.data.window * -1 :]
             else:
                 if self.settings.INVERT_ECG == 1:
-                    self.trimmed_ecg = [-1 * i for i in self.data.ecg][
+                    self.data.trimmed_ecg = [-1 * i for i in self.data.ecg][
                         self.data.window * -1 :
                     ]
                 else:
-                    self.trimmed_ecg = self.data.ecg[self.data.window * -1 :]
+                    self.data.trimmed_ecg = self.data.ecg[self.data.window * -1 :]
 
         # call breaths and beats with thresh as appropriate
         if self.data.flow_thresh_to_use == 2:
@@ -454,20 +472,20 @@ class MainWindow(QWidget):
             flow_thresh = self.settings.thresh_flow
 
         self.data.breath_list = DETECTORS.basic_breathcall(
-            self.trimmed_pneumo,
+            self.data.trimmed_pneumo,
             self.data.time,
             self.settings.baseline_flow,
             flow_thresh,
         )
         self.data.beat_list = DETECTORS.beat_caller(
-            self.trimmed_ecg,
+            self.data.trimmed_ecg,
             self.data.time,
             absthresh=self.settings.thresh_ecg1,
             minRR=self.settings.minRR_ecg,
         )
         # update instantaneous summary parameters
         self.data.avg_bsd = abs(
-            numpy.average(self.trimmed_pneumo) - self.settings.baseline_flow
+            numpy.average(self.data.trimmed_pneumo) - self.settings.baseline_flow
         )
         if self.data.breath_list is None or len(self.data.breath_list) < 2:
             self.data.avg_bpm = "<12"
@@ -520,14 +538,16 @@ class MainWindow(QWidget):
             self.data.cv_rr = self.data.beat_list["rr"].std() / self.data.avg_rr
 
         # update plot
-        self.line1.setData(self.data.time, self.trimmed_pneumo)
-        self.line2.setData(self.data.time, self.trimmed_ecg)
+        #self.graph1.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
+        #self.graph2.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
+        self.line1.setData(self.data.rel_time, self.data.trimmed_pneumo)
+        self.line2.setData(self.data.rel_time, self.data.trimmed_ecg)
         self.markers1.setData(
-            [v["TS-I"] for v in self.data.breath_list.values()],
+            [v["TS-I"] - self.data.data_time for v in self.data.breath_list.values()],
             [0 for i in self.data.breath_list],
         )
         self.markers2.setData(
-            list(self.data.beat_list["ts"]),
+            [i - self.data.data_time for i in list(self.data.beat_list["ts"])],
             [0 for i in range(self.data.beat_list.shape[0])],
         )
 
@@ -562,8 +582,9 @@ class MainWindow(QWidget):
 
         # append to output
 
+
         # refresh gui (if needed)
-        self.time_in_stage.setText(f"{self.active_stage.time_in_stage_seconds:.0f} sec")
+        self.time_in_stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
@@ -606,13 +627,16 @@ def main():
     print(args)
 
     loader = QUiLoader()
+    global app
     app = QApplication(args)
 
     ui_file = QFile(os.path.join(os.path.dirname(__file__), "PCC_client.ui"))
 
     ui = loader.load(ui_file)
 
-    window = MainWindow(__version__, ui, parsed_args)
+    window = MainWindow(__version__, ui, parsed_args, app)
+
+    app.aboutToQuit.connect(window.kill_app)
 
     window.version_info = {
         "main": __version__,
@@ -625,9 +649,15 @@ def main():
     window.ui.show()
     window.action_start_timers()
     print("running")
+    #app.exec()
     sys.exit(app.exec())
 
 
 # run main
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print(e)
+        traceback.print_exc()

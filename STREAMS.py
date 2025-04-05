@@ -201,6 +201,7 @@ class SimulatedDataReader:
             self.readCount += 1
             self.counter += self.update_interval_ms
             self.current = datetime.now()
+            
 
     def stopStreamData(self):
         self.finished = True

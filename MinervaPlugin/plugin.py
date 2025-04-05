@@ -111,6 +111,7 @@ class Plugin:
 
 
     def _listen_for_commands(self):
+        # added passthrough of _is_running to help with stopping on exit
         self._rabbit_mq_client_consumer.consume_message(self._handle_command)
     
     def _ping_loop(self):
@@ -133,13 +134,24 @@ class Plugin:
         This method stops the ping loop and the command listening thread, ensuring 
         all threads are safely joined.
         """
+        
+        print("MP STOP ATTEMPTED")
         self._is_running = False
         if self._ping_thread:
+            print("stopping ping thread")
             self._ping_thread.join()  # Ensure the ping thread finishes
             self._log_info("Ping thread stopped.")
+            print("ping thread stopped")
+        else: print("no ping thread to stop")
         if self._command_thread:
+            print("stopping command thread")
+            self._rabbit_mq_client_consumer._is_running = False
+            print("rabbitmq is running status changes to False")
             self._command_thread.join()  # Ensure the command listening thread finishes
             self._log_info("Command listening thread stopped.")
+            print("command thread stopped")
+        else: print ("no command thread to stop")
+        print("STOP COMMANDS FINISHED")
 
     
     def start(self):

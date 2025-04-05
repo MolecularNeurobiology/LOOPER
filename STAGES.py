@@ -11,74 +11,84 @@ class STAGE(ABC):
         self.name = name
         self.pcc = pcc
 
-        self.start_time = datetime.now()
-        self.current_time = datetime.now()
-        self.time_in_stage_seconds = 0
-        self.time_limit = self.pcc.settings.Mode_settings[self.name]["duration"]
+        self.pcc.data.start_time = datetime.now()
+        self.pcc.data.current_time = datetime.now()
+        self.pcc.data.time_in_stage = 0
+        self.pcc.data.time_in_stage_seconds = 0
+        self.pcc.data.time_limit = self.pcc.settings.Mode_settings[self.name]["duration"]
 
     def test_time_in_stage(self):
         """
         returns true if time in stage is greater or equal to the limit for the stage
         """
-        self.time_in_stage_seconds = (self.current_time - self.start_time).seconds
+        self.pcc.data.time_in_stage = self.pcc.data.current_time - self.pcc.data.start_time
+        self.pcc.data.time_in_stage_seconds = self.pcc.data.time_in_stage.seconds
 
-        if self.time_limit < 0:
-            False
+        if self.pcc.data.time_limit < 0:
+            return False
         elif (
-            self.time_limit == 0
+            self.pcc.data.time_limit == 0
         ):  # !!! TODO this should stop being a thing moveing forward...don't include instead of duration 0
-            True
-        elif self.time_limit > self.time_in_stage_seconds:
-            False
+            return True
+        elif self.pcc.data.time_limit > self.pcc.data.time_in_stage_seconds:
+            return False
         else:
-            True
+            return True
 
-    @abstractmethod
+    
     def register_data(self):
         pass
 
-    @abstractmethod
+    
     def on_load(self):
-        self.pcc.start_time = datetime.now()
+        self.pcc.data.start_time = datetime.now()
         self.pcc.logger.info(f"STAGE: {self.name}")
-        self.automated = False
+        self.pcc.data.automated = False
+        self.additional_on_load()
 
     @abstractmethod
-    def on_jump_exit(self):
+    def additional_on_load(self):
         pass
+
+
+    def on_jump_exit(self):
+        self.on_exit()
+        
 
     @abstractmethod
     def on_exit(self):
         pass
 
-    @abstractmethod
     def event_loop(self):
-        self.current_time = datetime.now()
+        self.pcc.data.current_time = datetime.now()
 
         if self.exit_condition_test():
-            self.pcc.automated = True
+            self.pcc.data.automated = True
             self.on_exit()
 
-    @abstractmethod
+    
     def exit_condition_test(self):
         # test for time
         if self.test_time_in_stage():
             self.on_exit()
+        if self.additional_exit_test():
+            self.on_exit()
+    
+    
+    def additional_exit_test(self):
+        pass
 
 
-class startup1(STAGE):
-    def register_data(self):
-        self.pcc.data.arduino_startup_motion_tested = False
-
-    def on_load(self):
-        self.pcc.start_time = datetime.now()
-        self.pcc.logger.info("STAGE: startup1")
-        self.pcc.automated = False
-        self.pcc.arduino_startup_motion_tested = False
-
+class startup1(STAGE):      
+    
+    # def on_load(self):
+    #     self.pcc.data.start_time = datetime.now()
+    #     self.pcc.logger.info("STAGE: startup1")
+    #     self.pcc.automated = False
+    def additional_on_load(self):
+        
         self.pcc.logger.debug("starting up arduino tests")
         self.pcc.arduino_stream.sendCommand(b"[U")
-        pass
 
     def on_exit(self):
 
@@ -90,11 +100,12 @@ class startup1(STAGE):
     #         self.pcc.automated = True
     #         self.on_exit()
 
-    def exit_condition_test(self):
-        # test for time
-        if self.test_time_in_stage():
-            self.on_exit()
-
+    # def exit_condition_test(self):
+    #     # test for time
+    #     if self.test_time_in_stage():
+    #         self.on_exit()
+    
+    def additional_exit_test(self):
         # test for startup tests passed
         if "startup sent" in self.pcc.arduino_string:
             self.on_exit()
@@ -104,22 +115,25 @@ class startup2(STAGE):
     def register_data(self):
         self.pcc.data.arduino_startup_motion_tested = False
 
-    def on_load(self):
-        self.pcc.start_time = datetime.now()
-        self.pcc.logger.info("STAGE: startup2")
-        self.automated = False
-        self.pcc.arduino_startup_motion_tested = False
+    # def on_load(self):
+    #     self.pcc.start_time = datetime.now()
+    #     self.pcc.logger.info("STAGE: startup2")
+    #     self.automated = False
+
+    def additional_on_load(self):
+        self.pcc.data.arduino_startup_motion_tested = False
         self.pcc.logger.debug("starting up arduino tests")
         self.pcc.arduino_stream.sendCommand(b"[E")
 
     def on_exit(self):
         self.pcc.comboBox_Jump_To_Stage.setCurrentText("standby")
 
-    def exit_condition_test(self):
-        # test for time
-        if self.test_time_in_stage():
-            self.on_exit()
+    # def exit_condition_test(self):
+    #     # test for time
+    #     if self.test_time_in_stage():
+    #         self.on_exit()
 
+    def additional_exit_test(self):
         # test for startup tests passed
         if "finish startup" in self.pcc.arduino_string:
             self.pcc.data.arduino_startup_motion_tested = True
@@ -130,22 +144,24 @@ class standby(STAGE):
     def register_data(self):
         pass
 
-    def on_load(self):
-        self.pcc.start_time = datetime.now()
-        self.pcc.logger.info("STAGE: standby")
-        self.automated = False
-        self.pcc.arduino_startup_motion_tested = False
+    # def on_load(self):
+    #     self.pcc.start_time = datetime.now()
+    #     self.pcc.logger.info("STAGE: standby")
+    #     self.automated = False
+    #     self.pcc.arduino_startup_motion_tested = False
+    def additional_on_load(self):
         self.pcc.logger.debug("moving to standby position")
         self.pcc.arduino_stream.sendCommand(b"[S")
 
     def on_exit(self):
         self.pcc.comboBox_Jump_To_Stage.setCurrentText("signal_preview_1")
 
-    def exit_condition_test(self):
-        # test for time
-        if self.test_time_in_stage():
-            self.on_exit()
+    # def exit_condition_test(self):
+    #     # test for time
+    #     if self.test_time_in_stage():
+    #         self.on_exit()
 
+    def additional_exit_test(self):    
         # test for standby mode completed
         if "standby sent" in self.pcc.arduino_string:
             self.pcc.data.arduino_startup_motion_tested = True
@@ -153,23 +169,12 @@ class standby(STAGE):
 
 
 class signal_preview_1(STAGE):
-    # def register_data(self):
-    #     pass
-
-    # def on_load(self):
-    #     pass
+    def additional_on_load(self):
+        pass
+    
     def on_exit(self):
         self.pcc.comboBox_Jump_To_Stage.setCurrentText("calibration")
 
-    # def on_jump_exit(self):
-    #     pass
-    # def event_loop(self):
-    #     pass
-    # def exit_condition_test(self):
-    #     # test for time
-    #     if self.test_time_in_stage():
-    #         self.on_exit()
-    pass
 
 
 class calibration(STAGE):
@@ -177,10 +182,12 @@ class calibration(STAGE):
         self.pcc.data.calibration_tv_voltage = None
         self.pcc.data.calibration_breath_list = []
 
-    def on_load(self):
-        self.pcc.start_time = datetime.now()
-        self.pcc.logger.info("STAGE: Calibration")
-        self.pcc.automated = False
+    # def on_load(self):
+    #     self.pcc.start_time = datetime.now()
+    #     self.pcc.logger.info("STAGE: Calibration")
+    #     self.pcc.automated = False
+
+    def additional_on_load(self):
         self.pcc.arduino_stream.sendCommand(b"[C")
 
     def on_exit(self):
@@ -190,10 +197,6 @@ class calibration(STAGE):
         pass
         # collect calibration breathlist
 
-    def exit_condition_test(self):
-        # test for time
-        if self.test_time_in_stage():
-            self.on_exit()
 
 
 class signal_preview_2(STAGE):
@@ -201,6 +204,9 @@ class signal_preview_2(STAGE):
         pass
 
     def on_load(self):
+        pass
+
+    def additional_on_load(self):
         pass
 
     def on_exit(self):
@@ -225,6 +231,9 @@ class habituation_1(STAGE):
     def on_load(self):
         pass
 
+    def additional_on_load(self):
+        pass
+
     def on_exit(self):
         pass
 
@@ -243,6 +252,9 @@ class signal_preview_3(STAGE):
         pass
 
     def on_load(self):
+        pass
+
+    def additional_on_load(self):
         pass
 
     def on_exit(self):
@@ -265,6 +277,9 @@ class pre_inject(STAGE):
     def on_load(self):
         pass
 
+    def additional_on_load(self):
+        pass
+
     def on_exit(self):
         pass
 
@@ -285,6 +300,9 @@ class inject(STAGE):
     def on_load(self):
         pass
 
+    def additional_on_load(self):
+        pass
+
     def on_exit(self):
         pass
 
@@ -303,6 +321,9 @@ class habituation_2(STAGE):
         pass
 
     def on_load(self):
+        pass
+
+    def additional_on_load(self):
         pass
 
     def on_exit(self):
@@ -326,10 +347,13 @@ class baseline(STAGE):
         self.pcc.data.quality_seg_list = []  # list of start and stop times
         self.pcc.data.quality_test = 0
         self.pcc.data.prev_quality_test = 0
-        self.pcc.data.qb_timer
+        self.pcc.data.qb_timer = 0
         pass
 
     def on_load(self):
+        pass
+
+    def additional_on_load(self):
         pass
 
     def on_exit(self):
@@ -365,14 +389,14 @@ class baseline(STAGE):
 
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_qual_test == 0:
             self.pcc.data.quality_seg_list.append(
-                [self.time_in_stage_seconds, self.time_in_stage_seconds]
+                [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
             )
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_qual_test == 1:
             if len(self.pcc.data.quality_seg_list) == 0:
                 self.pcc.data.quality_seg_list.append(
-                    [self.time_in_stage_seconds, self.time_in_stage_seconds]
+                    [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
                 )
-            self.pcc.data.quality_seg_list[-1][1] = self.time_in_stage_seconds
+            self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
         if self.pcc.data.quality_test == 0 and self.pcc.data.prev_qual_test == 1:
             pass
 
@@ -447,6 +471,9 @@ class challenge(STAGE):
     def on_load(self):
         pass
 
+    def additional_on_load(self):
+        pass
+
     def on_exit(self):
         pass
 
@@ -465,6 +492,9 @@ class finished(STAGE):
         pass
 
     def on_load(self):
+        pass
+
+    def additional_on_load(self):
         pass
 
     def on_exit(self):

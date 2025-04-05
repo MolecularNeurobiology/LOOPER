@@ -15,6 +15,8 @@ class RabbitMQClient:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self.queue = _queue
+        #
+        self._is_running = False
 
     def send_message(self, message):
         self.channel.queue_declare(queue=self.queue, durable=True)
@@ -31,8 +33,8 @@ class RabbitMQClient:
         def message_callback_wrapper(ch, method, properties, body):
             callback(json.loads(body.decode()))
 
-
-        while True:
+        print("rabbit mq _is_running True")
+        while self._is_running:
             try:
                 self.channel.queue_declare(queue=self.queue)
                 self.channel.basic_consume(queue=self.queue, on_message_callback=message_callback_wrapper)
@@ -42,6 +44,9 @@ class RabbitMQClient:
                 self.logger.error("Connection lost, retrying in 5 seconds...")
                 self.reconnect() 
                 time.sleep(5)
+        print("rabbit mq _is_running False")
+        self.close()
+        print("closing connection")
 
     def close(self):
         self.channel.close()
