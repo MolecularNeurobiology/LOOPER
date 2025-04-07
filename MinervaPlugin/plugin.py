@@ -80,7 +80,7 @@ class Plugin:
             ping_message = json.dumps(payload)
 
             self._rabbit_mq_client_producer.send_message(ping_message)
-            self._log_info(f"Ping sent to the server. {payload}")
+            self._log_debug(f"Ping sent to the server. {payload}")
     
     def _handle_command(self, command):
             self._log_info(f"Command received: {command}")
@@ -126,6 +126,10 @@ class Plugin:
     def _log_error(self, message):
         if self._logger is not None:
             self._logger.error(message)
+
+    def _log_debug(self, message):
+        if self._logger is not None:
+            self._logger.debug(message)
 
     def stop(self):
         """

@@ -346,16 +346,16 @@ class MainWindow(QWidget):
 
     def action_next_stage(self):
         self.active_stage.on_jump_exit()
-        self.logger.debug(f"stages: {len(self.stage_dict)}")
-        self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
-        if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
-            self.logger.error(
-                'Already at last stage - use "Jump To" function to choose a stage'
-            )
-        else:
-            self.comboBox_Jump_To_Stage.setCurrentIndex(
-                self.comboBox_Jump_To_Stage.currentIndex() + 1
-            )
+        #self.logger.debug(f"stages: {len(self.stage_dict)}")
+        #self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
+        #if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
+        #    self.logger.error(
+        #        'Already at last stage - use "Jump To" function to choose a stage'
+        #    )
+        #else:
+        #    self.comboBox_Jump_To_Stage.setCurrentIndex(
+        #        self.comboBox_Jump_To_Stage.currentIndex() + 1
+        #    )
 
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()

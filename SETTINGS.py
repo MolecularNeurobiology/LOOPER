@@ -106,7 +106,7 @@ class SETTINGS:
                 "stage_type": "wait_for_condition",
             },
             "calibration": {
-                "duration": 120,
+                "duration": 20,
                 "savable": True,
                 "special_exit": "na",
                 "stage_type": "timed",
