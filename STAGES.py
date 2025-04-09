@@ -18,7 +18,7 @@ class STAGE(ABC):
         self.pcc.data.time_in_stage_seconds = 0
         self.stage_time_limit = self.pcc.settings.Mode_settings[self.name]["duration"]
         self.save_flag = self.pcc.settings.Mode_settings[self.name]["savable"]
-        self.register_data()
+        # self.register_data()
 
     def test_time_in_stage(self):
         """
@@ -229,109 +229,27 @@ class signal_preview_2(STAGE):
 
 class habituation_1(STAGE):
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("signal_preview_3")
 
 
 class signal_preview_3(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("pre_inject")
 
 
 class pre_inject(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("inject")
 
 
 class inject(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("habituation_2")
 
 
 class habituation_2(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
-        pass
-        print([i for i in range(1000)])
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("baseline")
 
 
 class baseline(STAGE):
@@ -351,7 +269,8 @@ class baseline(STAGE):
         pass
 
     def on_exit(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("challenge")
+
 
     def quality_test(self):
         self.pcc.data.prev_quality_test = int(self.pcc.data.quality_test)
@@ -469,7 +388,8 @@ class challenge(STAGE):
         pass
 
     def on_exit(self):
-        pass
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText("finished")
+
 
     def on_jump_exit(self):
         pass
@@ -482,23 +402,5 @@ class challenge(STAGE):
 
 
 class finished(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
-        pass
-
-    def on_jump_exit(self):
-        pass
-
-    def event_loop(self):
-        pass
-
-    def exit_condition_test(self):
         pass
