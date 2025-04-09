@@ -12,18 +12,19 @@ class STAGE(ABC):
         self.name = name
         self.pcc = pcc
 
-        self.pcc.data.start_time = datetime.now()
+        self.pcc.data.stage_start_time = datetime.now()
         self.pcc.data.current_time = datetime.now()
         self.pcc.data.time_in_stage = 0
         self.pcc.data.time_in_stage_seconds = 0
         self.stage_time_limit = self.pcc.settings.Mode_settings[self.name]["duration"]
+        self.save_flag = self.pcc.settings.Mode_settings[self.name]["savable"]
         self.register_data()
 
     def test_time_in_stage(self):
         """
         returns true if time in stage is greater or equal to the limit for the stage
         """
-        self.pcc.data.time_in_stage = self.pcc.data.current_time - self.pcc.data.start_time
+        self.pcc.data.time_in_stage = self.pcc.data.current_time - self.pcc.data.stage_start_time
         self.pcc.data.time_in_stage_seconds = self.pcc.data.time_in_stage.seconds
 
         if self.stage_time_limit < 0:
@@ -45,9 +46,11 @@ class STAGE(ABC):
 
     
     def on_load(self):
-        self.pcc.data.start_time = datetime.now()
+        self.pcc.data.stage_start_time = datetime.now()
         self.pcc.logger.info(f"STAGE: {self.name}")
         self.pcc.data.automated = False
+        if self.save_flag:
+            self.pcc.output_file_writer.write_header()
         self.additional_on_load()
 
     def additional_on_load(self):
@@ -65,6 +68,7 @@ class STAGE(ABC):
     def event_loop(self):
         self.pcc.data.current_time = datetime.now()
         self.additional_event_loop()
+
 
         if self.exit_condition_test():
             self.pcc.data.automated = True
@@ -167,10 +171,12 @@ class standby(STAGE):
     #     if self.test_time_in_stage():
     #         self.on_exit()
 
-    def additional_exit_test(self):    
-        # test for standby mode completed
+    def additional_event_loop(self):
         if "standby sent" in self.pcc.arduino_string:
             self.pcc.data.arduino_startup_motion_tested = True
+
+    def additional_exit_test(self):
+        if self.pcc.settings.output_path and self.pcc.data.arduino_startup_motion_tested:
             self.on_exit()
 
 
@@ -222,15 +228,6 @@ class signal_preview_2(STAGE):
     
 
 class habituation_1(STAGE):
-    def register_data(self):
-        pass
-
-    def on_load(self):
-        pass
-
-    def additional_on_load(self):
-        pass
-
     def on_exit(self):
         pass
 

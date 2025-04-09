@@ -28,7 +28,7 @@ import os
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QFontDatabase
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QWidget, QFileDialog, QInputDialog, QLineEdit
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
 import sys
@@ -36,6 +36,7 @@ from datetime import datetime
 
 
 # internal libraries
+import fm_tools
 import DATA
 import DETECTORS
 import EFFECTORS
@@ -107,6 +108,7 @@ class MainWindow(QWidget):
             setattr(self, att, val)
 
         self.setWindowTitle(f"PCC-client {version}")
+        self.label_Title_and_Version.setText(f"PCC-client {version}")
 
         # get mac - used for registering with Minerva Server
         self.mac = get_mac()
@@ -151,16 +153,21 @@ class MainWindow(QWidget):
             self.logger.debug("Simulation Mode")
             self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
             self.labjack_stream = STREAMS.SimulatedDataReader(self.logger)
+            self.settings.config_path = "testing.config"
         else:
             self.logger.debug("Live Stream Mode")
             self.arduino_stream = STREAMS.StreamArduino(self.logger)
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
+
+        self.stream_start_ts = datetime.now()
 
         self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
         self.minerva_stream.start()
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
            self.minerva_stream, self.logger
         )
+
+        self.output_file_writer = EFFECTORS.OutputFileWriter(output_path=self.settings.output_path, pcc = self)
 
         self.prepare_stages()
 
@@ -187,6 +194,7 @@ class MainWindow(QWidget):
         self.comboBox_Jump_To_Stage.currentTextChanged.connect(
             self.action_jump_to_stage
         )
+        self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -344,6 +352,22 @@ class MainWindow(QWidget):
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
         self.active_stage.on_load()
 
+    
+    def action_set_output_file_path(self):
+        #if manual oride checkbox checked, manually set filepath, else use automated partsing
+        if self.checkBox_Oride.isChecked():
+            self.settings.output_path = QFileDialog.getSaveFileName(self,caption="select output filename",filter="PCC Output (*.pcco)")
+        else:
+            self.logger.debug(f"generating save path... config: {self.settings.config_path}")
+            self.settings.output_path,_ = fm_tools.generate_rig_save_path(
+                QInputDialog.getText(self, "Scan Barcode","RUID:",QLineEdit.Normal)[0],
+                config_path=self.settings.config_path
+            )
+        self.logger.info(f"output_path set: {self.settings.output_path}")
+        self.output_file_writer.output_path = self.settings.output_path
+        self.label_output_path.setText(self.settings.output_path)
+        self.output_file_writer.write_header()
+
     def action_next_stage(self):
         self.active_stage.on_jump_exit()
         #self.logger.debug(f"stages: {len(self.stage_dict)}")
@@ -383,6 +407,13 @@ class MainWindow(QWidget):
         self.minerva_stream.stop()
 
     def action_stream_timer(self):
+        # determine current time in stream
+        self.data.current_time = datetime.now()
+        self.data.stream_duration = round(
+            (self.data.current_time - self.stream_start_ts).seconds + 
+            ((self.data.current_time - self.stream_start_ts).microseconds)/1000000,
+            6
+        )
         # reset labjack stream if needed
 
         # collect labjack stream !!! move this over into a function call
@@ -425,6 +456,7 @@ class MainWindow(QWidget):
             self.data.data_time += time_increment
             self.data.time = [round((int(self.data.data_time * self.data.data_frequency) - self.data.window + i) / 1000, 3) for i in range(self.data.window)]
 
+            self.data.current_lag = self.data.stream_duration - self.data.data_time
 
             self.data.pneumo = (self.data.pneumo + self.data.new_pneumo)[
                 self.data.window * -2 :
@@ -493,6 +525,8 @@ class MainWindow(QWidget):
             self.data.avg_tt = 999
             self.data.cv_tt = 999
             self.data.avg_dvtv = 999
+
+            self.label_BPM.setText(f"VF: {self.data.avg_bpm}")
         else:
             self.data.avg_tt = numpy.average(
                 [
@@ -528,14 +562,27 @@ class MainWindow(QWidget):
                     if "DVTV" in self.data.breath_list[i].keys()
                 ]
             )
+
+            self.label_BPM.setText(f"VF: {self.data.avg_bpm:.0F}")
+
         if self.data.beat_list is None or len(self.data.beat_list) < 5:
             self.data.avg_hr = "low"
             self.data.avg_rr = 999
             self.data.cv_rr = 999
+
+            self.label_HR.setText(f"HR: {self.data.avg_hr}")
+
         else:
             self.data.avg_rr = self.data.beat_list["rr"].mean()
             self.data.avg_hr = 60 / self.data.avg_rr
             self.data.cv_rr = self.data.beat_list["rr"].std() / self.data.avg_rr
+
+            self.label_HR.setText(f"HR: {self.data.avg_hr:.0F}")
+
+
+        if self.data.breath_list:
+            self.data.ts_last_breath = max(max(self.data.breath_list.keys()),self.data.ts_last_breath)
+        self.data.SLB = self.data.time[-1] - self.data.ts_last_breath
 
         # update plot
         #self.graph1.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
@@ -552,7 +599,11 @@ class MainWindow(QWidget):
         )
 
         # update widgets
-        # !!!
+        self.label_Lag.setText(f"Lag: {self.data.current_lag}")
+        # self.label_Lag.setText(f"t{self.data.stream_duration}-{self.data.data_time}")
+        self.label_SLB.setText(f"SLB: {self.data.SLB:.3F}")
+        self.label_Time_In_Stage.setText(f"time in stage (sec): {self.data.time_in_stage_seconds}")
+
 
         # collect arduino stream
         Arduino_Dump_Toggle = 0
@@ -576,7 +627,7 @@ class MainWindow(QWidget):
 
         # collect minerva stream
         if self.minerva_stream_reader.data:
-            self.logger.info(self.minerva_stream_reader.data)
+            self.logger.debug(self.minerva_stream_reader.data)
             print(f"minerva - {self.minerva_stream_reader.data}")
             self.minerva_stream_reader.data = None
 
@@ -584,7 +635,7 @@ class MainWindow(QWidget):
 
 
         # refresh gui (if needed)
-        self.time_in_stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
+        self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
         # check for effector or auto_advance
         self.active_stage.event_loop()
 

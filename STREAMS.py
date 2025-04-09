@@ -10,7 +10,7 @@ import threading
 from copy import deepcopy
 from datetime import datetime
 import math
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 import u6
 import serial
 
@@ -141,6 +141,7 @@ class SimulatedDataReader:
         self.missed = []
         self.errors = []
         self.data_sim_timer = QTimer()
+        self.data_sim_timer.setTimerType(Qt.PreciseTimer)
         self.data_sim_timer.timeout.connect(self.readStreamData)
 
         self.sim_sig_3Hz = [math.sin(i * 6.28 * 3) for i in range(60000)]

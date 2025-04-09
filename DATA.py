@@ -2,6 +2,8 @@
 
 __version__ = "0.1.0"
 
+from datetime import datetime
+
 #!!! TODO, clean this up - a lot of these are not needed and can be moved to STAGE specific data
 
 
@@ -24,6 +26,9 @@ class DATA:
 
         self.flow_thresh_to_use = 1
 
+
+        
+
         # instantaneous_arrays
         # self.new_time = []
         # self.new_pneumo = []
@@ -41,9 +46,19 @@ class DATA:
         self.avg_tv = None
         self.avg_bsd = None
         self.avg_dvtv = None
+        self.SLB = None
 
-        # self.current_time = None
-        # self.curreng_lag = None
+        self.ts_last_breath = 0
+        self.stream_duration = 0
+
+        self.current_lag = None
+
+        # stage values
+        
+        self.start_time = datetime.now()
+        self.current_time = datetime.now()
+        self.time_in_stage = 0
+        self.time_in_stage_seconds = 0
         # self.current_mode = None
         # self.flow_thresh_to_use = 1
 

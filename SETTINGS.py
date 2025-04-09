@@ -17,6 +17,10 @@ testing_credentials = {
 class SETTINGS:
     def __init__(self):
 
+        self.output_path = None
+        self.config_path = "/home/pi/rig.config"
+
+
         ## settings:
         self.filt_crit_Dict = {
             "avgBPM": 250,
