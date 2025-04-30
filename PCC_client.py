@@ -428,7 +428,7 @@ class MainWindow(QWidget):
                 self.data.error_list.append(result["errors"])
                 self.data.missed += result["missed"]
                 print(
-                    "+++++ Total Errors: %s, Total Missed: %s +++++" % (errors, missed)
+                    "+++++ Total Errors: %s, Total Missed: %s +++++" % (self.data.errors, self.data.missed)
                 )
 
             # Convert the raw bytes (result['result']) to voltage data.
@@ -599,7 +599,7 @@ class MainWindow(QWidget):
         )
 
         # update widgets
-        self.label_Lag.setText(f"Lag: {self.data.current_lag}")
+        self.label_Lag.setText(f"Lag: {self.data.current_lag:.2F}")
         # self.label_Lag.setText(f"t{self.data.stream_duration}-{self.data.data_time}")
         self.label_SLB.setText(f"SLB: {self.data.SLB:.3F}")
         self.label_Time_In_Stage.setText(f"time in stage (sec): {self.data.time_in_stage_seconds}")
