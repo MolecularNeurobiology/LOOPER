@@ -10,7 +10,7 @@ import threading
 from copy import deepcopy
 from datetime import datetime
 import math
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt, QThreadPool, QRunnable
 import u6
 import serial
 
@@ -55,7 +55,10 @@ class StreamArduino(object):
             self.Connected_Arduino = False
 
     def sendCommand(self, command):
-        self.device.write(command.encode())
+        try:
+            self.device.write(command)
+        except Exception as e:
+            print(f"unable to send command {e}")
 
     def readStreamData(self):
         while not self.finished:
@@ -208,10 +211,23 @@ class SimulatedDataReader:
         self.finished = True
 
 
+class Worker(QRunnable):
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.setAutoDelete(True)
+        
+    def run(self):
+        self.func(*self.args, **self.kwargs)
+
+
 class StreamDataReader(object):
     def __init__(self, logger):
         self.logger = logger
         self.device = u6.U6()
+        
 
         self.channel_list = [0, 1, 2, 3, 4, 5]
         self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
@@ -230,7 +246,7 @@ class StreamDataReader(object):
         self.sample_frequency = self.scan_frequency * self.number_channels
         self.update_interval_ms = 100
         self.samples_per_interval = int(
-            self.update_interval / 1000 * self.sample_frequency
+            self.update_interval_ms / 1000 * self.sample_frequency
         )
 
         self.lag = 0
@@ -257,6 +273,9 @@ class StreamDataReader(object):
         self.device.setDIOState(1, 0)
         self.device.setDIOState(2, 0)
         self.device.setDIOState(3, 0)
+        
+        
+        self.readStreamData()
 
     def get_labjack_temperature(self):
         return self.device.getTemperature() - 273.15
@@ -277,23 +296,44 @@ class StreamDataReader(object):
             self.start = datetime.now()
             self.readCount = 0
             self.device.streamStart()
+            print("Stream Started")
+        except Exception:
+            print("stream error")
+            try:
+                # Try to stop stream mode. Ignore exception if it fails.
+                self.device.streamStop()
+            except:
+                pass
+            #self.finished = True
+            e = sys.exc_info()[1]
+            print("readStreamData exception: %s %s" % (type(e), e))
+        self.data_timer = QTimer()
+        self.data_timer.setTimerType(Qt.PreciseTimer)
+        self.data_timer.timeout.connect(self.readStreamDataThread)
 
-            while not self.finished:
-                # Calling with convert = False, because we are going to convert in
-                # the main thread.
-                returnDict = next(self.device.streamData(convert=False))
-                if returnDict is None:
-                    print("No stream data")
-                    continue
+        self.update_interval_ms = 100
 
-                self.data.put_nowait(deepcopy(returnDict))
+        self.data_timer.start(self.update_interval_ms)
 
-                self.missed += returnDict["missed"]
-                self.readCount += 1
-                self.current = datetime.now()
+    def readStreamDataThread(self):
+        try:
 
-            print("Stream stopped.\n")
-            self.device.streamStop()
+            
+            # Calling with convert = False, because we are going to convert in
+            # the main thread.
+            returnDict = next(self.device.streamData(convert=False))
+            if returnDict is None:
+                print("No stream data")
+                #continue
+
+            self.data.put_nowait(deepcopy(returnDict))
+
+            self.missed += returnDict["missed"]
+            self.readCount += 1
+            self.current = datetime.now()
+
+            #print("Stream stopped.\n")
+            #self.device.streamStop()
 
         except Exception:
             try:

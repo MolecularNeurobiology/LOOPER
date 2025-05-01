@@ -138,6 +138,7 @@ class MainWindow(QWidget):
         # create some default variable values
         self.stage_dict = {}
         self.automated = False
+        self.arduino_string = ""
 
         # populate data class
         self.data = DATA.DATA()
@@ -429,11 +430,11 @@ class MainWindow(QWidget):
             # If there were errors, print that.
             if result["errors"] != 0:
                 # !!!
-                self.data.errors += result["errors"]
-                self.data.error_list.append(result["errors"])
-                self.data.missed += result["missed"]
+                #self.data.errors += result["errors"]
+                #self.data.error_list.append(result["errors"])
+                #self.data.missed += result["missed"]
                 print(
-                    "+++++ Total Errors: %s, Total Missed: %s +++++" % (self.data.errors, self.data.missed)
+                    "+++++ Errors: , Total Missed:  +++++"
                 )
 
             # Convert the raw bytes (result['result']) to voltage data.
@@ -604,7 +605,10 @@ class MainWindow(QWidget):
         )
 
         # update widgets
-        self.label_Lag.setText(f"Lag: {self.data.current_lag:.2F}")
+        try:
+            self.label_Lag.setText(f"Lag: {self.data.current_lag:.2F}")
+        except:
+            self.label_Lag.setText(f"Lag: {self.data.current_lag}")
         # self.label_Lag.setText(f"t{self.data.stream_duration}-{self.data.data_time}")
         self.label_SLB.setText(f"SLB: {self.data.SLB:.3F}")
         self.label_Time_In_Stage.setText(f"time in stage (sec): {self.data.time_in_stage_seconds}")
