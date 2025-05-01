@@ -51,8 +51,13 @@ def get_mac():
     interfaces = psutil.net_if_addrs()
     for i_name, i_addr in interfaces.items():
         for addr in i_addr:
-            if addr.family == psutil.AF_LINK or addr.family == psutil.AF_PACKET:
-                return addr.address
+            try:
+                if addr.family == psutil.AF_LINK: #or addr.family == psutil.AF_PACKET: <--removed, incompatible on raspi?
+                    return addr.address
+                else:
+                    return "nn:nn:nn:nn"
+            except:
+                return "na:na:na:na"
 
 
 # %% define classes
