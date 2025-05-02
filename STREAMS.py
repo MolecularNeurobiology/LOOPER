@@ -13,6 +13,7 @@ import math
 from PySide6.QtCore import QTimer, Qt, QThreadPool, QRunnable
 import u6
 import serial
+import serial.tools.list_ports as stl
 
 
 # Arduino Related
@@ -23,13 +24,13 @@ class StreamArduino(object):
         self.device = serial.Serial()
         self.device.baudrate = 9600
         self.data = Queue.Queue()
-        self.finished = True
+        self.finished = False
         self.Connected_Arduino = False
-
+        
         try:
             # search for Arduino on comports
             arduino_list = []
-            device_list = [d for d in serial.tools.list_ports.comports()]
+            device_list = [d for d in stl.comports()]
             for d in device_list:
                 if d.manufacturer is not None and "Arduino" in d.manufacturer:
                     arduino_list.append(d)
@@ -53,18 +54,29 @@ class StreamArduino(object):
             self.finished = False
         except:
             self.Connected_Arduino = False
+            
+        #self.update_interval_ms = 1000
+        #self.arduino_sim_timer = QTimer()
+        #self.arduino_sim_timer.timeout.connect(self.readStreamData)
+        #self.arduino_sim_timer.start(self.update_interval_ms)
+        self.ard_worker = Worker(self.readStreamData)
+        self.ard_thread = QThreadPool()
+        self.ard_thread.start(self.ard_worker)
+        
 
     def sendCommand(self, command):
         try:
-            self.device.write(command)
+            self.device.write(str.encode(command))
         except Exception as e:
             print(f"unable to send command {e}")
 
     def readStreamData(self):
+        #print("check Arduino")
         while not self.finished:
-            self.finished = False
-            returnText = self.device.read(1000)
-            self.data.put_nowait(deepcopy(returnText))
+            returnText = self.device.readline().decode()
+            if returnText:
+                self.data.put_nowait(deepcopy(returnText))
+            
 
 
 class SimulatedArduino:

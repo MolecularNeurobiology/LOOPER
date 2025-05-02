@@ -99,6 +99,9 @@ class QTextEditLogger(logging.Handler):
         else:
             msg = f'<span style="color:black"><strong>{msg}</strong></span><br>'
         self.log_emitter.log.emit(msg)
+        self.widget.verticalScrollBar().setSliderPosition(
+            self.widget.verticalScrollBar().maximum()
+            )
 
 
 class MainWindow(QWidget):
@@ -389,7 +392,8 @@ class MainWindow(QWidget):
 
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
-        self.logger.info(f"Sending: {command}")
+        print(command)
+        self.logger.info(f"Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
         self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
@@ -411,6 +415,7 @@ class MainWindow(QWidget):
     def kill_app(self):
         # wait on threads for clean exit?
         self.minerva_stream.stop()
+        self.arduino_stream.finished = True
 
     def action_stream_timer(self):
         # determine current time in stream
@@ -623,7 +628,7 @@ class MainWindow(QWidget):
             Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
             self.arduino_list = [
-                i.decode() for i in arduino_out.split(b"\r\n") if i != b" " and i != b""
+                i for i in arduino_out.split("\r\n") if i != " " and i != ""
             ]
             self.arduino_string = "".join(self.arduino_list)
             for i in self.arduino_list:
