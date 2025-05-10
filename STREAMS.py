@@ -393,6 +393,8 @@ class MinervaReceiver:
             print(command.type._name_ == "GO_TO_NEXT_STEP")
             if command.type._name_ == "GO_TO_NEXT_STEP":
                 pcc.action_next_stage()
+            else:
+                pcc.logger.warning(f"unknown minerva command: {command.__dict__}")
 
     def readStreamData(self):
         if self.minerva_plugin_object is not None:
