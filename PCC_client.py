@@ -27,13 +27,14 @@ import numpy
 import os
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QFontDatabase, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
     QFileDialog,
     QInputDialog,
     QLineEdit,
+    QMainWindow
 )
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
@@ -114,18 +115,27 @@ class QTextEditLogger(logging.Handler):
         )
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self, version, ui, parsed_args, app):
         super().__init__()
 
         self.app = app
+        self.ui = ui 
+        self.version = version
+        self.parsed_args = parsed_args
 
-        self.ui = ui
+        self.exit_status = "running"
+        
+
         # migrate ui children to parent level of class
+        # !!! note this creates some odd behavior when closing the window
+        # calls to self.close will not succeed, but self.ui.close will
+        # it looks like not all of the attributes/methods are linked, some are 
+        # pseudo copied.
         for att, val in ui.__dict__.items():
             setattr(self, att, val)
 
-        self.setWindowTitle(f"PCC-client {version}")
+        self.setWindowTitle(f"PCC-client {self.version}")
         self.label_Title_and_Version.setText(f"PCC-client {version}")
 
         # get mac - used for registering with Minerva Server
@@ -173,16 +183,16 @@ class MainWindow(QWidget):
         self.settings = SETTINGS.SETTINGS()
 
         # override settings with CL arguments if provided
-        if parsed_args.simulation:
+        if self.parsed_args.simulation:
             self.settings.sim_mode_labjack = 1
             self.settings.sim_mode_arduino = 1
-        if parsed_args.simulation_labjack:
+        if self.parsed_args.simulation_labjack:
             self.settings.sim_mode_labjack = 1
-        if parsed_args.simulation_arduino:
+        if self.parsed_args.simulation_arduino:
             self.settings.sim_mode_arduino = 1
 
         # set kill mode if CL option provided
-        self.kill_after_count = parsed_args.kill
+        self.kill_after_count = self.parsed_args.kill
 
         # configure i/o
         if self.settings.sim_mode_labjack == 1:
@@ -244,6 +254,9 @@ class MainWindow(QWidget):
             self.action_jump_to_stage
         )
         self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
+        self.pushButton_RESET.clicked.connect(self.action_RESET)
+        self.pushButton_SHUTDOWN.clicked.connect(self.action_SHUTDOWN)
+        
 
         # arduino quick command buttons
         self.pushButton_f00.clicked.connect(self.action_f00)
@@ -252,6 +265,8 @@ class MainWindow(QWidget):
         self.pushButton_c01.clicked.connect(self.action_c01)
         self.pushButton_v00.clicked.connect(self.action_v00)
         self.pushButton_v01.clicked.connect(self.action_v01)
+        self.pushButton_ljssa000.clicked.connect(self.action_ljssa000)
+        self.pushButton_ljssa025.clicked.connect(self.action_ljssa025)
         self.pushButton_transmit_arduino_quick_command.clicked.connect(
             self.action_transmit_arduino_quick_command
         )
@@ -259,6 +274,16 @@ class MainWindow(QWidget):
         self.comboBox_arduino_quick_command.addItems(
             ["<P,4,0>", "<P,1,0>", "<P,4,1>", "<P,1,1>", "<P,3,2>"]
         )
+
+    def action_RESET(self):
+        self.exit_status = "RESET"
+        self.ui.close()
+        
+
+    def action_SHUTDOWN(self):
+        self.exit_status = "SHUTDOWN"
+        self.ui.close()
+        
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -413,12 +438,20 @@ class MainWindow(QWidget):
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
         self.active_stage.on_load()
 
-    def action_set_output_file_path(self):
+    def action_set_output_file_path(self, barcode = None):
         # if manual oride checkbox checked, manually set filepath, else use automated partsing
         if self.checkBox_Oride.isChecked():
             self.settings.output_path = QFileDialog.getSaveFileName(
                 self, caption="select output filename", filter="PCC Output (*.pcco)"
             )[0]
+        elif barcode:
+            self.logger.info(
+                f"generating save path... config: {self.settings.config_path}"
+            )
+            self.settings.output_path, _ = fm_tools.generate_rig_save_path(
+                barcode,
+                config_path=self.settings.config_path,
+            )
         else:
             self.logger.info(
                 f"generating save path... config: {self.settings.config_path}"
@@ -499,6 +532,14 @@ class MainWindow(QWidget):
 
     def action_v01(self):
         self.arduino_stream.sendCommand("<V,0,1>")
+
+    def action_ljssa000(self):
+        print('ljssa000')
+        self.labjack_stream.set_sim_sig_ain(0,0)
+
+    def action_ljssa025(self):
+        print('ljssa025')
+        self.labjack_stream.set_sim_sig_ain(0,2.5)
 
     def action_transmit_arduino_quick_command(self):
         self.arduino_stream.sendCommand(
@@ -835,104 +876,6 @@ class MainWindow(QWidget):
         self.payload_counter += 10
 
 
-"""
-        {
-  "macAddress": "b3:99:80:21:6a:5f",
-  "stages": [
-    {
-      "name": "STARTUP",
-      "type": "wait_for_user"
-    },
-    {
-      "name": "STANDBY",
-      "type": "wait_for_user"
-    },
-    {
-      "name": "SIG_PREVIEW_1",
-      "type": "timed",
-      "durationInSeconds": 30
-    },
-    {
-      "name": "CALIBRATION",
-      "type": "wait_for_condition"
-    },
-    {
-      "name": "SIG_PREVIEW_2",
-      "type": "timed",
-      "durationInSeconds": 30
-    },
-    {
-      "name": "HABITUATION",
-      "type": "timed",
-      "durationInSeconds": 300
-    },
-    {
-      "name": "BASELINE",
-      "type": "timed",
-      "durationInSeconds": 60
-    },
-    {
-      "name": "CHALLENGE",
-      "type": "timed",
-      "durationInSeconds": 120
-    }
-  ],
-  "signals": [
-    {
-      "name": "Heart Rate",
-      "type": "time_series",
-      "xUnit": "seconds",
-      "yUnit": "bpm",
-      "xWindowMinInSeconds": 0,
-      "xWindowMaxInSeconds": 300,
-      "yWindowMinInSeconds": 0,
-      "yWindowMaxInSeconds": 200,
-      "data": [
-        {
-          "x": 0,
-          "y": 170
-        },
-        {
-          "x": 0.1,
-          "y": 171
-        },
-        {
-          "x": 0.2,
-          "y": 173
-        },
-        ...many more
-      ]
-    },
-    {
-      "name": "Status",
-      "type": "status",
-      "data": true
-    },
-    {
-      "name": "Debug Info",
-      "type": "debug",
-      "data": "Simulation running normally"
-    }
-  ],
-  "currentStage": "NOT_STARTED"
-}
-"""
-
-## Timers (to create event loops)
-# receiver_timer
-
-# broadcast_timer
-
-# status_pulse_timer
-
-# experiment_loop_timer
-
-## METHODS
-
-# send out pulse
-
-# experiment loop
-
 
 # %% define main
 def main():
@@ -961,28 +904,46 @@ def main():
     loader = QUiLoader()
     global app
     app = QApplication(args)
+    
+    restarts = 0
 
-    ui_file = QFile(os.path.join(os.path.dirname(__file__), "PCC_client.ui"))
+    while True:
 
-    ui = loader.load(ui_file)
+        ui_file = QFile(os.path.join(os.path.dirname(__file__), "PCC_client.ui"))
 
-    window = MainWindow(__version__, ui, parsed_args, app)
+        ui = loader.load(ui_file)
 
-    app.aboutToQuit.connect(window.kill_app)
 
-    window.version_info = {
-        "main": __version__,
-        "DETECTORS": DETECTORS.__version__,
-        "EFFECTORS": EFFECTORS.__version__,
-        "STREAMS": STREAMS.__version__,
-        "SETTINGS": SETTINGS.__version__,
-    }
+        print(f"window - {restarts}")
+        window = MainWindow(__version__, ui, parsed_args, app)
 
-    window.ui.show()
-    window.action_start_timers()
-    print("running")
-    # app.exec()
-    sys.exit(app.exec())
+        app.aboutToQuit.connect(window.kill_app)
+
+        window.version_info = {
+            "main": __version__,
+            "DETECTORS": DETECTORS.__version__,
+            "EFFECTORS": EFFECTORS.__version__,
+            "STREAMS": STREAMS.__version__,
+            "SETTINGS": SETTINGS.__version__,
+        }
+
+        window.ui.show()
+        window.action_start_timers()
+        print("running")
+        
+        print(window.exit_status)
+        
+        exit_code = app.exec()
+        
+        
+        if window.exit_status == "SHUTDOWN":
+            print("shutting down")
+            sys.exit(exit_code)
+        
+        print("restarting PCC_client")
+        restarts += 1
+    sys.exit(exit_code)
+        
 
 
 # run main

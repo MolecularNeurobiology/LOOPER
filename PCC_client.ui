@@ -422,12 +422,12 @@
      <string>TextLabel</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="pushButton_RESET">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>650</x>
       <y>10</y>
-      <width>75</width>
+      <width>41</width>
       <height>23</height>
      </rect>
     </property>
@@ -547,6 +547,45 @@
     </property>
     <property name="text">
      <string>transmit</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ljssa000">
+    <property name="geometry">
+     <rect>
+      <x>910</x>
+      <y>660</y>
+      <width>81</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>lj,ssa,0,0</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ljssa025">
+    <property name="geometry">
+     <rect>
+      <x>910</x>
+      <y>690</y>
+      <width>81</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>lj,ssa,0,2.5</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_SHUTDOWN">
+    <property name="geometry">
+     <rect>
+      <x>574</x>
+      <y>10</y>
+      <width>81</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>SHUTDOWN</string>
     </property>
    </widget>
   </widget>

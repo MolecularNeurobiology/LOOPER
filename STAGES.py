@@ -60,8 +60,13 @@ class STAGE(ABC):
 
     def on_exit(self):
         self.additional_on_exit()
-        if self.pcc.automated:
-            
+        if not self.pcc.data.advanceable:
+            if "unable_to_advance" in self.pcc.data.error_dict:
+                pass
+            else:
+                self.pcc.data.error_dict["unable_to_advance"] = {"message":"unable to advance to next stage, criteria not yet met"}
+                self.pcc.logger.warning("unable to advance to next stage, criteria not yet met")
+        elif self.pcc.automated:
             self.pcc.comboBox_Jump_To_Stage.setCurrentText(self.next_stage)
 
     def event_loop(self):
@@ -81,6 +86,7 @@ class STAGE(ABC):
         # test for time
         if self.test_time_in_stage():
             self.on_exit()
+        # test for more complicated condition
         if self.additional_exit_test():
             self.on_exit()
 
@@ -96,7 +102,7 @@ class startup1(STAGE):
     def additional_exit_test(self):
         # test for startup tests passed
         if "startup sent" in self.pcc.arduino_string:
-            self.on_exit()
+            return True
 
 
 class startup2(STAGE):
@@ -112,7 +118,7 @@ class startup2(STAGE):
         # test for startup tests passed
         if "finish startup" in self.pcc.arduino_string:
             self.pcc.data.arduino_startup_motion_tested = True
-            self.on_exit()
+            return True
 
 
 class standby(STAGE):
@@ -129,11 +135,22 @@ class standby(STAGE):
             self.pcc.settings.output_path
             and self.pcc.data.arduino_startup_motion_tested
         ):
-            self.on_exit()
+            return True
 
 
 class signal_preview_1(STAGE):
-    pass
+    # this stage will create a holding point that will prevent 
+    # "automated advance" if an output filename is not set
+    def additional_on_load(self):
+        super().additional_on_load()
+        self.pcc.data.advanceable = False
+
+    def additional_event_loop(self):
+        super().additional_event_loop()
+        if not self.pcc.data.advanceable and self.pcc.settings.output_path:
+            self.pcc.data.advanceable = True
+            if "unable_to_advance" in self.pcc.data.error_dict:
+                self.pcc.data.error_dict.pop("unable_to_advance")
 
 
 class calibration(STAGE):
@@ -209,13 +226,6 @@ class baseline(STAGE):
         self.pcc.data.baseline_itv = 0
         self.pcc.data.baseline_rr = 0
         self.pcc.data.baseline_hr = 0
-        # self.pcc.data.avgTT = 0  # how to handle common summary measures that are common between stages but not used in all stages TODO !!!
-        # self.pcc.data.cvTT = 0
-        # self.pcc.data.avgHR = 0
-        # self.pcc.data.avgRR = 0
-        # self.pcc.data.cvRR = 0
-        # self.pcc.data.BSD = 0
-        # self.pcc.data.DVTV = 0
 
     def additional_on_load(self):
         self.filt_crit_Dict = {
@@ -259,19 +269,33 @@ class baseline(STAGE):
     def additional_exit_test(self):
         # if quality time > minimum quality time return True
         if self.pcc.data.quality_test == 0:
+            # debug
+            self.pcc.label_debug.setText(f"DEBUG: QualStatus {self.pcc.data.quality_test} - {int(self.pcc.data.qb_timer)}")
+            
             if (
                 self.pcc.data.qb_timer
                 > self.setting_dict["minimum_cummulative_QB_duration"]
-            ):
+            ) and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
+                self.pcc.logger.info(
+                    f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit}), QB duration met {self.pcc.data.qb_timer}"
+                )
+                self.pcc.automated = True
                 return True
             else:
                 return False
         else:
+            # debug
+            self.pcc.label_debug.setText(f"DEBUG: QualStatus {self.pcc.data.quality_test} - {int(self.pcc.data.qb_timer+self.pcc.data.quality_seg_list[-1][1]-self.pcc.data.quality_seg_list[-1][0])}")
+            
             if (
                 self.pcc.data.qb_timer
                 + self.pcc.data.quality_seg_list[-1][1]
                 - self.pcc.data.quality_seg_list[-1][0]
-            ) > self.setting_dict["minimum_cummulative_QB_duration"]:
+            ) > self.setting_dict["minimum_cummulative_QB_duration"] and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
+                self.pcc.logger.info(
+                    f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit}), QB duration met {self.pcc.data.qb_timer}"
+                )
+                self.pcc.automated = True
                 return True
             else:
                 return False
@@ -310,6 +334,8 @@ class baseline(STAGE):
                 self.pcc.data.quality_seg_list[-1][1]
                 - self.pcc.data.quality_seg_list[-1][0]
             )
+        # debugging - 
+
 
 
 class challenge(STAGE):
