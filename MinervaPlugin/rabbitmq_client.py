@@ -3,13 +3,14 @@ import time
 import pika
 import logging
 try:
-    from config import RABBITMQ_SERVER
+    from config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
 except:
-    from .config import RABBITMQ_SERVER
+    from .config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
 class RabbitMQClient:
-    def __init__(self, logger, queue, id = None):
+    def __init__(self, logger, queue, id = None, use_ttl = False):
         self.logger = logger
         self.id = id
+        self.use_ttl = use_ttl  # Flag to determine if TTL should be applied
         _queue = f"{queue}-{id.replace(":", "")}" if id is not None else queue
         logger.info(f"Attempting to connect to {_queue}")
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
@@ -17,11 +18,39 @@ class RabbitMQClient:
         self.queue = _queue
 
     def send_message(self, message):
-        self.channel.queue_declare(queue=self.queue, durable=True)
-        self.channel.basic_publish(exchange='', routing_key=self.queue, body=message)
+        if self.use_ttl:
+            # Calculate TTL in milliseconds
+            ttl_ms = STREAM_MESSAGE_TTL_SECONDS * 1000
+
+            # Declare queue with TTL for streaming data
+            # Messages older than TTL will be automatically discarded
+            self.channel.queue_declare(
+                queue=self.queue,
+                durable=True,
+                arguments={'x-message-ttl': ttl_ms}
+            )
+            # Publish message with TTL properties
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.queue,
+                body=message,
+                properties=pika.BasicProperties(expiration=str(ttl_ms))  # TTL per message
+            )
+        else:
+            # Declare queue without TTL for ping/command queues
+            self.channel.queue_declare(
+                queue=self.queue,
+                durable=True
+            )
+            # Publish message without TTL
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=self.queue,
+                body=message
+            )
 
     def reconnect(self):
-        self.connection.close() 
+        self.connection.close()
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self.logger.info("Reconnected to RabbitMQ server.")
@@ -40,7 +69,7 @@ class RabbitMQClient:
                 self.channel.start_consuming()
             except pika.exceptions.AMQPConnectionError as e:
                 self.logger.error("Connection lost, retrying in 5 seconds...")
-                self.reconnect() 
+                self.reconnect()
                 time.sleep(5)
 
     def close(self):
