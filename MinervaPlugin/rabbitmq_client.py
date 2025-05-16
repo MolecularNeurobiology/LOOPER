@@ -10,7 +10,7 @@ class RabbitMQClient:
     def __init__(self, logger, queue, id = None):
         self.logger = logger
         self.id = id
-        _queue = f"{queue}-{id.replace(":", "")}" if id is not None else queue
+        _queue = f"{queue}-{id.replace(':', '')}" if id is not None else queue
         logger.info(f"Attempting to connect to {_queue}")
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
@@ -23,7 +23,7 @@ class RabbitMQClient:
         self.channel.basic_publish(exchange='', routing_key=self.queue, body=message)
 
     def reconnect(self):
-        self.connection.close() 
+        self.connection.close()
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self.logger.info("Reconnected to RabbitMQ server.")
@@ -42,7 +42,7 @@ class RabbitMQClient:
                 self.channel.start_consuming()
             except pika.exceptions.AMQPConnectionError as e:
                 self.logger.error("Connection lost, retrying in 5 seconds...")
-                self.reconnect() 
+                self.reconnect()
                 time.sleep(5)
         print("rabbit mq _is_running False")
         self.close()
@@ -51,4 +51,3 @@ class RabbitMQClient:
     def close(self):
         self.channel.close()
         self.connection.close()
-
