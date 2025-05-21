@@ -15,15 +15,15 @@ fi
 source $VENV_DIR/bin/activate
 
 # Check if RabbitMQ Docker container is running
-if [ ! "$(docker ps -q -f name=rabbitmq)" ]; then
-    echo "RabbitMQ container not running, starting it..."
-    docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.0-management &
-    echo "RabbitMQ container started."
+# if [ ! "$(docker ps -q -f name=rabbitmq)" ]; then
+#     echo "RabbitMQ container not running, starting it..."
+#     docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:4.0-management &
+#     echo "RabbitMQ container started."
 
-    sleep 5
-else
-    echo "RabbitMQ container is already running."
-fi
+#     sleep 5
+# else
+#     echo "RabbitMQ container is already running."
+# fi
 
 # Install required packages
 pip install -r requirements.txt

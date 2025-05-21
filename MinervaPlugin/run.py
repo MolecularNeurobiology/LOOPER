@@ -31,21 +31,5 @@ class Run(ABC):
     def get_current_step_name(self):
         return self.steps[self.current_step_index].name
 
-    @abstractmethod
-    def define_steps(self):
-        pass
-
-class BasicRun(Run):
-    def __init__(self):
-        super().__init__()
-        self.define_steps()
-
-    def define_steps(self):
-       self.define_step(Step(name="STARTUP"))
-       self.define_step(Step(name="STANDBY"))
-       self.define_step(Step(name="SIG_PREVIEW_1"))
-       self.define_step(Step(name="CALIBRATION"))
-       self.define_step(Step(name="SIG_PREVIEW_2"))
-       self.define_step(Step(name="HABITUATION"))
-       self.define_step(Step(name="BASELINE"))
-       self.define_step(Step(name="CHALLENGE"))
+    def define_steps(self, steps: list[Step]):
+        self.steps = steps
