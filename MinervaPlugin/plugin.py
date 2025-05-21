@@ -104,7 +104,7 @@ class Plugin:
             ping_message = json.dumps(payload)
 
             self._rabbit_mq_client_producer.send_message(ping_message)
-            self._log_info(f"Ping sent to the server. {payload}")
+            self._log_debug(f"Ping sent to the server. {payload}")
     
     def _stream_data_to_server(self):
         """
@@ -195,6 +195,7 @@ class Plugin:
             self._log_info(f"Stream data updated")
 
     def _listen_for_commands(self):
+        # added passthrough of _is_running to help with stopping on exit
         self._rabbit_mq_client_consumer.consume_message(self._handle_command)
     
     def _ping_loop(self):
@@ -244,6 +245,10 @@ class Plugin:
         if self._logger is not None:
             self._logger.error(message)
 
+    def _log_debug(self, message):
+        if self._logger is not None:
+            self._logger.debug(message)
+
     def stop(self):
         """
         Stops the plugin by terminating its threads and ensuring proper cleanup.
@@ -251,10 +256,13 @@ class Plugin:
         This method stops the ping loop and the command listening thread, ensuring 
         all threads are safely joined.
         """
+        
+        print("MP STOP ATTEMPTED")
         self._is_running = False
         self._is_streaming = False  # Also stop streaming
         
         if self._ping_thread:
+
             self._ping_thread.join(timeout=5)  # Ensure the ping thread finishes (with timeout)
             self._log_info("Ping thread stopped.")
         

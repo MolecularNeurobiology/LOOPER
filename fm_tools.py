@@ -245,8 +245,9 @@ def generate_rig_save_path(filename, config_path=None):
         'user':config['USER'],
         'password':config['PASSWORD']
     }
-            
+    print(f"generate_rig_save_path filename {filename}")
     ruid = extract_ruid(filename)
+    print(ruid)
     
     query_dict = pull_specific_record(
         credentials, 

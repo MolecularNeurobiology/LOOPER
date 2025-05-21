@@ -17,6 +17,10 @@ testing_credentials = {
 class SETTINGS:
     def __init__(self):
 
+        self.output_path = None
+        self.config_path = "/home/pi/rig.config"
+
+
         ## settings:
         self.filt_crit_Dict = {
             "avgBPM": 250,
@@ -80,45 +84,86 @@ class SETTINGS:
         self.Challenge_phrase = "Finished: On Anoxic"
         self.Challenge_Delay = 5.0
 
-        self.Mode_dict = {
-            0: "startup",
-            1: "standby",
-            2: "Signal Preview 1",
-            3: "calibration",
-            4: "Signal Preview 2",
-            5: "Habituation-1",
-            6: "Signal Preview 3",
-            7: "Pre-Inject",
-            8: "Inject",
-            9: "Habituation-2",
-            10: "Baseline",
-            11: "Challenge",
-            12: "Finished",
+        self.Mode_settings = {
+            "startup1": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "startup2": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "standby": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "signal_preview_1": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "calibration": {
+                "duration": 20,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "timed",
+            },
+            "signal_preview_2": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "habituation_1": {
+                "duration": 30 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "state_type": "timed",
+            },
+            "pre_inject": {
+                "duration": 2 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "inject": {
+                "duration": -1,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
+            "habituation_2": {
+                "duration": 30 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "timed",
+            },
+            "baseline": {
+                "duration": 2 * 60,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "challenge": {
+                "duration": -1,
+                "savable": True,
+                "special_exit": "na",
+                "stage_type": "wait_for_condition",
+            },
+            "finished": {
+                "duration": -1,
+                "savable": False,
+                "special_exit": "na",
+                "stage_type": "wait_for_user",
+            },
         }
-        self.Mode_timing = {
-            0: -0.02,
-            1: -0.02,
-            2: -0.02,
-            3: 60 * 2,
-            4: -0.02,
-            5: 30 * 60,
-            6: 0,
-            7: 0,
-            8: 0,
-            9: 0,
-            10: 2 * 60,
-            11: -0.02,
-            12: -0.02,
-        }
-
-        self.savable_modes = [
-            "calibration",
-            "Habituation-1",
-            "Pre-Inject",
-            "Habituation-2",
-            "Baseline",
-            "Challenge",
-        ]
 
         self.sim_mode = 0
 

@@ -120,6 +120,7 @@ def basic_breathcall(
     # fill in BC measures TE PEF eTV
     for i in range(len(BC_list) - 1):
         BC[BC_list[i]]["TE"] = BC[BC_list[i + 1]]["TS-I"] - BC[BC_list[i]]["TS-E"]
+        BC[BC_list[i]]["TT"] = BC[BC_list[i]]["TI"] + BC[BC_list[i]]["TE"]
         # BC[ts[BC_list[i]]]['PEF']=min(CT[BC[BC_list[i]]['k']:BC[BC_list[i+1]]['j']])
         BC[BC_list[i]]["eTV"] = (
             sum(CT[BC[BC_list[i]]["k"] : BC[BC_list[i + 1]]["j"]]) * -1

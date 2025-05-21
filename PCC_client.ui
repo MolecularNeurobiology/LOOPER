@@ -186,7 +186,7 @@
      <string>HR</string>
     </property>
    </widget>
-   <widget class="QLabel" name="SLB">
+   <widget class="QLabel" name="label_SLB">
     <property name="geometry">
      <rect>
       <x>870</x>
@@ -199,7 +199,7 @@
      <string>SLB</string>
     </property>
    </widget>
-   <widget class="QLabel" name="SLB_2">
+   <widget class="QLabel" name="label_Lag">
     <property name="geometry">
      <rect>
       <x>870</x>
@@ -222,7 +222,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_Jump_To_Stage">
+   <widget class="QLabel" name="label_Time_In_Stage">
     <property name="geometry">
      <rect>
       <x>844</x>
@@ -232,7 +232,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Jump</string>
+     <string>__sec</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_Next_Stage">
@@ -425,8 +425,8 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>710</y>
+      <x>670</x>
+      <y>600</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -442,7 +442,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>21</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

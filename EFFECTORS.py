@@ -86,11 +86,18 @@ class MinervaBroadcaster:
 
 
 class OutputFileWriter:
-    def __init__(self, output_path):
+    def __init__(self, output_path = None, pcc = None):
+        self.output_path = output_path
+        self.pcc = pcc
         pass
 
-    def write_header(settings_object, data_object):
-        pass
+    def write_header(self):
+        if self.output_path:
 
-    def write_data(data_object):
+            pass
+            self.pcc.logger.debug("header written")
+        else:
+            self.pcc.logger.warning("no output path set")
+
+    def write_data(self):
         pass
