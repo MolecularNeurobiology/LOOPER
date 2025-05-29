@@ -120,47 +120,48 @@ class DATA:
 
         if attr_dict is None:
             attr_dict = {
-                "trimmed_pneumo":"TIME_SERIES",
-                "trimmed_ecg":"TIME_SERIES",
-                "breath_list":"TIMESTMP",
-                "beat_list":"TIMESTAMP",
-                "avg_bpm":"SINGLE_VALUE",
-                "avg_hr":"SINGLE_VALUE",
-                "arduino_startup_motion_tested":"STATUS",
-                "recent_log_entries":"DEBUG"
+                "trimmed_pneumo":{"sig_type":"TIME_SERIES"},
+                "trimmed_ecg":{"sig_type":"TIME_SERIES"},
+                "breath_list":{"sig_type":"TIMESTMP","displayWith":"trimmed_pneumo"},
+                "beat_list":{"sig_type":"TIMESTAMP","displayWith":"trimmed_ecg"},
+                "avg_bpm":{"sig_type":"SINGLE_VALUE"},
+                "avg_hr":{"sig_type":"SINGLE_VALUE"},
+                "arduino_startup_motion_tested":{"sig_type":"STATUS"},
+                "recent_log_entries":{"sig_type":"DEBUG"}
             }
 
-        self.payload = {"signals":[]}
-        for k,v in attr_dict:
-            if v == "DEBUG":
-                self.payload["signals"].append({"name":k,"type":"debug","data":getattr(self.data,k)})
+        signal_payload = {"signals":[]}
+        for k,v in attr_dict.items():
+            if v["sig_type"] == "DEBUG":
+                signal_payload["signals"].append({"name":k,"type":"debug","data":getattr(self,k)})
                 
-            if v == "STATUS":
-                self.payload["signals"].append({"name":k,"type":"status","data":getattr(self.data,k)})
+            if v["sig_type"] == "STATUS":
+                signal_payload["signals"].append({"name":k,"type":"status","data":getattr(self,k)})
                 
-            if v == "SINGLE_VALUE":
-                self.payload["signals"].append({"name":k,"type":"single_value","data":getattr(self.data,k)})
+            if v["sig_type"] == "SINGLE_VALUE":
+                signal_payload["signals"].append({"name":k,"type":"single_value","data":getattr(self,k)})
                 
-            if v == "TIMESTAMP":
-                self.payload["signals"].append(
+            if v["sig_type"] == "TIMESTAMP":
+                signal_payload["signals"].append(
                     {
                     "name":k,
                     "type":"timestamp",
+                    "displayWith":v["displayWith"],
                     "data":[
-                        {"x":"""x value""","y":1} for i in getattr(self.data,k)
+                        {"x":"""x value""","y":1} for i in getattr(self,k)
                     ]
                     }
                     )
                 
-            if v == "TIME_SERIES":
-                self.payload["signals"].append({
+            if v["sig_type"] == "TIME_SERIES":
+                signal_payload["signals"].append({
                     "name":k,
                     "type":"time_series",
-                    "xUnit":seconds,
+                    "xUnit":"seconds",
 
                     "data":[
-                        {"x":self.time[i],"y":getattr(self.data,k)[i]} for i in range(len(self.time))
+                        {"x":self.time[i],"y":getattr(self,k)[i]} for i in range(len(self.time))
                     ]
                 }
                 )
-                pass
+        return signal_payload

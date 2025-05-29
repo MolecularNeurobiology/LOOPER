@@ -107,7 +107,7 @@ class SETTINGS:
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
-                "stage_type": "wait_for_condition",
+                "stage_type": "wait_for_user",
             },
             "calibration": {
                 "duration": 20,
@@ -125,7 +125,7 @@ class SETTINGS:
                 "duration": 30 * 60,
                 "savable": True,
                 "special_exit": "na",
-                "state_type": "timed",
+                "stage_type": "timed",
             },
             "pre_inject": {
                 "duration": 2 * 60,

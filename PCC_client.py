@@ -122,6 +122,10 @@ class MainWindow(QWidget):
         self.mac = get_mac()
         print(self.mac)
 
+        # create stupid counter to use for printing things I want to calculate frequently but only want to check occasionally
+        self.stupid_counter = 0
+        self.stupid_counter_interval = 1000
+
         # create a logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -130,7 +134,11 @@ class MainWindow(QWidget):
         )
         self.logging_text_browser = QTextEditLogger(self.textBrowser_Status)
         self.logging_text_browser.setFormatter(self.logging_format)
+        self.logging_text_browser.setLevel(logging.INFO)
         self.logger.addHandler(self.logging_text_browser)
+        debug_log_handler = logging.FileHandler("debug.log",mode="w")
+        debug_log_handler.setLevel = logging.DEBUG
+        self.logger.addHandler(debug_log_handler)
 
         # test logging output
         self.logger.debug("DEBUG")
@@ -147,7 +155,7 @@ class MainWindow(QWidget):
         self.data = DATA.DATA()
 
         # load default settings
-        self.logger.debug("loading settings")
+        self.logger.info("loading settings")
         self.settings = SETTINGS.SETTINGS()
 
         # override settings with CL arguments if provided
@@ -159,22 +167,27 @@ class MainWindow(QWidget):
 
         # configure i/o
         if self.settings.sim_mode == 1:
-            self.logger.debug("Simulation Mode")
+            self.logger.info("Simulation Mode")
             self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
             self.labjack_stream = STREAMS.SimulatedDataReader(self.logger)
             self.settings.config_path = "testing.config"
         else:
-            self.logger.debug("Live Stream Mode")
+            self.logger.info("Live Stream Mode")
             self.arduino_stream = STREAMS.StreamArduino(self.logger)
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.stream_start_ts = datetime.now()
-
-        self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
-        self.minerva_stream.start()
+        try:
+            self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
+            self.minerva_stream.start()
+        except Exception as e:
+            self.logger.error(f"unable to create minerva stream: {e}")
+            self.minerva_stream = None
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
-           self.minerva_stream, self.logger
+            self.minerva_stream, self.logger
         )
+        
+
 
         self.output_file_writer = EFFECTORS.OutputFileWriter(output_path=self.settings.output_path, pcc = self)
 
@@ -367,7 +380,7 @@ class MainWindow(QWidget):
         if self.checkBox_Oride.isChecked():
             self.settings.output_path = QFileDialog.getSaveFileName(self,caption="select output filename",filter="PCC Output (*.pcco)")
         else:
-            self.logger.debug(f"generating save path... config: {self.settings.config_path}")
+            self.logger.info(f"generating save path... config: {self.settings.config_path}")
             self.settings.output_path,_ = fm_tools.generate_rig_save_path(
                 QInputDialog.getText(self, "Scan Barcode","RUID:",QLineEdit.Normal)[0],
                 config_path=self.settings.config_path
@@ -402,7 +415,7 @@ class MainWindow(QWidget):
         self.stream_timer.start(10)
 
     def action_pulse_timer(self):
-        print(self.pulse_counter)
+        # print(self.pulse_counter)
         self.pulse_counter += 1
 
         if self.kill_after_count and self.pulse_counter >= self.kill_after_count:
@@ -641,7 +654,7 @@ class MainWindow(QWidget):
 
         # collect minerva stream
         if self.minerva_stream_reader.data:
-            self.logger.debug(self.minerva_stream_reader.data)
+            self.logger.info(self.minerva_stream_reader.data)
             print(f"minerva - {self.minerva_stream_reader.data}")
             self.minerva_stream_reader.data = None
 
@@ -654,7 +667,114 @@ class MainWindow(QWidget):
         self.active_stage.event_loop()
 
         # update recent log buffer
-        self.data.recent_log_entries = "<br>".join(self.self.textBrowser_Status.toHTML().split("<br>")[-20:])
+        self.data.recent_log_entries = "<br>".join(self.textBrowser_Status.toHtml().split("<br>")[-20:])
+
+        # prepare payload
+        self.payload = {
+            "macAddress": self.mac,
+            "stages": [
+                {
+                    "name": k,
+                    "type": v["stage_type"],
+                    "durationInSeconds": v["duration"]
+                } if v["duration"] >= 0 else
+                {
+                    "name": k,
+                    "type": v["stage_type"],
+                }
+                for k,v in self.settings.Mode_settings.items()
+            ],
+            "currentStage": self.active_stage.name,
+            "signals": self.data.prepare_data_payload()
+        }
+        if self.stupid_counter%self.stupid_counter_interval ==0:
+            self.stupid_counter = 0
+            print(self.stupid_counter)
+            self.logger.info("payload test in debug")
+            self.logger.debug(self.payload)
+        self.stupid_counter += 1
+"""
+        {
+  "macAddress": "b3:99:80:21:6a:5f",
+  "stages": [
+    {
+      "name": "STARTUP",
+      "type": "wait_for_user"
+    },
+    {
+      "name": "STANDBY",
+      "type": "wait_for_user"
+    },
+    {
+      "name": "SIG_PREVIEW_1",
+      "type": "timed",
+      "durationInSeconds": 30
+    },
+    {
+      "name": "CALIBRATION",
+      "type": "wait_for_condition"
+    },
+    {
+      "name": "SIG_PREVIEW_2",
+      "type": "timed",
+      "durationInSeconds": 30
+    },
+    {
+      "name": "HABITUATION",
+      "type": "timed",
+      "durationInSeconds": 300
+    },
+    {
+      "name": "BASELINE",
+      "type": "timed",
+      "durationInSeconds": 60
+    },
+    {
+      "name": "CHALLENGE",
+      "type": "timed",
+      "durationInSeconds": 120
+    }
+  ],
+  "signals": [
+    {
+      "name": "Heart Rate",
+      "type": "time_series",
+      "xUnit": "seconds",
+      "yUnit": "bpm",
+      "xWindowMinInSeconds": 0,
+      "xWindowMaxInSeconds": 300,
+      "yWindowMinInSeconds": 0,
+      "yWindowMaxInSeconds": 200,
+      "data": [
+        {
+          "x": 0,
+          "y": 170
+        },
+        {
+          "x": 0.1,
+          "y": 171
+        },
+        {
+          "x": 0.2,
+          "y": 173
+        },
+        ...many more
+      ]
+    },
+    {
+      "name": "Status",
+      "type": "status",
+      "data": true
+    },
+    {
+      "name": "Debug Info",
+      "type": "debug",
+      "data": "Simulation running normally"
+    }
+  ],
+  "currentStage": "NOT_STARTED"
+}
+"""
 
     ## Timers (to create event loops)
     # receiver_timer
