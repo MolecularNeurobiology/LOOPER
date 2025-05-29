@@ -180,12 +180,12 @@ class MainWindow(QWidget):
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.stream_start_ts = datetime.now()
-        try:
-            self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
-            self.minerva_stream.start()
-        except Exception as e:
-            self.logger.error(f"unable to create minerva stream: {e}")
-            self.minerva_stream = None
+    
+        self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
+        self.minerva_stream.start()
+        # except Exception as e:
+        #     self.logger.error(f"unable to create minerva stream: {e}")
+        #     self.minerva_stream = None
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
             self.minerva_stream, self.logger
         )
@@ -680,7 +680,7 @@ class MainWindow(QWidget):
             #self.logger.info("payload test in debug")
             #self.logger.debug(self.payload)
             self.payload = mp.MinervaStreamData(
-                        macAddress= self.mac,
+                        mac_address= self.mac,
                         stages= [
                             {
                                 "name": k,
@@ -693,7 +693,7 @@ class MainWindow(QWidget):
                             }
                             for k,v in self.settings.Mode_settings.items()
                         ],
-                        currentStage= self.active_stage.name,
+                        current_stage= self.active_stage.name,
                         signals= self.data.prepare_data_payload()
                     )
             self.minerva_stream.update_stream_data(self.payload)
