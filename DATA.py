@@ -87,6 +87,8 @@ class DATA:
         self.error_list = []
         self.missed = 0
 
+        self.recent_log_entries = ""
+
         # self.old_status_dict = {
         #     "standby": 0,
         #     "startup": 0,
@@ -103,8 +105,62 @@ class DATA:
         #     "startup_ready": 0,
         # }
 
-    def prepare_data_json(attr_list):
+    def prepare_data_payload(self,attr_dict = None):
         """
         prepare a json string populated from the attributes specified by attr_list
         """
-        pass
+
+        """
+        TIME_SERIES = "time_series"
+        TIMESTAMP = "timestamp"
+        SINGLE_VALUE = "single_value"
+        STATUS = "status"
+        DEBUG = "debug"
+        """
+
+        if attr_dict is None:
+            attr_dict = {
+                "trimmed_pneumo":"TIME_SERIES",
+                "trimmed_ecg":"TIME_SERIES",
+                "breath_list":"TIMESTMP",
+                "beat_list":"TIMESTAMP",
+                "avg_bpm":"SINGLE_VALUE",
+                "avg_hr":"SINGLE_VALUE",
+                "arduino_startup_motion_tested":"STATUS",
+                "recent_log_entries":"DEBUG"
+            }
+
+        self.payload = {"signals":[]}
+        for k,v in attr_dict:
+            if v == "DEBUG":
+                self.payload["signals"].append({"name":k,"type":"debug","data":getattr(self.data,k)})
+                
+            if v == "STATUS":
+                self.payload["signals"].append({"name":k,"type":"status","data":getattr(self.data,k)})
+                
+            if v == "SINGLE_VALUE":
+                self.payload["signals"].append({"name":k,"type":"single_value","data":getattr(self.data,k)})
+                
+            if v == "TIMESTAMP":
+                self.payload["signals"].append(
+                    {
+                    "name":k,
+                    "type":"timestamp",
+                    "data":[
+                        {"x":"""x value""","y":1} for i in getattr(self.data,k)
+                    ]
+                    }
+                    )
+                
+            if v == "TIME_SERIES":
+                self.payload["signals"].append({
+                    "name":k,
+                    "type":"time_series",
+                    "xUnit":seconds,
+
+                    "data":[
+                        {"x":self.time[i],"y":getattr(self.data,k)[i]} for i in range(len(self.time))
+                    ]
+                }
+                )
+                pass

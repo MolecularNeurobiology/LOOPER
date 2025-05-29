@@ -465,7 +465,7 @@ class MainWindow(QWidget):
             time_increment = round(new_samples/self.labjack_stream.scan_frequency,3)
 
             self.data.data_time += time_increment
-            self.data.time = [round((int(self.data.data_time * self.data.data_frequency) - self.data.window + i) / 1000, 3) for i in range(self.data.window)]
+            self.data.time = [round((int(self.data.data_time * self.data.data_frequency) - self.data.window + i) / self.data.data_frequency, 3) for i in range(self.data.window)]
 
             self.data.current_lag = self.data.stream_duration - self.data.data_time
 
@@ -652,6 +652,9 @@ class MainWindow(QWidget):
         self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
         # check for effector or auto_advance
         self.active_stage.event_loop()
+
+        # update recent log buffer
+        self.data.recent_log_entries = "<br>".join(self.self.textBrowser_Status.toHTML().split("<br>")[-20:])
 
     ## Timers (to create event loops)
     # receiver_timer
