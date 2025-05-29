@@ -107,21 +107,46 @@ Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSigna
 # Stream Command
 class StreamCommand(Command):
     """Command to initiate or update streaming of Minerva data."""
-    def __init__(self, payload: Dict[str, Any]):
+    def __init__(self, command_data: Dict[str, Any]):
+        # Extract payload from the command data
+        payload = command_data.get('payload', {})
         super().__init__(command_type=COMMANDS.STREAM, payload=payload)
-    
+        # Store the full command data to access top-level fields
+        self._command_data = command_data
+
+    def get_user_id(self) -> str:
+        """Get the user ID from the command (checks both top level and payload)."""
+        # First check top level (where frontend sends it)
+        user_id = self._command_data.get('userId')
+        if user_id is not None:
+            return str(user_id)
+
+        # Fallback to payload (for backward compatibility)
+        user_id = self.payload.get('userId')
+        if user_id is not None:
+            return str(user_id)
+
+        # Final fallback
+        return 'default_user'
+
     def get_mac_address(self) -> str:
-        """Get the MAC address from the payload."""
+        """Get the MAC address from the command (checks both top level and payload)."""
+        # First check top level (where frontend sends it)
+        mac_address = self._command_data.get('macAddress')
+        if mac_address is not None:
+            return mac_address
+
+        # Fallback to payload (for backward compatibility)
         return self.payload.get('macAddress')
-    
+
     def get_stages(self) -> List[Dict[str, Any]]:
         """Get the stages from the payload or an empty list if none."""
         return self.payload.get('stages', [])
-    
+
     def get_signals(self) -> List[Dict[str, Any]]:
         """Get the signals from the payload or an empty list if none."""
         return self.payload.get('signals', [])
-    
+
     def get_current_stage(self) -> Optional[str]:
         """Get the current stage from the payload or None if not specified."""
         return self.payload.get('currentStage')

@@ -126,6 +126,9 @@ class MainWindow(QWidget):
         self.stupid_counter = 0
         self.stupid_counter_interval = 1000
 
+        self.payload_counter = 0
+        self.payload_counter_interval = 100
+
         # create a logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -669,30 +672,35 @@ class MainWindow(QWidget):
         # update recent log buffer
         self.data.recent_log_entries = "<br>".join(self.textBrowser_Status.toHtml().split("<br>")[-20:])
 
-        # prepare payload
-        self.payload = {
-            "macAddress": self.mac,
-            "stages": [
-                {
-                    "name": k,
-                    "type": v["stage_type"],
-                    "durationInSeconds": v["duration"]
-                } if v["duration"] >= 0 else
-                {
-                    "name": k,
-                    "type": v["stage_type"],
-                }
-                for k,v in self.settings.Mode_settings.items()
-            ],
-            "currentStage": self.active_stage.name,
-            "signals": self.data.prepare_data_payload()
-        }
-        if self.stupid_counter%self.stupid_counter_interval ==0:
-            self.stupid_counter = 0
-            print(self.stupid_counter)
-            self.logger.info("payload test in debug")
-            self.logger.debug(self.payload)
-        self.stupid_counter += 1
+        # prepare payload 
+        
+        
+        if self.payload_counter%self.payload_counter_interval ==0:
+            self.payload_counter = 0
+            #self.logger.info("payload test in debug")
+            #self.logger.debug(self.payload)
+            self.payload = mp.MinervaStreamData(
+                        macAddress= self.mac,
+                        stages= [
+                            {
+                                "name": k,
+                                "type": v["stage_type"],
+                                "durationInSeconds": v["duration"]
+                            } if v["duration"] >= 0 else
+                            {
+                                "name": k,
+                                "type": v["stage_type"],
+                            }
+                            for k,v in self.settings.Mode_settings.items()
+                        ],
+                        currentStage= self.active_stage.name,
+                        signals= self.data.prepare_data_payload()
+                    )
+            self.minerva_stream.update_stream_data(self.payload)
+        
+        self.payload_counter += 10
+
+        
 """
         {
   "macAddress": "b3:99:80:21:6a:5f",

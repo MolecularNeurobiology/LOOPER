@@ -38,7 +38,7 @@ def load_mac_addresses() -> List[str]:
         logging.warning("MAC addresses file not found, using default addresses")
     except Exception as e:
         logging.error(f"Error loading MAC addresses: {e}")
-    
+
     # Generate default MAC addresses if file not found or empty
     return [f"00:00:00:00:00:{i:02d}" for i in range(1, 11)]
 
@@ -46,10 +46,10 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
     """Run the simulation loop"""
     running = True
     print("Simulation running. Press Ctrl+C to stop.")
-    
+
     while running:
         try:
-            sleep(1)  # 1 second delay between updates
+            sleep(0.2)  # 0.2 second delay between updates (5 times per second)
 
             # Calculate elapsed time
             current_time = datetime.now()

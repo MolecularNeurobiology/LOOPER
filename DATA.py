@@ -11,7 +11,7 @@ class DATA:
     def __init__(self):
         # short term
         self.window = 5000  # !!! this should probably be a setting ...
-        self.data_frequency = 1000 # this should probably be a setting ...
+        self.data_frequency = 1000  # this should probably be a setting ...
         self.time = [round(-5 + i / 1000, 3) for i in range(self.window)]
         self.rel_time = [round(-5 + i / 1000, 3) for i in range(self.window)]
         self.pneumo = [0 for i in range(self.window)]
@@ -26,15 +26,11 @@ class DATA:
 
         self.flow_thresh_to_use = 1
 
-
-        
-
         # instantaneous_arrays
         # self.new_time = []
         # self.new_pneumo = []
         # self.new_ecg = []
         self.errors = []
-        
 
         # instantaneous_values
         self.avg_bpm = None
@@ -54,7 +50,7 @@ class DATA:
         self.current_lag = None
 
         # stage values
-        
+
         self.start_time = datetime.now()
         self.current_time = datetime.now()
         self.time_in_stage = 0
@@ -105,7 +101,7 @@ class DATA:
         #     "startup_ready": 0,
         # }
 
-    def prepare_data_payload(self,attr_dict = None):
+    def prepare_data_payload(self, attr_dict=None):
         """
         prepare a json string populated from the attributes specified by attr_list
         """
@@ -120,48 +116,58 @@ class DATA:
 
         if attr_dict is None:
             attr_dict = {
-                "trimmed_pneumo":{"sig_type":"TIME_SERIES"},
-                "trimmed_ecg":{"sig_type":"TIME_SERIES"},
-                "breath_list":{"sig_type":"TIMESTMP","displayWith":"trimmed_pneumo"},
-                "beat_list":{"sig_type":"TIMESTAMP","displayWith":"trimmed_ecg"},
-                "avg_bpm":{"sig_type":"SINGLE_VALUE"},
-                "avg_hr":{"sig_type":"SINGLE_VALUE"},
-                "arduino_startup_motion_tested":{"sig_type":"STATUS"},
-                "recent_log_entries":{"sig_type":"DEBUG"}
+                "trimmed_pneumo": {"sig_type": "TIME_SERIES"},
+                "trimmed_ecg": {"sig_type": "TIME_SERIES"},
+                "breath_list": {
+                    "sig_type": "TIMESTMP",
+                    "displayWith": "trimmed_pneumo",
+                },
+                "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
+                "avg_bpm": {"sig_type": "SINGLE_VALUE"},
+                "avg_hr": {"sig_type": "SINGLE_VALUE"},
+                "arduino_startup_motion_tested": {"sig_type": "STATUS"},
+                "recent_log_entries": {"sig_type": "DEBUG"},
             }
 
-        signal_payload = {"signals":[]}
-        for k,v in attr_dict.items():
+        signal_payload = {"signals": []}
+        for k, v in attr_dict.items():
             if v["sig_type"] == "DEBUG":
-                signal_payload["signals"].append({"name":k,"type":"debug","data":getattr(self,k)})
-                
+                signal_payload["signals"].append(
+                    {"name": k, "type": "debug", "data": getattr(self, k)}
+                )
+
             if v["sig_type"] == "STATUS":
-                signal_payload["signals"].append({"name":k,"type":"status","data":getattr(self,k)})
-                
+                signal_payload["signals"].append(
+                    {"name": k, "type": "status", "data": getattr(self, k)}
+                )
+
             if v["sig_type"] == "SINGLE_VALUE":
-                signal_payload["signals"].append({"name":k,"type":"single_value","data":getattr(self,k)})
-                
+                signal_payload["signals"].append(
+                    {"name": k, "type": "single_value", "data": getattr(self, k)}
+                )
+
             if v["sig_type"] == "TIMESTAMP":
                 signal_payload["signals"].append(
                     {
-                    "name":k,
-                    "type":"timestamp",
-                    "displayWith":v["displayWith"],
-                    "data":[
-                        {"x":"""x value""","y":1} for i in getattr(self,k)
-                    ]
+                        "name": k,
+                        "type": "timestamp",
+                        "displayWith": v["displayWith"],
+                        "data": [
+                            {"x": """x value""", "y": 1} for i in getattr(self, k)
+                        ],
                     }
-                    )
-                
-            if v["sig_type"] == "TIME_SERIES":
-                signal_payload["signals"].append({
-                    "name":k,
-                    "type":"time_series",
-                    "xUnit":"seconds",
+                )
 
-                    "data":[
-                        {"x":self.time[i],"y":getattr(self,k)[i]} for i in range(len(self.time))
-                    ]
-                }
+            if v["sig_type"] == "TIME_SERIES":
+                signal_payload["signals"].append(
+                    {
+                        "name": k,
+                        "type": "time_series",
+                        "xUnit": "seconds",
+                        "data": [
+                            {"x": self.time[i], "y": getattr(self, k)[i]}
+                            for i in range(len(self.time))
+                        ],
+                    }
                 )
         return signal_payload
