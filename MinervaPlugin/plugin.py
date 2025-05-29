@@ -121,7 +121,7 @@ class Plugin:
             ping_message = json.dumps(payload)
 
             self._rabbit_mq_client_producer.send_message(ping_message)
-            self._log_info(f"Ping sent to the server. {payload}")
+            self._log_debug(f"Ping sent to the server. {payload}")
 
     def _stream_data_to_server(self, session: UserStreamSession):
         """
