@@ -49,7 +49,7 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
 
     while running:
         try:
-            sleep(0.2)  # 0.2 second delay between updates (5 times per second)
+            sleep(0.1)  # 0.1 second delay between updates (10 times per second)
 
             # Calculate elapsed time
             current_time = datetime.now()

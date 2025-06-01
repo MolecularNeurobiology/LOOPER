@@ -20,8 +20,58 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional, Union
 
+# Try to import numpy for type checking
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+
 PING_INTERVAL = 10
-STREAM_INTERVAL = 2  # 2 seconds interval for streaming data
+STREAM_INTERVAL = 0.1  # 0.1 seconds interval for streaming data (10 Hz)
+
+# Debug toggle - set to False to disable all debug logs
+DEBUG_ENABLED = True
+
+
+class NumpyJSONEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that handles numpy types by converting them to native Python types.
+    """
+    def default(self, obj):
+        if HAS_NUMPY:
+            # Handle numpy scalar types
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, np.bool_):
+                return bool(obj)
+
+        # Handle regular Python float types (including potential numpy.float64 that might not be caught above)
+        if isinstance(obj, float):
+            return float(obj)
+
+        # Let the base class default method raise the TypeError
+        return super().default(obj)
+
+
+def safe_json_dumps(obj, **kwargs):
+    """
+    Safely serialize an object to JSON, handling both regular Python types and numpy types.
+
+    Args:
+        obj: The object to serialize
+        **kwargs: Additional arguments to pass to json.dumps
+
+    Returns:
+        str: JSON string representation of the object
+    """
+    # Use our custom encoder that handles numpy types
+    kwargs.setdefault('cls', NumpyJSONEncoder)
+    return json.dumps(obj, **kwargs)
 
 @dataclass
 class PluginRegistration:
@@ -112,7 +162,7 @@ class Plugin:
                 **asdict(self._metrics)
             }
 
-            ping_message = json.dumps(payload)
+            ping_message = safe_json_dumps(payload)
 
             self._rabbit_mq_client_producer.send_message(ping_message)
             self._log_info(f"Ping sent to the server. {payload}")
@@ -128,8 +178,19 @@ class Plugin:
             # Make sure stream_data is updated with the current MAC address
             session.stream_data.mac_address = self._mac_address
 
-            # Convert stream data to JSON
-            stream_message = json.dumps(asdict(session.stream_data))
+            # Debug: Log airflow signal data before serialization
+            airflow_signal = next((s for s in session.stream_data.signals if s.get('name') == 'Airflow'), None)
+            if airflow_signal and airflow_signal.get('data'):
+                self._log_info(f"Airflow signal before serialization: name={airflow_signal['name']}, type={airflow_signal['type']}, data_points={len(airflow_signal['data'])}")
+
+            # Convert stream data to JSON using safe serialization
+            stream_message = safe_json_dumps(asdict(session.stream_data))
+
+            # Debug: Check if airflow data is in the serialized message
+            if '"Airflow"' in stream_message:
+                self._log_info(f"✓ Airflow signal found in serialized message for user {session.user_id}")
+            else:
+                self._log_error(f"✗ Airflow signal NOT found in serialized message for user {session.user_id}")
 
             # Send the stream data to the server
             session.rabbit_mq_client.send_message(stream_message)
@@ -185,7 +246,7 @@ class Plugin:
                         # Handle the stream command - pass the full command to get userId from top level
                         commandObj = StreamCommand(command)
                         user_id = commandObj.get_user_id()
-                        self._log_info(f"Stream command processed: userId={user_id}, command={command}")
+                        self._log_info(f"🚀 STREAM COMMAND RECEIVED: userId={user_id}, command={command}")
                         # Start or update user streaming session
                         self._handle_user_stream_command(user_id, payload)
                     elif command_type == COMMANDS.STOP_STREAM.value or command_type == 'stop_stream':
@@ -197,6 +258,7 @@ class Plugin:
                             user_id = payload.get('userId')
                         if user_id is None:
                             user_id = 'default_user'
+                        self._log_info(f"🛑 STOP STREAM COMMAND RECEIVED for user: {user_id}")
                         self._stop_user_streaming(str(user_id))
                     else:
                         self._log_error(f'Unknown command type: {command_type}')
@@ -225,11 +287,11 @@ class Plugin:
                 session = self._user_sessions[user_id]
                 session.last_heartbeat = current_time
                 self._update_session_stream_data(session, payload)
-                self._log_info(f"Updated streaming session for user {user_id}")
+                self._log_info(f"📡 Updated existing streaming session for user {user_id}")
             else:
                 # Create new session
                 self._create_user_session(user_id, payload, current_time)
-                self._log_info(f"Created new streaming session for user {user_id}")
+                self._log_info(f"🎯 Created NEW streaming session for user {user_id} - STREAMING NOW ACTIVE!")
 
     def _create_user_session(self, user_id: str, payload: Dict[str, Any], current_time: datetime):
         """
@@ -263,6 +325,7 @@ class Plugin:
         session.thread = threading.Thread(target=self._user_stream_loop, args=(session,))
         session.thread.daemon = True
         session.thread.start()
+        self._log_info(f"🔄 Started streaming thread for user {user_id} on queue: {user_queue}")
 
         self._user_sessions[user_id] = session
 
@@ -346,9 +409,9 @@ class Plugin:
 
                 # Remove session
                 del self._user_sessions[user_id]
-                self._log_info(f"Stopped streaming for user {user_id}")
+                self._log_info(f"✅ STREAMING STOPPED for user {user_id}")
             else:
-                self._log_info(f"No active streaming session found for user {user_id}")
+                self._log_info(f"⚠️ No active streaming session found for user {user_id}")
 
     def _session_cleanup_loop(self):
         """
@@ -372,12 +435,24 @@ class Plugin:
             time.sleep(PING_INTERVAL)  # Check every ping interval
 
     def _log_info(self, message):
-        if self._logger is not None:
+        """Log info message only if DEBUG_ENABLED is True"""
+        if DEBUG_ENABLED and self._logger is not None:
             self._logger.info(message)
 
     def _log_error(self, message):
+        """Log error message (always logged regardless of debug setting)"""
         if self._logger is not None:
             self._logger.error(message)
+
+    def _log_debug(self, message):
+        """Log debug message only if DEBUG_ENABLED is True"""
+        if DEBUG_ENABLED and self._logger is not None:
+            self._logger.info(f"[DEBUG] {message}")
+
+    def _log_warn(self, message):
+        """Log warning message (always logged regardless of debug setting)"""
+        if self._logger is not None:
+            self._logger.warning(message)
 
     def stop(self):
         """
@@ -418,19 +493,19 @@ class Plugin:
             self._ping_thread = threading.Thread(target=self._ping_loop)
             self._ping_thread.daemon = True
             self._ping_thread.start()
-            self._log_info("Plugin started with pinging thread.")
+            self._log_info("🔧 Plugin started with pinging thread.")
 
             # Start the session cleanup loop in a separate thread
             self._session_cleanup_thread = threading.Thread(target=self._session_cleanup_loop)
             self._session_cleanup_thread.daemon = True
             self._session_cleanup_thread.start()
-            self._log_info("Session cleanup thread started.")
+            self._log_info("🧹 Session cleanup thread started.")
 
             # Start listening for commands in a separate thread
             self._command_thread = threading.Thread(target=self._listen_for_commands)
             self._command_thread.daemon = True
             self._command_thread.start()
-            self._log_info("Command listening thread started.")
+            self._log_info("👂 Command listening thread started - READY TO RECEIVE STREAM COMMANDS")
 
     def pop_commands(self):
         """

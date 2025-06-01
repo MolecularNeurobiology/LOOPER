@@ -4,6 +4,10 @@ from run import Run
 import random
 import time
 import math
+import numpy as np
+
+# Debug toggle - set to False to disable all debug logs
+DEBUG_ENABLED = False
 
 class Simulation:
     def __init__(self, mac_address, logger):
@@ -47,6 +51,16 @@ class Simulation:
         except Exception as e:
             self.logger.error(f"Error during cleanup: {e}")
 
+    def _log_debug(self, message):
+        """Log debug message only if DEBUG_ENABLED is True"""
+        if DEBUG_ENABLED and self.logger is not None:
+            self.logger.info(f"[DEBUG] {message}")
+
+    def _log_info(self, message):
+        """Log info message only if DEBUG_ENABLED is True"""
+        if DEBUG_ENABLED and self.logger is not None:
+            self.logger.info(message)
+
     def _setup_stream_data(self):
         """Set up initial stream data structure for this simulation"""
         try:
@@ -75,9 +89,12 @@ class Simulation:
         try:
             self.logger.info(f'{self.rig.mac_address} - {self.rig.state} - {self._run.get_current_step_name()}')
 
-            # Only update stream data if plugin is actually streaming
-            if self._plugin.get_is_streaming():
+            # Only update signal data if there are active streaming sessions
+            if self._plugin.get_user_session_count() > 0:
                 self._update_signal_data()
+            else:
+                # Just prepare basic signal data without intensive updates
+                self._prepare_signal_data()
         except Exception as e:
             self.logger.error(f"Error in report: {e}")
 
@@ -91,10 +108,30 @@ class Simulation:
             for signal in self.stream_data.signals:
                 self._update_single_signal(signal)
 
+            # Debug: Log all signals being streamed to active sessions
+            signal_summary = []
+            for signal in self.stream_data.signals:
+                signal_summary.append({
+                    'name': signal['name'],
+                    'type': signal['type'],
+                    'data_length': len(signal.get('data', [])) if isinstance(signal.get('data'), list) else 'single_value'
+                })
+            active_sessions = self._plugin.get_active_user_sessions()
+            self._log_debug(f"Streaming signals to {len(active_sessions)} active sessions: {signal_summary}")
+
             # Debug: Log BPM signal info periodically
             bpm_signal = next((s for s in self.stream_data.signals if s['name'] == 'BPM'), None)
             if bpm_signal and bpm_signal.get('data'):
-                self.logger.info(f"BPM signal being sent to frontend: name={bpm_signal['name']}, type={bpm_signal['type']}, display_with={bpm_signal.get('display_with')}, data_length={len(bpm_signal.get('data', []))}")
+                self._log_debug(f"BPM signal streaming: name={bpm_signal['name']}, type={bpm_signal['type']}, display_with={bpm_signal.get('display_with')}, data_length={len(bpm_signal.get('data', []))}")
+
+            # Debug: Log Airflow signal info periodically
+            airflow_signal = next((s for s in self.stream_data.signals if s['name'] == 'Airflow'), None)
+            if airflow_signal:
+                self._log_debug(f"Airflow signal streaming: name={airflow_signal['name']}, type={airflow_signal['type']}, data_length={len(airflow_signal.get('data', []))}")
+                if airflow_signal.get('data'):
+                    # Log a sample of recent data points
+                    recent_points = airflow_signal['data'][-3:] if len(airflow_signal['data']) > 3 else airflow_signal['data']
+                    self._log_debug(f"Recent Airflow data points: {recent_points}")
 
             # Update stream data for all active user sessions
             active_users = self._plugin.get_active_user_sessions()
@@ -110,6 +147,27 @@ class Simulation:
             self._plugin.update_stream_data(self.stream_data)
         except Exception as e:
             self.logger.error(f"Error updating signal data: {e}")
+
+    def _prepare_signal_data(self):
+        """Prepare basic signal data without intensive updates when no streaming sessions are active"""
+        try:
+            if not hasattr(self, 'stream_data'):
+                return
+
+            # Only log occasionally when not streaming
+            current_time = time.time()
+            if not hasattr(self, '_last_prepare_log_time'):
+                self._last_prepare_log_time = 0
+
+            # Log every 30 seconds when not streaming
+            if current_time - self._last_prepare_log_time > 30:
+                self._log_debug(f"Signal data prepared (no active streaming sessions). Available signals: {[s['name'] for s in self.stream_data.signals]}")
+                self._last_prepare_log_time = current_time
+
+            # Update the default stream data (for when streaming starts)
+            self._plugin.update_stream_data(self.stream_data)
+        except Exception as e:
+            self.logger.error(f"Error preparing signal data: {e}")
 
     def _update_single_signal(self, signal):
         """Update a single signal based on its type"""
@@ -326,29 +384,44 @@ class Simulation:
         return base_ecg + spike + noise
 
     def _generate_airflow_signal(self, current_time):
-        """Generate airflow signal representing breathing as a clean sin wave"""
+        """Generate airflow signal representing breathing as a clean sin wave using numpy floats"""
         # Breathing cycle (roughly 15 breaths per minute)
         breathing_rate = 15  # breaths per minute
         breathing_period = 60 / breathing_rate  # period in seconds
 
-        # Clean sinusoidal breathing pattern
-        airflow = 15 * math.sin(2 * math.pi * current_time / breathing_period)
+        # Clean sinusoidal breathing pattern using numpy
+        airflow = np.float64(15) * np.sin(2 * np.pi * current_time / breathing_period)
 
-        # Add minimal noise for realism
-        noise = random.gauss(0, 0.5)
+        # Add minimal noise for realism using numpy
+        noise = np.random.normal(0, 0.5)
 
-        return airflow + noise
+        # Return numpy float64 result
+        return np.float64(airflow + noise)
 
     def _update_time_series_signal(self, signal):
         """Update a time series signal with new data points"""
         current_time = time.time()
         elapsed_time = current_time - self._start_time
 
-        # Only update if enough time has passed (e.g., every 0.1 seconds for higher resolution)
-        if current_time - self._last_update_time < 0.1:
+        # Use signal-specific timing to avoid conflicts between different signals
+        signal_name = signal.get('name', 'unknown')
+        last_update_key = f'_last_update_time_{signal_name}'
+
+        # Initialize signal-specific last update time if not exists
+        if not hasattr(self, last_update_key):
+            setattr(self, last_update_key, 0)
+
+        last_update_time = getattr(self, last_update_key)
+
+        # Only update if enough time has passed (e.g., every 0.1 seconds for 10 Hz resolution)
+        if current_time - last_update_time < 0.1:
             return
 
-        self._last_update_time = current_time
+        setattr(self, last_update_key, current_time)
+
+        # Debug: Log when we're updating signals
+        if signal['name'] == 'Airflow':
+            self._log_debug(f"Updating Airflow signal at time {elapsed_time:.2f}s")
 
         # Generate new data point based on signal name
         if signal['name'] == 'ECG':
@@ -362,18 +435,31 @@ class Simulation:
         # Create new data point with relative time (negative for sliding window)
         window_min = signal.get('x_window_min_in_seconds', -60)
 
-        new_point = {
-            'x': 0,  # Current time is always 0 in sliding window
-            'y': y_value
-        }
+        # For Airflow signal, use numpy floats for both x and y to test serialization
+        if signal['name'] == 'Airflow':
+            new_point = {
+                'x': np.float64(0),  # Current time is always 0 in sliding window (numpy float)
+                'y': y_value  # Already a numpy float64 from _generate_airflow_signal
+            }
+        else:
+            new_point = {
+                'x': 0,  # Current time is always 0 in sliding window
+                'y': y_value
+            }
 
         # Add to data array
         if 'data' not in signal:
             signal['data'] = []
 
         # Shift existing points back in time
-        for point in signal['data']:
-            point['x'] -= 0.1  # Move back by update interval
+        if signal['name'] == 'Airflow':
+            # For Airflow signal, use numpy floats for time shifting
+            for point in signal['data']:
+                point['x'] = np.float64(point['x'] - 0.1)  # Move back by update interval (numpy float)
+        else:
+            # For other signals, use regular Python floats
+            for point in signal['data']:
+                point['x'] -= 0.1  # Move back by update interval
 
         # Add new point at current time (x=0)
         signal['data'].append(new_point)
@@ -393,7 +479,7 @@ class Simulation:
         if not hasattr(self, '_last_timestamp_update_time'):
             self._last_timestamp_update_time = 0
 
-        # Use the same update interval as time series signals
+        # Use the same update interval as time series signals (10 Hz)
         if current_time - self._last_timestamp_update_time < 0.1:
             return
 
@@ -423,7 +509,7 @@ class Simulation:
                         'label': f'{int(current_bpm)} BPM'
                     }
                     signal['data'].append(new_event)
-                    self.logger.info(f"Added BPM event: {new_event}")
+                    self._log_debug(f"Added BPM event: {new_event}")
 
             # Remove points that are outside the window (use ECG window for consistency)
             window_min = -10  # Same as ECG window
@@ -431,7 +517,7 @@ class Simulation:
 
             # Debug: Log current BPM signal data
             if signal['data']:
-                self.logger.info(f"BPM signal has {len(signal['data'])} events. Recent events: {[{'x': p['x'], 'y': p['y'], 'label': p['label']} for p in signal['data'][-3:]]}")
+                self._log_debug(f"BPM signal has {len(signal['data'])} events. Recent events: {[{'x': p['x'], 'y': p['y'], 'label': p['label']} for p in signal['data'][-3:]]}")
         else:
             # Default timestamp behavior for other signals
             # Shift existing points back in time
