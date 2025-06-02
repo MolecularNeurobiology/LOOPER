@@ -678,7 +678,7 @@ class MainWindow(QWidget):
         if self.payload_counter%self.payload_counter_interval ==0:
             self.payload_counter = 0
             #self.logger.info("payload test in debug")
-            #self.logger.debug(self.payload)
+            self.logger.debug("payload sent")
             self.payload = mp.MinervaStreamData(
                         mac_address= self.mac,
                         stages= [
