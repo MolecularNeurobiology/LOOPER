@@ -6,18 +6,31 @@ try:
     from config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
 except:
     from .config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
+
+# Debug toggle - set to False to disable all debug logs
+DEBUG_ENABLED = True
 class RabbitMQClient:
     def __init__(self, logger, queue, id = None, use_ttl = False):
         self.logger = logger
         self.id = id
         self.use_ttl = use_ttl  # Flag to determine if TTL should be applied
         _queue = f"{queue}-{id.replace(":", "")}" if id is not None else queue
-        logger.info(f"Attempting to connect to {_queue}")
+        self._log_info(f"Attempting to connect to {_queue}")
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self.queue = _queue
         #
         self._is_running = False
+
+    def _log_info(self, message):
+        """Log info message only if DEBUG_ENABLED is True"""
+        if DEBUG_ENABLED and self.logger is not None:
+            self.logger.info(message)
+
+    def _log_error(self, message):
+        """Log error message (always logged regardless of debug setting)"""
+        if self.logger is not None:
+            self.logger.error(message)
 
     def send_message(self, message):
         if self.use_ttl:
@@ -55,7 +68,7 @@ class RabbitMQClient:
         self.connection.close()
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
-        self.logger.info("Reconnected to RabbitMQ server.")
+        self._log_info("Reconnected to RabbitMQ server.")
 
 
     def consume_message(self, callback):
@@ -67,10 +80,10 @@ class RabbitMQClient:
             try:
                 self.channel.queue_declare(queue=self.queue)
                 self.channel.basic_consume(queue=self.queue, on_message_callback=message_callback_wrapper)
-                self.logger.info(f"Listening for messages on {self.queue}. To exit press CTRL+C")
+                self._log_info(f"Listening for messages on {self.queue}. To exit press CTRL+C")
                 self.channel.start_consuming()
             except pika.exceptions.AMQPConnectionError as e:
-                self.logger.error("Connection lost, retrying in 5 seconds...")
+                self._log_error("Connection lost, retrying in 5 seconds...")
                 self.reconnect()
                 time.sleep(5)
         print("rabbit mq _is_running False")
