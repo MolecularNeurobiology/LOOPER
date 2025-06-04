@@ -158,9 +158,11 @@ class SimulatedDataReader:
         self.data_sim_timer = QTimer()
         self.data_sim_timer.setTimerType(Qt.PreciseTimer)
         self.data_sim_timer.timeout.connect(self.readStreamData)
-
-        self.sim_sig_3Hz = [math.sin(i * 6.28 * 3) for i in range(60000)]
-        self.sim_sig_30Hz = [math.sin(i * 6.28 * 30) * 5 for i in range(60000)]
+        # default is 3Hz for ain0 and 30Hz for ain1
+        self.sim_sig_ain = {
+            0:[math.sin(i * 6.28 *2* 3) for i in range(60000)],
+            1:[math.sin(i * 6.28 *2* 30) for i in range(60000)]
+        }
         self.counter = 0
         self.counter_limit = 60000
         self.scan_frequency = 1000
@@ -173,11 +175,25 @@ class SimulatedDataReader:
 
         self.data_sim_timer.start(self.update_interval_ms)
 
+
     def setDIOState(self, *args):
         pass
 
+
+    def set_sim_sig_ain(self,ain,new_Hz):
+        print(100)
+        try:
+            print(110)
+            self.sim_sig_ain[ain] = [math.sin(i * 6.28 * 2 * new_Hz) for i in range(60000)]
+            self.logger.info(f"ain{ain} set to {new_Hz}Hz")
+        except Exception as e:
+            print(120)
+            self.logger.warning(f"unable to set ain: {e}")
+
+
     def close(self, *args):
         pass
+
 
     def get_labjack_temperature(self):
         return 42
@@ -196,10 +212,10 @@ class SimulatedDataReader:
                 "errors": 0,
                 "missed": [],
                 "result": {
-                    "AIN0": self.sim_sig_3Hz[
+                    "AIN0": self.sim_sig_ain[0][
                         self.counter : self.counter + self.update_interval_ms
                     ],
-                    "AIN1": self.sim_sig_30Hz[
+                    "AIN1": self.sim_sig_ain[1][
                         self.counter : self.counter + self.update_interval_ms
                     ],
                     "AIN2": [0.2 for i in range(self.update_interval_ms)],
@@ -286,8 +302,12 @@ class StreamDataReader(object):
         self.device.setDIOState(2, 0)
         self.device.setDIOState(3, 0)
         
-        
         self.readStreamData()
+
+
+    def set_sim_sig_ain(self,ain,new_Hz):
+        pass
+
 
     def get_labjack_temperature(self):
         return self.device.getTemperature() - 273.15

@@ -180,12 +180,12 @@ class MainWindow(QWidget):
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
 
         self.stream_start_ts = datetime.now()
-    
-        self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
-        self.minerva_stream.start()
-        # except Exception as e:
-        #     self.logger.error(f"unable to create minerva stream: {e}")
-        #     self.minerva_stream = None
+        try:
+            self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
+            self.minerva_stream.start()
+        except Exception as e:
+            self.logger.error(f"unable to create minerva stream: {e}")
+            self.minerva_stream = None
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
             self.minerva_stream, self.logger
         )
@@ -348,10 +348,10 @@ class MainWindow(QWidget):
             [k for k in self.settings.Mode_settings.keys()]
         )
         # create a dictionary of stages
-        for k in self.settings.Mode_settings.keys():
+        for k,v in self.settings.Mode_settings.items():
             self.logger.debug(f"adding STAGE: {k}")
-            self.stage_dict[k] = getattr(STAGES, k)(k, self)
-        # register stage specific data attributes
+            self.stage_dict[k] = getattr(STAGES, k)(v, self)
+        # register stage specific data attributes 
         for k, v in self.stage_dict.items():
             v.register_data()
 
@@ -408,9 +408,31 @@ class MainWindow(QWidget):
 
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
-        print(command)
-        self.logger.info(f"Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
-        self.arduino_stream.sendCommand(command)
+        if command[:2] == "lj":
+            print(f"To LabJack: {command}")
+            self.logger.info(f"LabJack Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
+            lj_command = command.split(",")
+            if lj_command[1]=="set_sim_ain":
+                self.labjack_stream.set_sim_sig_ain(int(lj_command[2]),float(lj_command[3]))
+            else:
+                pass
+        elif command[:3] == "set":
+            print(f"Update Setting: {command}")
+            self.logger.info(f"Setting Update: {command.replace("<","&lt;").replace(">","&gt;")}")
+            set_command = command.split(",")
+            if set_command[1] == "num":
+                setattr(self.settings,set_command[2],float(set_command[3]))
+            elif set_command[1] == "bool":
+                setattr(self.settings,set_command[2],bool(set_command[3]))
+            elif set_command[1] == "list":
+                for k,v in self.settings.__dict__.items():
+                    self.logger.info(f"setting: {k}: {v}")
+            else:
+                setattr(self.settings,set_command[2],set_command[3])
+        else:
+            print(f"To Arduino: {command}")
+            self.logger.info(f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
+            self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
     def action_start_timers(self):
@@ -430,7 +452,7 @@ class MainWindow(QWidget):
 
     def kill_app(self):
         # wait on threads for clean exit?
-        self.minerva_stream.stop()
+        if self.minerva_stream: self.minerva_stream.stop()
         self.arduino_stream.finished = True
 
     def action_stream_timer(self):
@@ -494,10 +516,10 @@ class MainWindow(QWidget):
             if self.settings.flow_filt_state == 1:
                 if self.settings.INVERT_FLOW == 1:
                     self.data.trimmed_pneumo = [
-                        -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, 50)
+                        -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, self.settings.butterHz, fs = self.settings.scanHz)
                     ][self.data.window * -1 :]
                 else:
-                    self.data.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, 50)[
+                    self.data.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, self.settings.butterHz, fs = self.settings.scanHz)[
                         self.data.window * -1 :
                     ]
             else:
@@ -696,7 +718,8 @@ class MainWindow(QWidget):
                         current_stage= self.active_stage.name,
                         signals= self.data.prepare_data_payload()
                     )
-            self.minerva_stream.update_stream_data(self.payload)
+            if self.minerva_stream:
+                self.minerva_stream.update_stream_data(self.payload)
         
         self.payload_counter += 10
 

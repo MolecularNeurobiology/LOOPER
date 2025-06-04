@@ -16,7 +16,7 @@ def basicFilt(CT, sampleHz, f0, Q):
 
     notched = signal.lfilter(b, a, CT)
     # notched=CT
-    b, a = signal.butter(1, 1 / (sampleHz / 2), btype="highpass")
+    b, a = signal.butter(1, 1 / (sampleHz / 2), btype="high")
     buttered = signal.lfilter(b, a, notched)
     return buttered
 
@@ -27,9 +27,12 @@ def notchFilt(CT, sampleHz, f0, Q):
     notched = signal.lfilter(b, a, CT)
     return notched
 
-
-def butterFilt(CT, sampleHz):
-    b, a = signal.butter(1, 1 / (sampleHz / 2), btype="highpass")
+# !!! TODO check behavior of filter, old system vs new, mouse vs sim
+def butterFilt(CT, sampleHz, fs = None):
+    if fs:
+        b, a = signal.butter(1, 1 / (sampleHz / 2), btype="high", fs = fs)
+    else:
+        b, a = signal.butter(1, 1 / (sampleHz / 2), btype="high")
     buttered = signal.lfilter(b, a, CT)
     return buttered
 

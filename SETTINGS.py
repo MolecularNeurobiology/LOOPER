@@ -20,17 +20,7 @@ class SETTINGS:
         self.output_path = None
         self.config_path = "/home/pi/rig.config"
 
-
-        ## settings:
-        self.filt_crit_Dict = {
-            "avgBPM": 250,
-            "cvTT": 0.50,
-            "avgHR": 850,
-            "avgRR": 999,
-            "cvRR": 1.00,
-            "BSD": 0.25,
-            "DVTV": 0.75,
-        }
+        ## settings
         self.HR_recovery_thresh = 63.0
         self.BPM_recovery_thresh = 50.0
         self.QB_minimum_duration = 5.0
@@ -40,6 +30,8 @@ class SETTINGS:
         self.thresh2_flow = 0.100
 
         self.flow_filt_state = 1  # either 1 or 0
+        self.butterHz = 0.1 # default is 50, but seems to be excessively muting - need to test with pipette
+        self.scanHz = 1000
         self.ecg_filt_state = 0  # either 1 or 0
 
         self.baseline_vol = 0.0
@@ -86,81 +78,115 @@ class SETTINGS:
 
         self.Mode_settings = {
             "startup1": {
+                "name": "startup1",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "startup2",
                 "stage_type": "wait_for_user",
             },
             "startup2": {
+                "name": "startup2",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "standby",
                 "stage_type": "wait_for_condition",
             },
             "standby": {
+                "name": "standby",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "signal_preview_1",
                 "stage_type": "wait_for_condition",
             },
             "signal_preview_1": {
+                "name": "signal_preview_1",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "calibration",
                 "stage_type": "wait_for_user",
             },
             "calibration": {
+                "name": "calibration",
                 "duration": 20,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "signal_preview_2",
                 "stage_type": "timed",
             },
             "signal_preview_2": {
+                "name": "signal_preview_2",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "habituation_1",
                 "stage_type": "wait_for_user",
             },
             "habituation_1": {
+                "name": "habituation_1",
                 "duration": 30 * 60,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "pre_inject",
                 "stage_type": "timed",
             },
             "pre_inject": {
+                "name": "pre_inject",
                 "duration": 2 * 60,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "inject",
                 "stage_type": "wait_for_condition",
             },
             "inject": {
+                "name": "inject",
                 "duration": -1,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "habituation_2",
                 "stage_type": "wait_for_user",
             },
             "habituation_2": {
+                "name": "habituation",
                 "duration": 30 * 60,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "baseline",
                 "stage_type": "timed",
             },
             "baseline": {
+                "name": "baseline",
                 "duration": 2 * 60,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "challenge",
                 "stage_type": "wait_for_condition",
+                "minimum_cummulative_QB_duration": 60.0,
+                "avgBPM": 250,
+                "cvTT": 0.50,
+                "avgHR": 850,
+                "avgRR": 999,
+                "cvRR": 1.00,
+                "BSD": 0.25,
+                "DVTV": 0.75,
             },
             "challenge": {
+                "name": "challenge",
                 "duration": -1,
                 "savable": True,
                 "special_exit": "na",
+                "next_stage": "finished",
                 "stage_type": "wait_for_condition",
             },
             "finished": {
+                "name": "finished",
                 "duration": -1,
                 "savable": False,
                 "special_exit": "na",
+                "next_stage": "finished",
                 "stage_type": "wait_for_user",
             },
         }

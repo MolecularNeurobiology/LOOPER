@@ -8,23 +8,27 @@ import numpy
 
 
 class STAGE(ABC):
-    def __init__(self, name, pcc):
-        self.name = name
+    def __init__(self, setting_dict, pcc):
+        self.name = setting_dict["name"]
         self.pcc = pcc
+        self.next_stage = setting_dict["next_stage"]
+        self.setting_dict = setting_dict
 
         self.pcc.data.stage_start_time = datetime.now()
         self.pcc.data.current_time = datetime.now()
         self.pcc.data.time_in_stage = 0
         self.pcc.data.time_in_stage_seconds = 0
-        self.stage_time_limit = self.pcc.settings.Mode_settings[self.name]["duration"]
-        self.save_flag = self.pcc.settings.Mode_settings[self.name]["savable"]
+        self.stage_time_limit = setting_dict["duration"]
+        self.save_flag = setting_dict["savable"]
         # self.register_data()
 
     def test_time_in_stage(self):
         """
         returns true if time in stage is greater or equal to the limit for the stage
         """
-        self.pcc.data.time_in_stage = self.pcc.data.current_time - self.pcc.data.stage_start_time
+        self.pcc.data.time_in_stage = (
+            self.pcc.data.current_time - self.pcc.data.stage_start_time
+        )
         self.pcc.data.time_in_stage_seconds = self.pcc.data.time_in_stage.seconds
 
         if self.stage_time_limit < 0:
@@ -37,14 +41,14 @@ class STAGE(ABC):
         elif self.stage_time_limit > self.pcc.data.time_in_stage_seconds:
             return False
         else:
-            self.pcc.logger.info(f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit})")
+            self.pcc.logger.info(
+                f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit})"
+            )
             return True
 
-    
     def register_data(self):
         pass
 
-    
     def on_load(self):
         self.pcc.data.stage_start_time = datetime.now()
         self.pcc.logger.info(f"STAGE: {self.name}")
@@ -56,19 +60,19 @@ class STAGE(ABC):
     def additional_on_load(self):
         pass
 
-
     def on_jump_exit(self):
         self.on_exit()
-        
 
-    @abstractmethod
-    def on_exit(self):
+    def additional_on_exit(self):
         pass
+
+    def on_exit(self):
+        self.additional_on_exit()
+        self.pcc.comboBox_Jump_To_Stage.setCurrentText(self.next_stage)
 
     def event_loop(self):
         self.pcc.data.current_time = datetime.now()
         self.additional_event_loop()
-
 
         if self.exit_condition_test():
             self.pcc.data.automated = True
@@ -83,38 +87,16 @@ class STAGE(ABC):
             self.on_exit()
         if self.additional_exit_test():
             self.on_exit()
-    
-    
+
     def additional_exit_test(self):
         pass
 
 
-class startup1(STAGE):      
-    
-    # def on_load(self):
-    #     self.pcc.data.start_time = datetime.now()
-    #     self.pcc.logger.info("STAGE: startup1")
-    #     self.pcc.automated = False
+class startup1(STAGE):
     def additional_on_load(self):
-        
         self.pcc.logger.debug("starting up arduino tests")
         self.pcc.arduino_stream.sendCommand(b"[U")
 
-    def on_exit(self):
-
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("startup2")
-
-    # def event_loop(self):
-    #     self.current_time = datetime.now()
-    #     if self.exit_condition_test():
-    #         self.pcc.automated = True
-    #         self.on_exit()
-
-    # def exit_condition_test(self):
-    #     # test for time
-    #     if self.test_time_in_stage():
-    #         self.on_exit()
-    
     def additional_exit_test(self):
         # test for startup tests passed
         if "startup sent" in self.pcc.arduino_string:
@@ -125,23 +107,10 @@ class startup2(STAGE):
     def register_data(self):
         self.pcc.data.arduino_startup_motion_tested = False
 
-    # def on_load(self):
-    #     self.pcc.start_time = datetime.now()
-    #     self.pcc.logger.info("STAGE: startup2")
-    #     self.automated = False
-
     def additional_on_load(self):
         self.pcc.data.arduino_startup_motion_tested = False
         self.pcc.logger.debug("starting up arduino tests")
         self.pcc.arduino_stream.sendCommand(b"[E")
-
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("standby")
-
-    # def exit_condition_test(self):
-    #     # test for time
-    #     if self.test_time_in_stage():
-    #         self.on_exit()
 
     def additional_exit_test(self):
         # test for startup tests passed
@@ -151,40 +120,24 @@ class startup2(STAGE):
 
 
 class standby(STAGE):
-    def register_data(self):
-        pass
-
-    # def on_load(self):
-    #     self.pcc.start_time = datetime.now()
-    #     self.pcc.logger.info("STAGE: standby")
-    #     self.automated = False
-    #     self.pcc.arduino_startup_motion_tested = False
     def additional_on_load(self):
         self.pcc.logger.debug("moving to standby position")
         self.pcc.arduino_stream.sendCommand(b"[S")
-
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("signal_preview_1")
-
-    # def exit_condition_test(self):
-    #     # test for time
-    #     if self.test_time_in_stage():
-    #         self.on_exit()
 
     def additional_event_loop(self):
         if "standby sent" in self.pcc.arduino_string:
             self.pcc.data.arduino_startup_motion_tested = True
 
     def additional_exit_test(self):
-        if self.pcc.settings.output_path and self.pcc.data.arduino_startup_motion_tested:
+        if (
+            self.pcc.settings.output_path
+            and self.pcc.data.arduino_startup_motion_tested
+        ):
             self.on_exit()
 
 
 class signal_preview_1(STAGE):
-    
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("calibration")
-
+    pass
 
 
 class calibration(STAGE):
@@ -198,43 +151,43 @@ class calibration(STAGE):
         self.pcc.arduino_stream.sendCommand(b"[C")
         self.pcc.logger.debug(f"stage time limit: {self.stage_time_limit}")
 
-    def on_exit(self):
-        #print(self.pcc.data.calibration_breath_dict)
+    def additional_on_exit(self):
+        # print(self.pcc.data.calibration_breath_dict)
         self.pcc.data.calibration_tv_voltage = numpy.mean(
-            [v['iTV'] for v in self.pcc.data.calibration_breath_dict.values()]
+            [v["iTV"] for v in self.pcc.data.calibration_breath_dict.values()]
         )
-        self.pcc.logger.info(f'calibration VT voltage: {self.pcc.data.calibration_tv_voltage}')
+        self.pcc.logger.info(
+            f"calibration VT voltage: {self.pcc.data.calibration_tv_voltage}"
+        )
         self.pcc.data.calibration_breath_duration = numpy.mean(
-            [v['TT'] for v in self.pcc.data.calibration_breath_dict.values() if 'TT' in v]
+            [
+                v["TT"]
+                for v in self.pcc.data.calibration_breath_dict.values()
+                if "TT" in v
+            ]
         )
-
-        self.pcc.logger.info(f'calibration breath duration: {self.pcc.data.calibration_breath_duration}')
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("signal_preview_2")
+        self.pcc.logger.info(
+            f"calibration breath duration: {self.pcc.data.calibration_breath_duration}"
+        )
 
     def additional_event_loop(self):
-        for k,v in self.pcc.data.breath_list.items():
+        for k, v in self.pcc.data.breath_list.items():
             if k < self.pcc.data.recent_calibration_breath:
                 continue
             else:
-                self.pcc.data.calibration_breath_dict[k]=v
-
-
+                self.pcc.data.calibration_breath_dict[k] = v
 
 
 class signal_preview_2(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("habituation_1")
+    pass
 
-    
 
 class habituation_1(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("signal_preview_3")
+    pass
 
 
 class signal_preview_3(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("pre_inject")
+    pass
 
 
 class pre_inject(STAGE):
@@ -260,44 +213,67 @@ class baseline(STAGE):
         self.pcc.data.quality_test = 0
         self.pcc.data.prev_quality_test = 0
         self.pcc.data.qb_timer = 0
-        pass
-
-    def on_load(self):
-        pass
+        self.pcc.data.quality_status = ""
+        # self.pcc.data.avgTT = 0  # how to handle common summura measures that are common between stages but not used in all stages TODO !!!
+        # self.pcc.data.cvTT = 0
+        # self.pcc.data.avgHR = 0
+        # self.pcc.data.avgRR = 0
+        # self.pcc.data.cvRR = 0
+        # self.pcc.data.BSD = 0
+        # self.pcc.data.DVTV = 0
 
     def additional_on_load(self):
-        pass
-
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("challenge")
-
+        self.filt_crit_Dict = {
+            k: getattr(self.setting_dict, k)
+            for k in ["avgBPM", "cvTT", "avgHR", "cvRR", "BSD", "DVTV"]
+        }
 
     def quality_test(self):
         self.pcc.data.prev_quality_test = int(self.pcc.data.quality_test)
         # check if in 'good recording section'
         filt_test_Dict = {
-            "avgBPM": 60 / avgTT,
-            "cvTT": CV_TT,
-            "avgHR": 60 / avgRR,
-            "avgRR": avgRR,
-            "cvRR": CV_RR,
-            "BSD": BSD,
-            "DVTV": avgDVTV,
+            "avgBPM": 60 / self.pcc.data.avg_tt,
+            "cvTT": self.pcc.data.cv_tt,
+            "avgHR": 60 / self.pcc.data.avg_rr,
+            "avgRR": self.pcc.data.avg_rr,
+            "cvRR": self.pcc.data.cv_rr,
+            "BSD": self.pcc.data.avg_bsd,
+            "DVTV": self.pcc.data.avg_dvtv,
         }
 
         exclude = []
-        for i in filt_crit_Dict:
-            if filt_crit_Dict[i] < filt_test_Dict[i]:
+        for i in self.filt_crit_Dict.keys():
+            if self.filt_crit_Dict[i] < filt_test_Dict[i]:
                 exclude.append(i)
         if len(exclude) >= 1:
-            quality_test = 0
-            QualColor = RED
-        else:
-            quality_test = 1
-            QualColor = GREEN
+            self.pcc.data.quality_test = 0
+            self.pcc.data.quality_status = ",".join(exclude)
 
-    def event_loop(self):
-        self.exit_condition_test()
+        else:
+            self.pcc.data.quality_test = 1
+            self.pcc.data.quality_status = "PASS"
+
+    def additional_exit_test(self):
+        # if quality time > minimum quality time return True
+        if self.pcc.data.quality_test == 0:
+            if (
+                self.pcc.data.qb_timer
+                > self.setting_dict["minimum_cummulative_QB_duration"]
+            ):
+                return True
+            else:
+                return False
+        else:
+            if (
+                self.pcc.data.qb_timer
+                + self.pcc.data.quality_seg_list[-1][1]
+                - self.pcc.data.quality_seg_list[-1][0]
+            ) > self.setting_dict["minimum_cummulative_QB_duration"]:
+                return True
+            else:
+                return False
+
+    def additional_event_loop(self):
         self.quality_test()
 
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_qual_test == 0:
@@ -311,30 +287,14 @@ class baseline(STAGE):
                 )
             self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
         if self.pcc.data.quality_test == 0 and self.pcc.data.prev_qual_test == 1:
-            pass
+            self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
+            self.pcc.data.qb_timer += (
+                self.pcc.data.quality_seg_list[-1][1]
+                - self.pcc.data.quality_seg_list[-1][0]
+            )
 
     # !!!
     """
-        if Mode_dict[Current_Mode]=='Baseline' and prev_Mode!=Current_Mode:
-                RunningBreaths=[]
-                RunningBeats={'ts':[],'rr':[]}
-                quality_seg_list=[]
-            if Mode_dict[Current_Mode]=='Baseline':
-                # populate quality segment list 
-                if quality_test==1 and prev_qual_test==0:
-                    QB_TIMER=REL_TIMER
-                    quality_seg_list.append([QB_TIMER,REL_TIMER])
-                if quality_test==1 and prev_qual_test==1:
-                    if len(quality_seg_list)==0:
-                        quality_seg_list.append([QB_TIMER,REL_TIMER])
-                    quality_seg_list[-1][1]=REL_TIMER
-                if quality_test==0 and prev_qual_test==1:
-                    if REL_TIMER-QB_TIMER>=QB_minimum_duration:
-                        QB_Counter+=1
-                        QB_duration+=REL_TIMER-QB_TIMER
-                    
-                    
-            
                 
                 for i in BL:
                     if 'TE' in BreathCalls[i].keys():
@@ -389,7 +349,6 @@ class challenge(STAGE):
 
     def on_exit(self):
         self.pcc.comboBox_Jump_To_Stage.setCurrentText("finished")
-
 
     def on_jump_exit(self):
         pass
