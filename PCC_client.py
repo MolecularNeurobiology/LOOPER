@@ -139,7 +139,7 @@ class MainWindow(QWidget):
         self.logging_text_browser.setFormatter(self.logging_format)
         self.logging_text_browser.setLevel(logging.INFO)
         self.logger.addHandler(self.logging_text_browser)
-        debug_log_handler = logging.FileHandler("debug.log",mode="w")
+        debug_log_handler = logging.FileHandler("debug.log",mode="w", encoding="utf-8")
         debug_log_handler.setLevel = logging.DEBUG
         self.logger.addHandler(debug_log_handler)
 
@@ -298,16 +298,16 @@ class MainWindow(QWidget):
             symbolPen=None,
             symbolSize=14,
         )
-        self.line2_threshold_2 = self.graph2.plot(
-            x=[-5, 0],
-            y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
-            name="threshold 2",
-            pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
-            symbol=None,
-            symbolBrush=None,
-            symbolPen=None,
-            symbolSize=14,
-        )
+        # self.line2_threshold_2 = self.graph2.plot(
+        #     x=[-5, 0],
+        #     y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
+        #     name="threshold 2",
+        #     pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
+        #     symbol=None,
+        #     symbolBrush=None,
+        #     symbolPen=None,
+        #     symbolSize=14,
+        # )
         self.line2_baseline = self.graph2.plot(
             x=[-5, 0],
             y=[self.settings.baseline_ecg, self.settings.baseline_ecg],
@@ -369,10 +369,9 @@ class MainWindow(QWidget):
 
     def action_jump_to_stage(self):
         self.logger.info(
-            f"jumping to stage: {self.comboBox_Jump_To_Stage.currentText()}"
+            f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}"
         )
-        if not self.automated:
-            self.active_stage.on_exit()
+        self.active_stage.on_exit()
         self.automated = False
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
         self.active_stage.on_load()
@@ -394,7 +393,8 @@ class MainWindow(QWidget):
         self.output_file_writer.write_header()
 
     def action_next_stage(self):
-        self.active_stage.on_jump_exit()
+        self.automated = True
+        self.active_stage.on_exit()
         #self.logger.debug(f"stages: {len(self.stage_dict)}")
         #self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
         #if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
@@ -658,24 +658,25 @@ class MainWindow(QWidget):
 
 
         # collect arduino stream
-        Arduino_Dump_Toggle = 0
+        #Arduino_Dump_Toggle = 0
         self.arduino_list = []
 
         # !!! TODO do we need to worry about arduino outputs being split across entries?
         if self.arduino_stream.data.empty() == False:
-            Arduino_Dump_Toggle = 1
+            #Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
             self.arduino_list = [
-                i for i in arduino_out.split("\r\n") if i != " " and i != ""
+                i for i in arduino_out.split(b"\r\n") if i != " " and i != ""
             ]
-            self.arduino_string = "".join(self.arduino_list)
-            for i in self.arduino_list:
-                self.logger.info(f"ARDUINO:{i}")
-                ### !!! TODO finish this to process arduino outputs for triggering stage changes
-                if self.settings.Challenge_phrase in i:
-                    if Challenge_Toggle == 0:
-                        Challenge_Timer = datetime.now()
-                    Challenge_Toggle = 1
+            self.arduino_string = b"".join(self.arduino_list).decode("utf-8")
+            self.logger.info(f"ARDUINO:{self.arduino_string}")
+            # for i in self.arduino_list:
+            #     self.logger.info(f"ARDUINO:{i}")
+            #     ### !!! TODO finish this to process arduino outputs for triggering stage changes
+            #     if self.settings.Challenge_phrase in i:
+            #         if Challenge_Toggle == 0:
+            #             Challenge_Timer = datetime.now()
+            #         Challenge_Toggle = 1
 
         # collect minerva stream
         if self.minerva_stream_reader.data:

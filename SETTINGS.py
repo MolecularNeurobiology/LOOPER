@@ -38,10 +38,8 @@ class SETTINGS:
         self.thresh_vol = 0.25
 
         self.baseline_ecg = 0.0
-        self.absthresh_ecg = 0.14
         self.minRR_ecg = 0.100
-        self.thresh_ecg1 = 4.0
-        self.thresh_ecg2 = 2.0
+        self.thresh_ecg1 = 0.5
         self.noise_ecg = 75.0
 
         self.INVERT_FLOW = 0

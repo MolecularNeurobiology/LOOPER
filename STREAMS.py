@@ -158,10 +158,10 @@ class SimulatedDataReader:
         self.data_sim_timer = QTimer()
         self.data_sim_timer.setTimerType(Qt.PreciseTimer)
         self.data_sim_timer.timeout.connect(self.readStreamData)
-        # default is 3Hz for ain0 and 30Hz for ain1
+        # default is 2.5Hz for ain0 and 8.5Hz for ain1 - odd behavior if using x.3 !!!TODO!!!
         self.sim_sig_ain = {
-            0:[math.sin(i * 6.28 *2* 3) for i in range(60000)],
-            1:[math.sin(i * 6.28 *2* 30) for i in range(60000)]
+            0:[math.sin(i * 6.28 *2* 2.5) for i in range(60000)],
+            1:[math.sin(i * 6.28 *2* 8.5) for i in range(60000)]
         }
         self.counter = 0
         self.counter_limit = 60000

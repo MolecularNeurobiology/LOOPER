@@ -30,21 +30,16 @@ class STAGE(ABC):
             self.pcc.data.current_time - self.pcc.data.stage_start_time
         )
         self.pcc.data.time_in_stage_seconds = self.pcc.data.time_in_stage.seconds
-
-        if self.stage_time_limit < 0:
-            return False
-        elif (
-            self.stage_time_limit == 0
-        ):  # !!! TODO this should stop being a thing moveing forward...don't include instead of duration 0
-            self.pcc.logger.info("no duration set for current stage, skipping")
-            return True
-        elif self.stage_time_limit > self.pcc.data.time_in_stage_seconds:
-            return False
-        else:
-            self.pcc.logger.info(
-                f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit})"
-            )
-            return True
+        if self.setting_dict["stage_type"] == "timed":
+            if self.stage_time_limit > self.pcc.data.time_in_stage_seconds:
+                return False
+            elif self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
+                self.pcc.logger.info(
+                    f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit})"
+                )
+                self.pcc.automated = True
+                return True
+        return False
 
     def register_data(self):
         pass
@@ -52,7 +47,7 @@ class STAGE(ABC):
     def on_load(self):
         self.pcc.data.stage_start_time = datetime.now()
         self.pcc.logger.info(f"STAGE: {self.name}")
-        self.pcc.data.automated = False
+        self.pcc.automated = False
         if self.save_flag:
             self.pcc.output_file_writer.write_header()
         self.additional_on_load()
@@ -60,22 +55,21 @@ class STAGE(ABC):
     def additional_on_load(self):
         pass
 
-    def on_jump_exit(self):
-        self.on_exit()
-
     def additional_on_exit(self):
         pass
 
     def on_exit(self):
         self.additional_on_exit()
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText(self.next_stage)
+        if self.pcc.automated:
+            
+            self.pcc.comboBox_Jump_To_Stage.setCurrentText(self.next_stage)
 
     def event_loop(self):
         self.pcc.data.current_time = datetime.now()
         self.additional_event_loop()
 
         if self.exit_condition_test():
-            self.pcc.data.automated = True
+            self.pcc.automated = True
             self.on_exit()
 
     def additional_event_loop(self):
@@ -191,19 +185,13 @@ class signal_preview_3(STAGE):
 
 
 class pre_inject(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("inject")
-
+    pass
 
 class inject(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("habituation_2")
-
+    pass
 
 class habituation_2(STAGE):
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("baseline")
-
+    pass
 
 class baseline(STAGE):
     def register_data(self):
@@ -224,14 +212,15 @@ class baseline(STAGE):
 
     def additional_on_load(self):
         self.filt_crit_Dict = {
-            k: getattr(self.setting_dict, k)
+            k: self.setting_dict.get(k)
             for k in ["avgBPM", "cvTT", "avgHR", "cvRR", "BSD", "DVTV"]
         }
+        print("base add load")
 
     def quality_test(self):
         self.pcc.data.prev_quality_test = int(self.pcc.data.quality_test)
         # check if in 'good recording section'
-        filt_test_Dict = {
+        self.filt_test_Dict = {
             "avgBPM": 60 / self.pcc.data.avg_tt,
             "cvTT": self.pcc.data.cv_tt,
             "avgHR": 60 / self.pcc.data.avg_rr,
@@ -243,7 +232,7 @@ class baseline(STAGE):
 
         exclude = []
         for i in self.filt_crit_Dict.keys():
-            if self.filt_crit_Dict[i] < filt_test_Dict[i]:
+            if self.filt_crit_Dict[i] < self.filt_test_Dict[i]:
                 exclude.append(i)
         if len(exclude) >= 1:
             self.pcc.data.quality_test = 0
@@ -276,17 +265,17 @@ class baseline(STAGE):
     def additional_event_loop(self):
         self.quality_test()
 
-        if self.pcc.data.quality_test == 1 and self.pcc.data.prev_qual_test == 0:
+        if self.pcc.data.quality_test == 1 and self.pcc.data.prev_quality_test == 0:
             self.pcc.data.quality_seg_list.append(
                 [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
             )
-        if self.pcc.data.quality_test == 1 and self.pcc.data.prev_qual_test == 1:
+        if self.pcc.data.quality_test == 1 and self.pcc.data.prev_quality_test == 1:
             if len(self.pcc.data.quality_seg_list) == 0:
                 self.pcc.data.quality_seg_list.append(
                     [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
                 )
             self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
-        if self.pcc.data.quality_test == 0 and self.pcc.data.prev_qual_test == 1:
+        if self.pcc.data.quality_test == 0 and self.pcc.data.prev_quality_test == 1:
             self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
             self.pcc.data.qb_timer += (
                 self.pcc.data.quality_seg_list[-1][1]
@@ -341,17 +330,9 @@ class challenge(STAGE):
             raise KeyError
         pass
 
-    def on_load(self):
-        pass
-
     def additional_on_load(self):
         pass
 
-    def on_exit(self):
-        self.pcc.comboBox_Jump_To_Stage.setCurrentText("finished")
-
-    def on_jump_exit(self):
-        pass
 
     def event_loop(self):
         pass
@@ -361,5 +342,4 @@ class challenge(STAGE):
 
 
 class finished(STAGE):
-    def on_exit(self):
-        pass
+    pass
