@@ -66,6 +66,8 @@ class STAGE(ABC):
 
     def event_loop(self):
         self.pcc.data.current_time = datetime.now()
+        if self.save_flag:
+            self.pcc.output_file_writer.write_data()
         self.additional_event_loop()
 
         if self.exit_condition_test():
@@ -267,16 +269,16 @@ class baseline(STAGE):
 
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_quality_test == 0:
             self.pcc.data.quality_seg_list.append(
-                [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
+                [self.pcc.data.time_in_stage_seconds, self.pcc.data.time_in_stage_seconds]
             )
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_quality_test == 1:
             if len(self.pcc.data.quality_seg_list) == 0:
                 self.pcc.data.quality_seg_list.append(
-                    [self.data.time_in_stage_seconds, self.data.time_in_stage_seconds]
+                    [self.pcc.data.time_in_stage_seconds, self.pcc.data.time_in_stage_seconds]
                 )
-            self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
+            self.pcc.data.quality_seg_list[-1][1] = self.pcc.data.time_in_stage_seconds
         if self.pcc.data.quality_test == 0 and self.pcc.data.prev_quality_test == 1:
-            self.pcc.data.quality_seg_list[-1][1] = self.data.time_in_stage_seconds
+            self.pcc.data.quality_seg_list[-1][1] = self.pcc.data.time_in_stage_seconds
             self.pcc.data.qb_timer += (
                 self.pcc.data.quality_seg_list[-1][1]
                 - self.pcc.data.quality_seg_list[-1][0]

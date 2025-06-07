@@ -7,7 +7,8 @@ collection of classes and functions that are primarily for transmitting output
 """
 
 # %% import libraries
-
+import pickle
+import gzip
 
 # %% define functions
 
@@ -86,18 +87,64 @@ class MinervaBroadcaster:
 
 
 class OutputFileWriter:
-    def __init__(self, output_path = None, pcc = None):
+    def __init__(self, output_path=None, pcc=None):
         self.output_path = output_path
         self.pcc = pcc
+
+    def write_header_p(self):
+        if self.output_path:
+            with open(self.output_path, "ab") as open_file:
+                pickle.dump(
+                    self.pcc.version_info | {
+                        "stage": self.pcc.active_stage.name,
+                        "lj_columns":self.pcc.labjack_stream.channel_key,
+                        "arduino_columns":"stream",
+                        "minerva_columns":"stream"
+                        },
+                    open_file,
+                )
+            self.pcc.logger.debug("header written")
+        else:
+            self.pcc.logger.warning("no output path set")
+
+    def write_data_p(self):
+        if self.output_path:
+            with open(self.output_path, "ab") as open_file:
+                pickle.dump(
+                    {
+                        "lj": self.pcc.processed_result, 
+                        "arduino": self.pcc.arduino_list, 
+                        "minerva": self.pcc.minerva_stream_reader.data
+                    },
+                    open_file
+                )
+            pass
         pass
 
     def write_header(self):
         if self.output_path:
-
-            pass
+            with gzip.open(self.output_path, "a", 9) as open_file:
+                open_file.write(pickle.dumps(
+                    self.pcc.version_info | {
+                        "stage": self.pcc.active_stage.name,
+                        "lj_columns":self.pcc.labjack_stream.channel_key,
+                        "arduino_columns":"stream",
+                        "minerva_columns":"stream"
+                        },
+                ))
             self.pcc.logger.debug("header written")
         else:
             self.pcc.logger.warning("no output path set")
 
     def write_data(self):
+        if self.output_path:
+            with gzip.open(self.output_path, "a", 9) as open_file:
+                open_file.write(pickle.dumps(
+                    {
+                        "lj": self.pcc.processed_result, 
+                        "arduino": self.pcc.arduino_list, 
+                        "minerva": self.pcc.minerva_stream_reader.data
+                    }
+                ))
+            pass
         pass

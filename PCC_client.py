@@ -153,6 +153,7 @@ class MainWindow(QWidget):
         self.stage_dict = {}
         self.automated = False
         self.arduino_string = ""
+        self.processed_result = {}
 
         # populate data class
         self.data = DATA.DATA()
@@ -380,7 +381,7 @@ class MainWindow(QWidget):
     def action_set_output_file_path(self):
         #if manual oride checkbox checked, manually set filepath, else use automated partsing
         if self.checkBox_Oride.isChecked():
-            self.settings.output_path = QFileDialog.getSaveFileName(self,caption="select output filename",filter="PCC Output (*.pcco)")
+            self.settings.output_path = QFileDialog.getSaveFileName(self,caption="select output filename",filter="PCC Output (*.pcco)")[0]
         else:
             self.logger.info(f"generating save path... config: {self.settings.config_path}")
             self.settings.output_path,_ = fm_tools.generate_rig_save_path(
@@ -482,11 +483,11 @@ class MainWindow(QWidget):
 
             # Convert the raw bytes (result['result']) to voltage data.
             if self.settings.sim_mode == 0:
-                processed_result = self.labjack_stream.device.processStreamData(
+                self.processed_result = self.labjack_stream.device.processStreamData(
                     result["result"]
                 )
             elif self.settings.sim_mode == 1:
-                processed_result = result["result"]
+                self.processed_result = result["result"]
             # parse channels and migrate into short term streams
             flow_channel = self.labjack_stream.channel_list[
                 self.labjack_stream.channel_dict["FLOW"]
@@ -496,8 +497,8 @@ class MainWindow(QWidget):
             ]
 
             
-            self.data.new_pneumo = processed_result[f"AIN{flow_channel}"]
-            self.data.new_ecg = processed_result[f"AIN{ecg_channel}"]
+            self.data.new_pneumo = self.processed_result[f"AIN{flow_channel}"]
+            self.data.new_ecg = self.processed_result[f"AIN{ecg_channel}"]
 
             new_samples = len(self.data.new_pneumo)
             time_increment = round(new_samples/self.labjack_stream.scan_frequency,3)
@@ -668,8 +669,9 @@ class MainWindow(QWidget):
             self.arduino_list = [
                 i for i in arduino_out.split(b"\r\n") if i != " " and i != ""
             ]
-            self.arduino_string = b"".join(self.arduino_list).decode("utf-8")
-            self.logger.info(f"ARDUINO:{self.arduino_string}")
+            #self.arduino_string = b"".join(self.arduino_list).decode("utf-8") 
+            for i in self.arduino_list:
+                self.logger.info(f"ARDUINO:{i}") # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
             # for i in self.arduino_list:
             #     self.logger.info(f"ARDUINO:{i}")
             #     ### !!! TODO finish this to process arduino outputs for triggering stage changes
