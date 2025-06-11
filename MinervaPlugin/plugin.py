@@ -367,7 +367,9 @@ class Plugin:
 
     def _listen_for_commands(self):
         # added passthrough of _is_running to help with stopping on exit
+        self._log_info(f"Starting command listener for MAC: {self._mac_address}")
         self._rabbit_mq_client_consumer.consume_message(self._handle_command)
+        self._log_info(f"Command listener stopped for MAC: {self._mac_address}")
 
     def _ping_loop(self):
         while self._is_running:
@@ -467,9 +469,14 @@ class Plugin:
 
         This method stops the ping loop, command listening thread, and all user streaming sessions.
         """
-        
+
         print("MP STOP ATTEMPTED")
         self._is_running = False
+
+        # Stop RabbitMQ consumer first
+        if self._rabbit_mq_client_consumer:
+            self._rabbit_mq_client_consumer.stop_consuming()
+            self._log_info("RabbitMQ consumer stopped.")
 
         # Stop all user streaming sessions
         with self._sessions_lock:

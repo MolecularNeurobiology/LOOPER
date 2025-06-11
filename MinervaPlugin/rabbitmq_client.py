@@ -20,7 +20,7 @@ class RabbitMQClient:
         self.channel = self.connection.channel()
         self.queue = _queue
         #
-        self._is_running = False
+        self._is_running = True  # Fixed: Set to True so consume_message loop will run
 
     def _log_info(self, message):
         """Log info message only if DEBUG_ENABLED is True"""
@@ -53,9 +53,10 @@ class RabbitMQClient:
             )
         else:
             # Declare queue without TTL for ping/command queues
+            # Use durable=False to match TypeScript side configuration
             self.channel.queue_declare(
                 queue=self.queue,
-                durable=True
+                durable=False
             )
             # Publish message without TTL
             self.channel.basic_publish(
@@ -73,23 +74,61 @@ class RabbitMQClient:
 
     def consume_message(self, callback):
         def message_callback_wrapper(ch, method, properties, body):
-            callback(json.loads(body.decode()))
-
-        print("rabbit mq _is_running True")
-        while self._is_running:
             try:
-                self.channel.queue_declare(queue=self.queue)
-                self.channel.basic_consume(queue=self.queue, on_message_callback=message_callback_wrapper)
-                self._log_info(f"Listening for messages on {self.queue}. To exit press CTRL+C")
-                self.channel.start_consuming()
-            except pika.exceptions.AMQPConnectionError as e:
-                self._log_error("Connection lost, retrying in 5 seconds...")
-                self.reconnect()
-                time.sleep(5)
-        print("rabbit mq _is_running False")
-        self.close()
-        print("closing connection")
+                # Parse and process the message
+                message = json.loads(body.decode())
+                callback(message)
+                # Acknowledge the message after successful processing
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                self._log_info(f"Message processed and acknowledged: {message}")
+            except Exception as e:
+                # Log error but still acknowledge to prevent redelivery
+                self._log_error(f"Error processing message: {e}")
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        self._log_info(f"Starting message consumption on queue: {self.queue}")
+        print("rabbit mq _is_running True")
+
+        try:
+            # Declare queue with consistent settings (durable=False to match TypeScript side)
+            self.channel.queue_declare(queue=self.queue, durable=False)
+            self.channel.basic_consume(
+                queue=self.queue,
+                on_message_callback=message_callback_wrapper,
+                auto_ack=False  # Manual acknowledgment for better reliability
+            )
+            self._log_info(f"Listening for messages on {self.queue}. To exit press CTRL+C")
+
+            # Start consuming - this will block until stop() is called
+            self.channel.start_consuming()
+
+        except pika.exceptions.AMQPConnectionError as e:
+            self._log_error(f"Connection lost: {e}")
+            self.reconnect()
+        except Exception as e:
+            self._log_error(f"Error in consume_message: {e}")
+        finally:
+            print("rabbit mq _is_running False")
+            self.close()
+            print("closing connection")
+
+    def stop_consuming(self):
+        """Stop consuming messages and set running flag to False"""
+        self._is_running = False
+        if self.channel and not self.channel.is_closed:
+            try:
+                self.channel.stop_consuming()
+                self._log_info("Stopped consuming messages")
+            except Exception as e:
+                self._log_error(f"Error stopping consumer: {e}")
 
     def close(self):
-        self.channel.close()
-        self.connection.close()
+        """Close the channel and connection"""
+        try:
+            if self.channel and not self.channel.is_closed:
+                self.channel.close()
+            if self.connection and not self.connection.is_closed:
+                self.connection.close()
+            self._log_info("RabbitMQ connection closed")
+        except Exception as e:
+            self._log_error(f"Error closing connection: {e}")
