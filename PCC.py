@@ -1157,6 +1157,65 @@ try:
                     # WarningColor=RED
                     # WarningText='[CLEAR]!!Check Threshold2!!'
 
+                # test for overly long challenge induction
+                if (
+                    value_CurrentChallengeCO2_Timer
+                    >= long_challenge_induction_threshold
+                ):
+                    if logger:
+                        logger.info(
+                            f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                        )
+                    serial_list.append(
+                        f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                    )
+                    Current_Mode = advance(Current_Mode, 0, len(Mode_dict) - 1)
+                    sdr.stopStreamData()
+
+                    sdrThread.join()
+                    while sdr.data.empty() != True:
+                        try:
+                            q = (
+                                sdr.data.get()
+                            )  # this may toss the lagged data when switching modes...should be ok if lag is <1sec...may want to consider a better clean up function that puts in in the output file
+                        except:
+                            pass
+                    print("resetting stream")
+                    CT_value = d.getTemperature() - 273.15
+                    REL_TIMER = 0
+                    missed = 0
+                    sdrThread = threading.Thread(target=sdr.readStreamData)
+                    sdrThread.start()
+                    box_MODE.update(BLACK, WHITE, Mode_dict[Current_Mode])
+
+                    serialtext = "<Z,0,0>"
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.info("{} - sent".format(serialtext))
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io'.format(
+                                    serialtext
+                                )
+                            )
+
+                    serialtext = "<D,0,0>"
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.info("{} - sent".format(serialtext))
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io'.format(
+                                    serialtext
+                                )
+                            )
+
                 # test for animal being recovered
                 # !!! added condition for sustained recovery and use of incrementable recovery timer
                 elif (
