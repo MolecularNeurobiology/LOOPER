@@ -56,7 +56,7 @@ class RabbitMQClient:
             # Use durable=False to match TypeScript side configuration
             self.channel.queue_declare(
                 queue=self.queue,
-                durable=False
+                durable=True
             )
             # Publish message without TTL
             self.channel.basic_publish(
