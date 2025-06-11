@@ -1008,6 +1008,7 @@ Challenge_Toggle = 0
 Challenge_phrase = "Finished: On Anoxic"
 Challenge_Timer = datetime.now()
 Challenge_Delay = 5
+challenge_history = {}
 
 rig_config = load_rig_config()
 credentials = {
@@ -1103,6 +1104,42 @@ try:
 
                     # update last and longest CO2 values
                     value_LastCO2 = value_CurrentChallengeCO2_Timer
+                    challenge_history[value_Challenge_Counter] = (
+                        value_CurrentChallengeCO2_Timer
+                    )
+                    print("Challenge Duration History:")
+                    for k, v in challenge_history.items():
+                        print(f"{k}:{v:.0F}")
+                    serial_list.append("Challenge Duration History:")
+
+                    serial_list.append(
+                        "|".join(
+                            f"{i}:{challenge_history.get(i,-1):.0F}"
+                            for i in range(1, 6)
+                        )
+                    )
+                    if value_Challenge_Counter > 5:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(6, 11)
+                            )
+                        )
+                    if value_Challenge_Counter > 10:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(11, 16)
+                            )
+                        )
+                    if value_Challenge_Counter > 15:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(16, 21)
+                            )
+                        )
+
                     if value_LongestCO2_challenge == "NA":
                         value_LongestCO2_duration = value_CurrentChallengeCO2_Timer
                         value_LongestCO2_challenge = value_Challenge_Counter
