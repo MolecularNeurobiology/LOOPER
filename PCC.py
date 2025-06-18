@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "42.2.0"
+__version__ = "42.3.0"
 
 """
 Physiology Command Center
