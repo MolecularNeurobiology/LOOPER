@@ -1,5 +1,11 @@
+# -*- coding: utf-8 -*-
+
+__version__ = "0.1.0"
+
 # import libraries
+import argparse
 import os
+import sys
 import fm_tools
 import pandas
 import datetime
@@ -179,8 +185,19 @@ def send_message(
 
 
 if __name__ == "__main__":
-    print("\ncollecting emails >>")
-    email_list = collect_email_list()
+    # parse arguments
+    parser = argparse.ArgumentParser("FM_Reporting_Email")
+    parser.add_argument("-t", "--test", action="store_true")
+    parsed_args = parser.parse_args()
+
+    args = sys.argv.copy()
+
+    if not parsed_args.test:
+        print("\ncollecting emails >>")
+        email_list = collect_email_list()
+    else:
+        email_list = ["ward.chris.s@gmail.com"]
+
     print(email_list)
     print("\ncollecting error info >>")
     error_df = collect_error_reports()
@@ -191,7 +208,7 @@ if __name__ == "__main__":
 
     print("sending email")
     send_message(
-        messageBody="Rig Error Reporting test_message - this is a test output (including xlsx file summarizing error findings). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Monday ~7am.",
+        messageBody="Rig Error Reporting test_message - Please see the attached Error Summary (xlsx file). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Monday ~7am.",
         subject=f"Rig Error Reporting Summary - {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}",
         to_email=email_list,
         attachments=["report.xlsx"],
