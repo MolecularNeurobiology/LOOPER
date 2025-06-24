@@ -1,3 +1,5 @@
+google.oauth2
+googleapiclient
 dataclasses
 gpiozero
 LabJackPython
