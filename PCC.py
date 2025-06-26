@@ -2066,6 +2066,7 @@ try:
                         "CALL_DEATH_Trigger:{}".format(CALL_DEATH_trigger),
                         "QB_minimum_duration:{}".format(QB_minimum_duration),
                         "filt_crit_Dict:{}".format(filt_crit_Dict),
+                        "version_info:{} - {}".format(__version__,__git_status__)
                     ]
                     colheader = "\t".join(
                         ["time"] + CHANNEL_KEY + ["labjack_temp", "mode", "statuscodes"]
