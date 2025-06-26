@@ -1371,10 +1371,8 @@ try:
                             layout,
                             fm_record_dict["recordId"],
                             {
-                                "Rig": rig_config["RIGNAME"]
-                                #'Gas 1':'0% O2, 3% CO2, Balance Nitrogen'
-                                #'Tank 1':rig_config.get('Tank_Number','unk'),
-                                #'FacemaskID':rig_config.get('Facemask_ID','unk')
+                                "Rig": rig_config["RIGNAME"],
+                                "Acquisition_Software_Version": f"{__version__} - {__git_status__}"
                             },
                         )
                     if new_rts == 0:
