@@ -66,9 +66,13 @@ class StreamArduino(object):
 
     def sendCommand(self, command):
         try:
+            print(f"To Arduino: {command}")
+            self.logger.info(
+                f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+            )
             self.device.write(str.encode(command))
         except Exception as e:
-            print(f"unable to send command {e}")
+            self.logger.error(f"unable to send command {e}")
 
     def readStreamData(self):
         #print("check Arduino")

@@ -461,10 +461,7 @@ class MainWindow(QWidget):
             else:
                 setattr(self.settings, set_command[2], set_command[3])
         else:
-            print(f"To Arduino: {command}")
-            self.logger.info(
-                f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
-            )
+            
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
@@ -716,14 +713,16 @@ class MainWindow(QWidget):
             # Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
             self.arduino_list = [
-                i for i in arduino_out.split(b"\r\n") if i != " " and i != ""
+                i for i in arduino_out.split("\r\n") if i != " " and i != ""
             ]
             # self.arduino_string = b"".join(self.arduino_list).decode("utf-8")
             for i in self.arduino_list:
-                if not any("[" in i, "]" in i):
+                if not any(["[" in i, "]" in i]):
                     self.logger.info(
                         f"ARDUINO:{i}"
                     )  # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
+                else:
+                    self.logger.debug(f"ARDUINO STATUS:{i}")
             # for i in self.arduino_list:
             #     self.logger.info(f"ARDUINO:{i}")
             #     ### !!! TODO finish this to process arduino outputs for triggering stage changes

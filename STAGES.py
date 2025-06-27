@@ -91,7 +91,7 @@ class STAGE(ABC):
 class startup1(STAGE):
     def additional_on_load(self):
         self.pcc.logger.debug("starting up arduino tests")
-        self.pcc.arduino_stream.sendCommand(b"<U,0,0>")
+        self.pcc.arduino_stream.sendCommand("<U,0,0>")
 
     def additional_exit_test(self):
         # test for startup tests passed
@@ -106,7 +106,7 @@ class startup2(STAGE):
     def additional_on_load(self):
         self.pcc.data.arduino_startup_motion_tested = False
         self.pcc.logger.debug("starting up arduino tests")
-        self.pcc.arduino_stream.sendCommand(b"<E,0,0>")
+        self.pcc.arduino_stream.sendCommand("<E,0,0>")
 
     def additional_exit_test(self):
         # test for startup tests passed
@@ -118,7 +118,7 @@ class startup2(STAGE):
 class standby(STAGE):
     def additional_on_load(self):
         self.pcc.logger.debug("moving to standby position")
-        self.pcc.arduino_stream.sendCommand(b"<S,0,0>")
+        self.pcc.arduino_stream.sendCommand("<S,0,0>")
 
     def additional_event_loop(self):
         if "standby sent" in self.pcc.arduino_string:
@@ -144,7 +144,7 @@ class calibration(STAGE):
         self.pcc.data.recent_calibration_breath = 0
 
     def additional_on_load(self):
-        self.pcc.arduino_stream.sendCommand(b"<C,10,0>")
+        self.pcc.arduino_stream.sendCommand("<C,10,1>")
         self.pcc.logger.debug(f"stage time limit: {self.stage_time_limit}")
 
     def additional_on_exit(self):

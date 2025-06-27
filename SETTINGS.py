@@ -86,7 +86,7 @@ class SETTINGS:
             "startup2": {
                 "name": "startup2",
                 "duration": -1,
-                "savable": False,
+                "savable": True,
                 "special_exit": "na",
                 "next_stage": "standby",
                 "stage_type": "wait_for_condition",
