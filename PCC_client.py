@@ -28,7 +28,13 @@ import os
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QFontDatabase
-from PySide6.QtWidgets import QApplication, QWidget, QFileDialog, QInputDialog, QLineEdit
+from PySide6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QFileDialog,
+    QInputDialog,
+    QLineEdit,
+)
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
 import sys
@@ -52,7 +58,9 @@ def get_mac():
     for i_name, i_addr in interfaces.items():
         for addr in i_addr:
             try:
-                if addr.family == psutil.AF_LINK: #or addr.family == psutil.AF_PACKET: <--removed, incompatible on raspi?
+                if (
+                    addr.family == psutil.AF_LINK
+                ):  # or addr.family == psutil.AF_PACKET: <--removed, incompatible on raspi?
                     return addr.address
                 else:
                     return "nn:nn:nn:nn"
@@ -101,7 +109,7 @@ class QTextEditLogger(logging.Handler):
         self.log_emitter.log.emit(msg)
         self.widget.verticalScrollBar().setSliderPosition(
             self.widget.verticalScrollBar().maximum()
-            )
+        )
 
 
 class MainWindow(QWidget):
@@ -139,7 +147,7 @@ class MainWindow(QWidget):
         self.logging_text_browser.setFormatter(self.logging_format)
         self.logging_text_browser.setLevel(logging.INFO)
         self.logger.addHandler(self.logging_text_browser)
-        debug_log_handler = logging.FileHandler("debug.log",mode="w", encoding="utf-8")
+        debug_log_handler = logging.FileHandler("debug.log", mode="w", encoding="utf-8")
         debug_log_handler.setLevel = logging.DEBUG
         self.logger.addHandler(debug_log_handler)
 
@@ -164,25 +172,38 @@ class MainWindow(QWidget):
 
         # override settings with CL arguments if provided
         if parsed_args.simulation:
-            self.settings.sim_mode = 1
+            self.settings.sim_mode_labjack = 1
+            self.settings.sim_mode_arduino = 1
+        if parsed_args.simulation_labjack:
+            self.settings.sim_mode_labjack = 1
+        if parsed_args.simulation_arduino:
+            self.settings.sim_mode_arduino = 1
 
         # set kill mode if CL option provided
         self.kill_after_count = parsed_args.kill
 
         # configure i/o
-        if self.settings.sim_mode == 1:
-            self.logger.info("Simulation Mode")
-            self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
+        if self.settings.sim_mode_labjack == 1:
+            self.logger.info("Simulation Mode LJ")
             self.labjack_stream = STREAMS.SimulatedDataReader(self.logger)
             self.settings.config_path = "testing.config"
         else:
-            self.logger.info("Live Stream Mode")
-            self.arduino_stream = STREAMS.StreamArduino(self.logger)
+            self.logger.info("Live Stream Mode LJ")
             self.labjack_stream = STREAMS.StreamDataReader(self.logger)
+
+        if self.settings.sim_mode_arduino == 1:
+            self.logger.info("Simulation Mode Arduino")
+            self.arduino_stream = STREAMS.SimulatedArduino(self.logger)
+            self.settings.config_path = "testing.config"
+        else:
+            self.logger.info("Live Stream Mode Arduino")
+            self.arduino_stream = STREAMS.StreamArduino(self.logger)
 
         self.stream_start_ts = datetime.now()
         try:
-            self.minerva_stream = mp.Plugin(mp.PluginRegistration(self.mac), self.logger)
+            self.minerva_stream = mp.Plugin(
+                mp.PluginRegistration(self.mac), self.logger
+            )
             self.minerva_stream.start()
         except Exception as e:
             self.logger.error(f"unable to create minerva stream: {e}")
@@ -190,10 +211,10 @@ class MainWindow(QWidget):
         self.minerva_stream_reader = STREAMS.MinervaReceiver(
             self.minerva_stream, self.logger
         )
-        
 
-
-        self.output_file_writer = EFFECTORS.OutputFileWriter(output_path=self.settings.output_path, pcc = self)
+        self.output_file_writer = EFFECTORS.OutputFileWriter(
+            output_path=self.settings.output_path, pcc=self
+        )
 
         self.prepare_stages()
 
@@ -349,10 +370,10 @@ class MainWindow(QWidget):
             [k for k in self.settings.Mode_settings.keys()]
         )
         # create a dictionary of stages
-        for k,v in self.settings.Mode_settings.items():
+        for k, v in self.settings.Mode_settings.items():
             self.logger.debug(f"adding STAGE: {k}")
             self.stage_dict[k] = getattr(STAGES, k)(v, self)
-        # register stage specific data attributes 
+        # register stage specific data attributes
         for k, v in self.stage_dict.items():
             v.register_data()
 
@@ -369,24 +390,27 @@ class MainWindow(QWidget):
         pass
 
     def action_jump_to_stage(self):
-        self.logger.info(
-            f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}"
-        )
+        self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
         self.active_stage.on_exit()
         self.automated = False
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
         self.active_stage.on_load()
 
-    
     def action_set_output_file_path(self):
-        #if manual oride checkbox checked, manually set filepath, else use automated partsing
+        # if manual oride checkbox checked, manually set filepath, else use automated partsing
         if self.checkBox_Oride.isChecked():
-            self.settings.output_path = QFileDialog.getSaveFileName(self,caption="select output filename",filter="PCC Output (*.pcco)")[0]
+            self.settings.output_path = QFileDialog.getSaveFileName(
+                self, caption="select output filename", filter="PCC Output (*.pcco)"
+            )[0]
         else:
-            self.logger.info(f"generating save path... config: {self.settings.config_path}")
-            self.settings.output_path,_ = fm_tools.generate_rig_save_path(
-                QInputDialog.getText(self, "Scan Barcode","RUID:",QLineEdit.Normal)[0],
-                config_path=self.settings.config_path
+            self.logger.info(
+                f"generating save path... config: {self.settings.config_path}"
+            )
+            self.settings.output_path, _ = fm_tools.generate_rig_save_path(
+                QInputDialog.getText(self, "Scan Barcode", "RUID:", QLineEdit.Normal)[
+                    0
+                ],
+                config_path=self.settings.config_path,
             )
         self.logger.info(f"output_path set: {self.settings.output_path}")
         self.output_file_writer.output_path = self.settings.output_path
@@ -396,13 +420,13 @@ class MainWindow(QWidget):
     def action_next_stage(self):
         self.automated = True
         self.active_stage.on_exit()
-        #self.logger.debug(f"stages: {len(self.stage_dict)}")
-        #self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
-        #if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
+        # self.logger.debug(f"stages: {len(self.stage_dict)}")
+        # self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
+        # if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
         #    self.logger.error(
         #        'Already at last stage - use "Jump To" function to choose a stage'
         #    )
-        #else:
+        # else:
         #    self.comboBox_Jump_To_Stage.setCurrentIndex(
         #        self.comboBox_Jump_To_Stage.currentIndex() + 1
         #    )
@@ -411,28 +435,36 @@ class MainWindow(QWidget):
         command = self.lineEdit_Arduino_Command.text()
         if command[:2] == "lj":
             print(f"To LabJack: {command}")
-            self.logger.info(f"LabJack Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
+            self.logger.info(
+                f"LabJack Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+            )
             lj_command = command.split(",")
-            if lj_command[1]=="set_sim_ain":
-                self.labjack_stream.set_sim_sig_ain(int(lj_command[2]),float(lj_command[3]))
+            if lj_command[1] == "set_sim_ain":
+                self.labjack_stream.set_sim_sig_ain(
+                    int(lj_command[2]), float(lj_command[3])
+                )
             else:
                 pass
         elif command[:3] == "set":
             print(f"Update Setting: {command}")
-            self.logger.info(f"Setting Update: {command.replace("<","&lt;").replace(">","&gt;")}")
+            self.logger.info(
+                f"Setting Update: {command.replace("<","&lt;").replace(">","&gt;")}"
+            )
             set_command = command.split(",")
             if set_command[1] == "num":
-                setattr(self.settings,set_command[2],float(set_command[3]))
+                setattr(self.settings, set_command[2], float(set_command[3]))
             elif set_command[1] == "bool":
-                setattr(self.settings,set_command[2],bool(set_command[3]))
+                setattr(self.settings, set_command[2], bool(set_command[3]))
             elif set_command[1] == "list":
-                for k,v in self.settings.__dict__.items():
+                for k, v in self.settings.__dict__.items():
                     self.logger.info(f"setting: {k}: {v}")
             else:
-                setattr(self.settings,set_command[2],set_command[3])
+                setattr(self.settings, set_command[2], set_command[3])
         else:
             print(f"To Arduino: {command}")
-            self.logger.info(f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}")
+            self.logger.info(
+                f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+            )
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
@@ -446,23 +478,23 @@ class MainWindow(QWidget):
 
         if self.kill_after_count and self.pulse_counter >= self.kill_after_count:
             self.kill_app()
-            
 
-            #app.quit()
+            # app.quit()
             sys.exit()
 
     def kill_app(self):
         # wait on threads for clean exit?
-        if self.minerva_stream: self.minerva_stream.stop()
+        if self.minerva_stream:
+            self.minerva_stream.stop()
         self.arduino_stream.finished = True
 
     def action_stream_timer(self):
         # determine current time in stream
         self.data.current_time = datetime.now()
         self.data.stream_duration = round(
-            (self.data.current_time - self.stream_start_ts).seconds + 
-            ((self.data.current_time - self.stream_start_ts).microseconds)/1000000,
-            6
+            (self.data.current_time - self.stream_start_ts).seconds
+            + ((self.data.current_time - self.stream_start_ts).microseconds) / 1000000,
+            6,
         )
         # reset labjack stream if needed
 
@@ -474,19 +506,17 @@ class MainWindow(QWidget):
             # If there were errors, print that.
             if result["errors"] != 0:
                 # !!!
-                #self.data.errors += result["errors"]
-                #self.data.error_list.append(result["errors"])
-                #self.data.missed += result["missed"]
-                print(
-                    "+++++ Errors: , Total Missed:  +++++"
-                )
+                # self.data.errors += result["errors"]
+                # self.data.error_list.append(result["errors"])
+                # self.data.missed += result["missed"]
+                print("+++++ Errors: , Total Missed:  +++++")
 
             # Convert the raw bytes (result['result']) to voltage data.
-            if self.settings.sim_mode == 0:
+            if self.settings.sim_mode_labjack == 0:
                 self.processed_result = self.labjack_stream.device.processStreamData(
                     result["result"]
                 )
-            elif self.settings.sim_mode == 1:
+            elif self.settings.sim_mode_labjack == 1:
                 self.processed_result = result["result"]
             # parse channels and migrate into short term streams
             flow_channel = self.labjack_stream.channel_list[
@@ -496,15 +526,25 @@ class MainWindow(QWidget):
                 self.labjack_stream.channel_dict["ECG"]
             ]
 
-            
             self.data.new_pneumo = self.processed_result[f"AIN{flow_channel}"]
             self.data.new_ecg = self.processed_result[f"AIN{ecg_channel}"]
 
             new_samples = len(self.data.new_pneumo)
-            time_increment = round(new_samples/self.labjack_stream.scan_frequency,3)
+            time_increment = round(new_samples / self.labjack_stream.scan_frequency, 3)
 
             self.data.data_time += time_increment
-            self.data.time = [round((int(self.data.data_time * self.data.data_frequency) - self.data.window + i) / self.data.data_frequency, 3) for i in range(self.data.window)]
+            self.data.time = [
+                round(
+                    (
+                        int(self.data.data_time * self.data.data_frequency)
+                        - self.data.window
+                        + i
+                    )
+                    / self.data.data_frequency,
+                    3,
+                )
+                for i in range(self.data.window)
+            ]
 
             self.data.current_lag = self.data.stream_duration - self.data.data_time
 
@@ -517,12 +557,19 @@ class MainWindow(QWidget):
             if self.settings.flow_filt_state == 1:
                 if self.settings.INVERT_FLOW == 1:
                     self.data.trimmed_pneumo = [
-                        -1 * i for i in DETECTORS.butterFilt(self.data.pneumo, self.settings.butterHz, fs = self.settings.scanHz)
+                        -1 * i
+                        for i in DETECTORS.butterFilt(
+                            self.data.pneumo,
+                            self.settings.butterHz,
+                            fs=self.settings.scanHz,
+                        )
                     ][self.data.window * -1 :]
                 else:
-                    self.data.trimmed_pneumo = DETECTORS.butterFilt(self.data.pneumo, self.settings.butterHz, fs = self.settings.scanHz)[
-                        self.data.window * -1 :
-                    ]
+                    self.data.trimmed_pneumo = DETECTORS.butterFilt(
+                        self.data.pneumo,
+                        self.settings.butterHz,
+                        fs=self.settings.scanHz,
+                    )[self.data.window * -1 :]
             else:
                 if self.settings.INVERT_FLOW == 1:
                     self.data.trimmed_pneumo = [-1 * i for i in self.data.pneumo][
@@ -629,14 +676,15 @@ class MainWindow(QWidget):
 
             self.label_HR.setText(f"HR: {self.data.avg_hr:.0F}")
 
-
         if self.data.breath_list:
-            self.data.ts_last_breath = max(max(self.data.breath_list.keys()),self.data.ts_last_breath)
+            self.data.ts_last_breath = max(
+                max(self.data.breath_list.keys()), self.data.ts_last_breath
+            )
         self.data.SLB = self.data.time[-1] - self.data.ts_last_breath
 
         # update plot
-        #self.graph1.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
-        #self.graph2.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
+        # self.graph1.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
+        # self.graph2.setXRange(self.data.data_time - self.data.window/self.data.data_frequency,self.data.data_time,padding=0)
         self.line1.setData(self.data.rel_time, self.data.trimmed_pneumo)
         self.line2.setData(self.data.rel_time, self.data.trimmed_ecg)
         self.markers1.setData(
@@ -655,23 +703,26 @@ class MainWindow(QWidget):
             self.label_Lag.setText(f"Lag: {self.data.current_lag}")
         # self.label_Lag.setText(f"t{self.data.stream_duration}-{self.data.data_time}")
         self.label_SLB.setText(f"SLB: {self.data.SLB:.3F}")
-        self.label_Time_In_Stage.setText(f"time in stage (sec): {self.data.time_in_stage_seconds}")
-
+        self.label_Time_In_Stage.setText(
+            f"time in stage (sec): {self.data.time_in_stage_seconds}"
+        )
 
         # collect arduino stream
-        #Arduino_Dump_Toggle = 0
+        # Arduino_Dump_Toggle = 0
         self.arduino_list = []
 
         # !!! TODO do we need to worry about arduino outputs being split across entries?
         if self.arduino_stream.data.empty() == False:
-            #Arduino_Dump_Toggle = 1
+            # Arduino_Dump_Toggle = 1
             arduino_out = self.arduino_stream.data.get_nowait()
             self.arduino_list = [
                 i for i in arduino_out.split(b"\r\n") if i != " " and i != ""
             ]
-            #self.arduino_string = b"".join(self.arduino_list).decode("utf-8") 
+            # self.arduino_string = b"".join(self.arduino_list).decode("utf-8")
             for i in self.arduino_list:
-                self.logger.info(f"ARDUINO:{i}") # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
+                self.logger.info(
+                    f"ARDUINO:{i}"
+                )  # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
             # for i in self.arduino_list:
             #     self.logger.info(f"ARDUINO:{i}")
             #     ### !!! TODO finish this to process arduino outputs for triggering stage changes
@@ -688,45 +739,48 @@ class MainWindow(QWidget):
 
         # append to output
 
-
         # refresh gui (if needed)
         self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
         # update recent log buffer
-        self.data.recent_log_entries = "<br>".join(self.textBrowser_Status.toHtml().split("<br>")[-20:])
+        self.data.recent_log_entries = "<br>".join(
+            self.textBrowser_Status.toHtml().split("<br>")[-20:]
+        )
 
-        # prepare payload 
-        
-        
-        if self.payload_counter%self.payload_counter_interval ==0:
+        # prepare payload
+
+        if self.payload_counter % self.payload_counter_interval == 0:
             self.payload_counter = 0
-            #self.logger.info("payload test in debug")
+            # self.logger.info("payload test in debug")
             self.logger.debug("payload sent")
             self.payload = mp.MinervaStreamData(
-                        mac_address= self.mac,
-                        stages= [
-                            {
-                                "name": k,
-                                "type": v["stage_type"],
-                                "durationInSeconds": v["duration"]
-                            } if v["duration"] >= 0 else
-                            {
-                                "name": k,
-                                "type": v["stage_type"],
-                            }
-                            for k,v in self.settings.Mode_settings.items()
-                        ],
-                        current_stage= self.active_stage.name,
-                        signals= self.data.prepare_data_payload()
+                mac_address=self.mac,
+                stages=[
+                    (
+                        {
+                            "name": k,
+                            "type": v["stage_type"],
+                            "durationInSeconds": v["duration"],
+                        }
+                        if v["duration"] >= 0
+                        else {
+                            "name": k,
+                            "type": v["stage_type"],
+                        }
                     )
+                    for k, v in self.settings.Mode_settings.items()
+                ],
+                current_stage=self.active_stage.name,
+                signals=self.data.prepare_data_payload(),
+            )
             if self.minerva_stream:
                 self.minerva_stream.update_stream_data(self.payload)
-        
+
         self.payload_counter += 10
 
-        
+
 """
         {
   "macAddress": "b3:99:80:21:6a:5f",
@@ -810,20 +864,20 @@ class MainWindow(QWidget):
 }
 """
 
-    ## Timers (to create event loops)
-    # receiver_timer
+## Timers (to create event loops)
+# receiver_timer
 
-    # broadcast_timer
+# broadcast_timer
 
-    # status_pulse_timer
+# status_pulse_timer
 
-    # experiment_loop_timer
+# experiment_loop_timer
 
-    ## METHODS
+## METHODS
 
-    # send out pulse
+# send out pulse
 
-    # experiment loop
+# experiment loop
 
 
 # %% define main
@@ -834,6 +888,8 @@ def main():
     parser = argparse.ArgumentParser("PCC_client")
     parser.add_argument("-i", "--interactive", action="store_true")
     parser.add_argument("-s", "--simulation", action="store_true")
+    parser.add_argument("-l", "--simulation_labjack", action="store_true")
+    parser.add_argument("-a", "--simulation_arduino", action="store_true")
     parser.add_argument("-k", "--kill", type=int, help="kill process after __ seconds")
     parsed_args = parser.parse_args()
 
@@ -871,7 +927,7 @@ def main():
     window.ui.show()
     window.action_start_timers()
     print("running")
-    #app.exec()
+    # app.exec()
     sys.exit(app.exec())
 
 
@@ -881,5 +937,6 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         import traceback
+
         print(e)
         traceback.print_exc()

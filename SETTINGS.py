@@ -30,7 +30,7 @@ class SETTINGS:
         self.thresh2_flow = 0.100
 
         self.flow_filt_state = 1  # either 1 or 0
-        self.butterHz = 0.1 # default is 50, but seems to be excessively muting - need to test with pipette
+        self.butterHz = 0.1  # default is 50, but seems to be excessively muting - need to test with pipette
         self.scanHz = 1000
         self.ecg_filt_state = 0  # either 1 or 0
 
@@ -189,7 +189,8 @@ class SETTINGS:
             },
         }
 
-        self.sim_mode = 0
+        self.sim_mode_labjack = 0
+        self.sim_mode_arduino = 0
 
         self.made_for_PCC_version = "43.0.0"
 
