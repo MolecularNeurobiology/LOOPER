@@ -720,9 +720,10 @@ class MainWindow(QWidget):
             ]
             # self.arduino_string = b"".join(self.arduino_list).decode("utf-8")
             for i in self.arduino_list:
-                self.logger.info(
-                    f"ARDUINO:{i}"
-                )  # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
+                if not any("[" in i, "]" in i):
+                    self.logger.info(
+                        f"ARDUINO:{i}"
+                    )  # !!!TODO!!! will need to update this when arduino starts sending data instead of just status updates
             # for i in self.arduino_list:
             #     self.logger.info(f"ARDUINO:{i}")
             #     ### !!! TODO finish this to process arduino outputs for triggering stage changes

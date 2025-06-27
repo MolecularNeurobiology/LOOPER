@@ -22,7 +22,7 @@ class StreamArduino(object):
 
         self.logger = logger
         self.device = serial.Serial()
-        self.device.baudrate = 9600
+        self.device.baudrate = 115200
         self.data = Queue.Queue()
         self.finished = False
         self.Connected_Arduino = False

@@ -91,7 +91,7 @@ class STAGE(ABC):
 class startup1(STAGE):
     def additional_on_load(self):
         self.pcc.logger.debug("starting up arduino tests")
-        self.pcc.arduino_stream.sendCommand(b"[U")
+        self.pcc.arduino_stream.sendCommand(b"<U,0,0>")
 
     def additional_exit_test(self):
         # test for startup tests passed
@@ -106,7 +106,7 @@ class startup2(STAGE):
     def additional_on_load(self):
         self.pcc.data.arduino_startup_motion_tested = False
         self.pcc.logger.debug("starting up arduino tests")
-        self.pcc.arduino_stream.sendCommand(b"[E")
+        self.pcc.arduino_stream.sendCommand(b"<E,0,0>")
 
     def additional_exit_test(self):
         # test for startup tests passed
@@ -118,7 +118,7 @@ class startup2(STAGE):
 class standby(STAGE):
     def additional_on_load(self):
         self.pcc.logger.debug("moving to standby position")
-        self.pcc.arduino_stream.sendCommand(b"[S")
+        self.pcc.arduino_stream.sendCommand(b"<S,0,0>")
 
     def additional_event_loop(self):
         if "standby sent" in self.pcc.arduino_string:
@@ -144,7 +144,7 @@ class calibration(STAGE):
         self.pcc.data.recent_calibration_breath = 0
 
     def additional_on_load(self):
-        self.pcc.arduino_stream.sendCommand(b"[C")
+        self.pcc.arduino_stream.sendCommand(b"<C,10,0>")
         self.pcc.logger.debug(f"stage time limit: {self.stage_time_limit}")
 
     def additional_on_exit(self):
@@ -204,7 +204,12 @@ class baseline(STAGE):
         self.pcc.data.prev_quality_test = 0
         self.pcc.data.qb_timer = 0
         self.pcc.data.quality_status = ""
-        # self.pcc.data.avgTT = 0  # how to handle common summura measures that are common between stages but not used in all stages TODO !!!
+        self.pcc.data.baseline_tt = 0
+        self.pcc.data.baseline_bpm = 0
+        self.pcc.data.baseline_itv = 0
+        self.pcc.data.baseline_rr = 0
+        self.pcc.data.baseline_hr = 0
+        # self.pcc.data.avgTT = 0  # how to handle common summary measures that are common between stages but not used in all stages TODO !!!
         # self.pcc.data.cvTT = 0
         # self.pcc.data.avgHR = 0
         # self.pcc.data.avgRR = 0
@@ -218,6 +223,13 @@ class baseline(STAGE):
             for k in ["avgBPM", "cvTT", "avgHR", "cvRR", "BSD", "DVTV"]
         }
         print("base add load")
+
+    def additional_on_exit(self):
+        self.pcc.data.baseline_tt = numpy.average([i["TI"]+i["TE"] for i in self.pcc.data.running_breaths if "TE" in i.keys()])
+        self.pcc.data.baseline_tv = numpy.average([i["iTV"] for i in self.pcc.data.running_breaths])
+        self.pcc.data.baseline_bpm = 60 / self.pcc.data.baseline_tt
+        self.pcc.data.baseline_rr = numpy.average(self.pcc.data.running_beats["rr"])
+        self.pcc.data.baseline_hr = 60 / self.pcc.data.baseline_rr
 
     def quality_test(self):
         self.pcc.data.prev_quality_test = int(self.pcc.data.quality_test)
@@ -267,6 +279,21 @@ class baseline(STAGE):
     def additional_event_loop(self):
         self.quality_test()
 
+        if self.pcc.data.quality_test == 1:
+            for k,v in self.pcc.data.breath_list.items():
+               if 'TE' in v:
+                   if len(self.pcc.data.running_breaths) == 0:
+                       self.pcc.data.running_breaths.append(v)
+                   elif k > self.pcc.data.running_breaths[-1]["TS-I"]:
+                       self.pcc.data.running_breaths.append(v)
+            if len(self.pcc.data.running_beats['ts']) == 0:
+                self.pcc.data.running_beats['ts']+=list(self.pcc.data.beat_list['ts'])
+                self.pcc.data.running_beats['rr']+=list(self.pcc.data.beat_list['rr'])
+            else:
+                ts_last_update = self.pcc.data.running_beats['ts'][-1]
+                self.pcc.data.running_beats['ts']+=list(self.pcc.data.beat_list[self.pcc.data.beat_list['ts']>ts_last_update]['ts'])
+                self.pcc.data.running_beats['rr']+=list(self.pcc.data.beat_list[self.pcc.data.beat_list['ts']>ts_last_update]['rr'])
+
         if self.pcc.data.quality_test == 1 and self.pcc.data.prev_quality_test == 0:
             self.pcc.data.quality_seg_list.append(
                 [self.pcc.data.time_in_stage_seconds, self.pcc.data.time_in_stage_seconds]
@@ -283,44 +310,6 @@ class baseline(STAGE):
                 self.pcc.data.quality_seg_list[-1][1]
                 - self.pcc.data.quality_seg_list[-1][0]
             )
-
-    # !!!
-    """
-                
-                for i in BL:
-                    if 'TE' in BreathCalls[i].keys():
-                        
-                        if len(RunningBreaths)==0:
-                            RunningBreaths.append(BreathCalls[i])
-                            
-                        elif  i>RunningBreaths[-1]['TS-I']:
-                            RunningBreaths.append(BreathCalls[i])
-                
-                if len(RunningBeats['ts'])==0:
-                    RunningBeats['ts']+=list(BeatCalls['ts'])
-                    RunningBeats['rr']+=list(BeatCalls['rr'])
-                    
-                else:
-                    ts_last_update = RunningBeats['ts'][-1]
-                    RunningBeats['ts']+=list(BeatCalls[BeatCalls['ts']>ts_last_update]['ts'])
-                    RunningBeats['rr']+=list(BeatCalls[BeatCalls['ts']>ts_last_update]['rr'])
-
-                # for i in HL:
-                #     if len(RunningBeats)==0:
-                #         RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
-                        
-                #     elif i>RunningBeats[-1]['ts']:
-                #         RunningBeats.append({'ts':i,'BC':BeatCalls[i]})
-                        
-            prev_qual_test=int(quality_test)
-            #filter to the good breaths and summarize stats
-
-
-        pass
-
-    def exit_condition_test(self):
-        pass
-"""
 
 
 class challenge(STAGE):
