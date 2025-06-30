@@ -243,6 +243,25 @@ class MainWindow(QWidget):
         )
         self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
 
+        # arduino quick command buttons
+        self.pushButton_f00.clicked.connect(self.action_f00)
+        self.pushButton_b00.clicked.connect(self.action_b00)
+        self.pushButton_c00.clicked.connect(self.action_c00)
+        self.pushButton_c01.clicked.connect(self.action_c01)
+        self.pushButton_v00.clicked.connect(self.action_v00)
+        self.pushButton_v01.clicked.connect(self.action_v01)
+        self.pushButton_pushButton_transmit_arduino_quick_command.clicked.connect(self.action_transmit_arduino_quick_command)
+        # populate arduino quick command combo box
+        self.comboBox_arduino_quick_command.addItems(
+            [
+                "<P,4,0>",
+                "<P,1,0>",
+                "<P,4,1>",
+                "<P,1,1>",
+                "<P,3,2>"
+            ]
+        )
+
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
         self.graph2 = pyqtgraph.PlotWidget()
@@ -464,6 +483,27 @@ class MainWindow(QWidget):
             
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
+
+    def action_f00(self):
+        self.arduino_stream.sendCommand("<f,0,0>")
+
+    def action_b00(self):
+        self.arduino_stream.sendCommand("<b,0,0>")
+
+    def action_c00(self):
+        self.arduino_stream.sendCommand("<c,0,0>")
+
+    def action_c01(self):
+        self.arduino_stream.sendCommand("<c,0,1>")
+    
+    def action_v00(self):
+        self.arduino_stream.sendCommand("<v,0,0>")
+
+    def action_v01(self):
+        self.arduino_stream.sendCommand("<v,0,1>")
+
+    def action_transmit_arduino_quick_command(self):
+        self.arduino_stream.sendCommand(self.pushButton_pushButton_transmit_arduino_quick_command.currentText)
 
     def action_start_timers(self):
         self.pulse_timer.start(1000)
