@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
     print("sending email")
     send_message(
-        messageBody="Rig Error Reporting test_message - Please see the attached Error Summary (xlsx file). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Monday ~7am.",
+        messageBody="Rig Error Reporting test_message - Please see the attached Error Summary (xlsx file). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Friday ~7am.",
         subject=f"Rig Error Reporting Summary - {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}",
         to_email=email_list,
         attachments=["report.xlsx"],
