@@ -485,22 +485,22 @@ class MainWindow(QWidget):
         self.lineEdit_Arduino_Command.clear()
 
     def action_f00(self):
-        self.arduino_stream.sendCommand("<f,0,0>")
+        self.arduino_stream.sendCommand("<F,0,0>")
 
     def action_b00(self):
-        self.arduino_stream.sendCommand("<b,0,0>")
+        self.arduino_stream.sendCommand("<B,0,0>")
 
     def action_c00(self):
-        self.arduino_stream.sendCommand("<c,0,0>")
+        self.arduino_stream.sendCommand("<C,0,0>")
 
     def action_c01(self):
-        self.arduino_stream.sendCommand("<c,0,1>")
+        self.arduino_stream.sendCommand("<C,0,1>")
     
     def action_v00(self):
-        self.arduino_stream.sendCommand("<v,0,0>")
+        self.arduino_stream.sendCommand("<V,0,0>")
 
     def action_v01(self):
-        self.arduino_stream.sendCommand("<v,0,1>")
+        self.arduino_stream.sendCommand("<V,0,1>")
 
     def action_transmit_arduino_quick_command(self):
         self.arduino_stream.sendCommand(self.pushButton_pushButton_transmit_arduino_quick_command.currentText)
