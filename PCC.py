@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "42.2.0"
+__version__ = "42.3.0"
 
 """
 Physiology Command Center
@@ -1008,6 +1008,7 @@ Challenge_Toggle = 0
 Challenge_phrase = "Finished: On Anoxic"
 Challenge_Timer = datetime.now()
 Challenge_Delay = 5
+challenge_history = {}
 
 rig_config = load_rig_config()
 credentials = {
@@ -1103,6 +1104,42 @@ try:
 
                     # update last and longest CO2 values
                     value_LastCO2 = value_CurrentChallengeCO2_Timer
+                    challenge_history[value_Challenge_Counter] = (
+                        value_CurrentChallengeCO2_Timer
+                    )
+                    print("Challenge Duration History:")
+                    for k, v in challenge_history.items():
+                        print(f"{k}:{v:.0F}")
+                    serial_list.append("Challenge Duration History:")
+
+                    serial_list.append(
+                        "|".join(
+                            f"{i}:{challenge_history.get(i,-1):.0F}"
+                            for i in range(1, 6)
+                        )
+                    )
+                    if value_Challenge_Counter > 5:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(6, 11)
+                            )
+                        )
+                    if value_Challenge_Counter > 10:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(11, 16)
+                            )
+                        )
+                    if value_Challenge_Counter > 15:
+                        serial_list.append(
+                            "|".join(
+                                f"{i}:{challenge_history.get(i,-1):.0F}"
+                                for i in range(16, 21)
+                            )
+                        )
+
                     if value_LongestCO2_challenge == "NA":
                         value_LongestCO2_duration = value_CurrentChallengeCO2_Timer
                         value_LongestCO2_challenge = value_Challenge_Counter
@@ -1119,6 +1156,65 @@ try:
                     # logger.warning('Warning - False Apnea Likely. Recommend Update to Threshold2',)
                     # WarningColor=RED
                     # WarningText='[CLEAR]!!Check Threshold2!!'
+
+                # test for overly long challenge induction
+                if (
+                    value_CurrentChallengeCO2_Timer
+                    >= long_challenge_induction_threshold
+                ):
+                    if logger:
+                        logger.info(
+                            f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                        )
+                    serial_list.append(
+                        f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                    )
+                    Current_Mode = advance(Current_Mode, 0, len(Mode_dict) - 1)
+                    sdr.stopStreamData()
+
+                    sdrThread.join()
+                    while sdr.data.empty() != True:
+                        try:
+                            q = (
+                                sdr.data.get()
+                            )  # this may toss the lagged data when switching modes...should be ok if lag is <1sec...may want to consider a better clean up function that puts in in the output file
+                        except:
+                            pass
+                    print("resetting stream")
+                    CT_value = d.getTemperature() - 273.15
+                    REL_TIMER = 0
+                    missed = 0
+                    sdrThread = threading.Thread(target=sdr.readStreamData)
+                    sdrThread.start()
+                    box_MODE.update(BLACK, WHITE, Mode_dict[Current_Mode])
+
+                    serialtext = "<Z,0,0>"
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.info("{} - sent".format(serialtext))
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io'.format(
+                                    serialtext
+                                )
+                            )
+
+                    serialtext = "<D,0,0>"
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.info("{} - sent".format(serialtext))
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io'.format(
+                                    serialtext
+                                )
+                            )
 
                 # test for animal being recovered
                 # !!! added condition for sustained recovery and use of incrementable recovery timer

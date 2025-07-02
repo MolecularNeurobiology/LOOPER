@@ -384,6 +384,8 @@ prev_qual_test = 0
 CURRENT_STATUS = "Not Ready"
 OLD_STATUS = "Not Ready"
 
+long_challenge_induction_threshold = 120
+
 filt_crit_Dict = {
     "avgBPM": 250,
     "cvTT": 0.50,
