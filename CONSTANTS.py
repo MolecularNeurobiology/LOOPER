@@ -137,6 +137,12 @@ sincelastbreath_TL = (450, 700)
 SLB_Value_TL = (900, 700)
 qual_test_TL = (700, 750)
 
+# quick arduino buttons
+arduino_quick_1_TL = (700, 800)
+arduino_quick_2_TL = (800, 800)
+arduino_quick_3_TL = (700, 825)
+arduino_quick_4_TL = (800, 825)
+
 # sizes
 # sensor value displays
 BT_xySize = (200, 50)
@@ -157,6 +163,12 @@ sincelastbreath_xySize = (200, 50)
 qual_bouts_xySize = (200, 50)
 qual_dur_xySize = (200, 50)
 qual_test_xySize = (200, 50)
+
+# quick arduino button sizes
+arduino_quick_1_xySize = (100, 25)
+arduino_quick_2_xySize = (100, 25)
+arduino_quick_3_xySize = (100, 25)
+arduino_quick_4_xySize = (100, 25)
 
 increment = 0.1
 inc_TL = (450, 100)

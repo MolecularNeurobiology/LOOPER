@@ -163,7 +163,11 @@ from Stream import *
 
 ##
 
-__git_status__ = subprocess.run(['git','status'], encoding="utf-8",stdout=subprocess.PIPE).stdout.replace('\n','; ').strip()
+__git_status__ = (
+    subprocess.run(["git", "status"], encoding="utf-8", stdout=subprocess.PIPE)
+    .stdout.replace("\n", "; ")
+    .strip()
+)
 
 # %%
 # prep serial connection to arduino
@@ -1468,7 +1472,7 @@ try:
                             fm_record_dict["recordId"],
                             {
                                 "Rig": rig_config["RIGNAME"],
-                                "Acquisition_Software_Version": f"{__version__} - {__git_status__}"
+                                "Acquisition_Software_Version": f"{__version__} - {__git_status__}",
                             },
                         )
                     if new_rts == 0:
@@ -1585,6 +1589,71 @@ try:
                                     serialtext
                                 )
                             )
+                elif box_arduino_quick_1.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_1.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_2.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_2.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_3.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_3.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_4.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_4.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle = 1
                     print("override")
@@ -2160,7 +2229,7 @@ try:
                         "CALL_DEATH_Trigger:{}".format(CALL_DEATH_trigger),
                         "QB_minimum_duration:{}".format(QB_minimum_duration),
                         "filt_crit_Dict:{}".format(filt_crit_Dict),
-                        "version_info:{} - {}".format(__version__,__git_status__)
+                        "version_info:{} - {}".format(__version__, __git_status__),
                     ]
                     colheader = "\t".join(
                         ["time"] + CHANNEL_KEY + ["labjack_temp", "mode", "statuscodes"]
