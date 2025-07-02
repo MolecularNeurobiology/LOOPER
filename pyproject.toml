@@ -1,10 +1,10 @@
 [project]
 name = "PCC"
-version = "1.0.0 - legacy"
+version = "1.0.0"
 description = "PCC"
 authors = [{ name = "Christopher Scott Ward", email = "achristopher.ward@bcm.edu" }]
 readme = "README.md"
-requires-python = "=3.8"
+requires-python = "==3.8.*"
 dependencies = [
     "dataclasses==0.6",
     "gpiozero==2.0",
@@ -12,13 +12,14 @@ dependencies = [
     "numpy==1.24.4",
     "pandas==2.0.3",
     "pygame==1.9.6",
+    "PyQt5==5.14.2",
     "PyQt5-sip==12.12.2",
     "pyserial==3.5",
     "python-dateutil==2.8.2",
     "python-fmrest==1.7.1",
     "pytz==2023.4",
     "requests==2.31.0",
-    "RPi.GPIO==0.7.1",
+    "RPi.GPIO==0.7.1; platform_system == 'Linux'",
     "scipy==1.10.1",
     "six==1.16.0",
     "tzdata==2023.4",
