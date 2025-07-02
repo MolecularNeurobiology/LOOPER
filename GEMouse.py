@@ -27,7 +27,7 @@ v1.0.1
 
 """
 
-__version__ = "1.0.3"
+__version__ = "1.0.5"
 
 # %% import libraries
 from PyQt5 import QtGui, QtWidgets
@@ -288,7 +288,7 @@ class MainWindow(QMainWindow):
         self.calibration_VF_IS = 0
         self.calibration_HR = 240
         self.calibration_HR_IS = 0
-        self.calibration_duration = 5
+        self.calibration_duration = 120
         widget_builder(
             self,
             "calibration",
@@ -300,7 +300,7 @@ class MainWindow(QMainWindow):
         self.habituation_VF_IS = 2
         self.habituation_HR = 600
         self.habituation_HR_IS = 2
-        self.habituation_duration = 120
+        self.habituation_duration = 5
         widget_builder(
             self,
             "habituation",
@@ -312,7 +312,7 @@ class MainWindow(QMainWindow):
         self.baseline_VF_IS = 0
         self.baseline_HR = 500
         self.baseline_HR_IS = 0
-        self.baseline_duration = 100
+        self.baseline_duration = 120
         widget_builder(
             self,
             "baseline",
@@ -324,7 +324,7 @@ class MainWindow(QMainWindow):
         self.ready_VF_IS = 0
         self.ready_HR = 500
         self.ready_HR_IS = 0
-        self.ready_duration = 100
+        self.ready_duration = 5
         widget_builder(
             self,
             "ready",
