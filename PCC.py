@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "42.3.0"
+__version__ = "43.0.0"
 
 """
 Physiology Command Center
@@ -66,6 +66,9 @@ related but slightly seperate
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
 
+!!! v43.0.0 !!!
+1.  add improved version tracking (including grabbing git status)
+2.  populate study settings via query to filemaker
 
 !!! v42.1.0 !!!
 1.	Fix baseline establishment criteria to be more lenient [described - awaiting new recommend defaults]
@@ -140,6 +143,7 @@ import tkinter
 import tkinter.filedialog
 import tkinter.simpledialog
 import os
+import subprocess
 
 import smtplib
 import ssl
@@ -158,6 +162,9 @@ from GUI import *
 from Stream import *
 
 ##
+
+__git_status__ = subprocess.run(['git','status'], encoding="utf-8",stdout=subprocess.PIPE).stdout.replace('\n','; ').strip()
+
 # %%
 # prep serial connection to arduino
 try:
@@ -1460,10 +1467,8 @@ try:
                             layout,
                             fm_record_dict["recordId"],
                             {
-                                "Rig": rig_config["RIGNAME"]
-                                #'Gas 1':'0% O2, 3% CO2, Balance Nitrogen'
-                                #'Tank 1':rig_config.get('Tank_Number','unk'),
-                                #'FacemaskID':rig_config.get('Facemask_ID','unk')
+                                "Rig": rig_config["RIGNAME"],
+                                "Acquisition_Software_Version": f"{__version__} - {__git_status__}"
                             },
                         )
                     if new_rts == 0:
@@ -2155,6 +2160,7 @@ try:
                         "CALL_DEATH_Trigger:{}".format(CALL_DEATH_trigger),
                         "QB_minimum_duration:{}".format(QB_minimum_duration),
                         "filt_crit_Dict:{}".format(filt_crit_Dict),
+                        "version_info:{} - {}".format(__version__,__git_status__)
                     ]
                     colheader = "\t".join(
                         ["time"] + CHANNEL_KEY + ["labjack_temp", "mode", "statuscodes"]
