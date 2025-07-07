@@ -250,7 +250,7 @@ class MainWindow(QWidget):
         self.pushButton_c01.clicked.connect(self.action_c01)
         self.pushButton_v00.clicked.connect(self.action_v00)
         self.pushButton_v01.clicked.connect(self.action_v01)
-        self.pushButton_pushButton_transmit_arduino_quick_command.clicked.connect(self.action_transmit_arduino_quick_command)
+        self.pushButton_transmit_arduino_quick_command.clicked.connect(self.action_transmit_arduino_quick_command)
         # populate arduino quick command combo box
         self.comboBox_arduino_quick_command.addItems(
             [
@@ -503,7 +503,7 @@ class MainWindow(QWidget):
         self.arduino_stream.sendCommand("<V,0,1>")
 
     def action_transmit_arduino_quick_command(self):
-        self.arduino_stream.sendCommand(self.pushButton_pushButton_transmit_arduino_quick_command.currentText)
+        self.arduino_stream.sendCommand(self.comboBox_arduino_quick_command.currentText())
 
     def action_start_timers(self):
         self.pulse_timer.start(1000)

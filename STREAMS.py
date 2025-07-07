@@ -109,18 +109,18 @@ class SimulatedArduino:
 
     def translate_command_to_response(self, command):
         translation_dict = {
-            b"[C": b"calibration-sim",
-            b"[R": b"room air-sim",  # update
-            b"[A": b"challenge gas-sim",  # update
-            b"[U": b"startup sent",
-            b"[S": b"standby sent-sim",
-            b"[Z": b"abort sent-sim",
-            b"[D": b"shutdown-sim",
-            b"[E": b"finish startup",
-            b"unknown": b"unknown command",
+            "<C": "calibration-sim",
+            "<R": "room air-sim",  # update
+            "<A": "challenge gas-sim",  # update
+            "<U": "startup sent",
+            "<S": "standby sent-sim",
+            "<Z": "abort sent-sim",
+            "<D": "shutdown-sim",
+            "<E": "finish startup",
+            "unknown": "unknown command",
         }
 
-        translated_command = translation_dict.get(command[:2], b"unknown")
+        translated_command = translation_dict.get(command[:2], "unknown")
         print(translated_command)
         return translated_command
 
