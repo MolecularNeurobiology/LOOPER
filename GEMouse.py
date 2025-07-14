@@ -27,30 +27,43 @@ v1.0.1
 
 """
 
-__version__ = "1.0.5"
+__version__ = "1.1.0"
 
 # %% import libraries
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, Qt, QThreadPool, QTimer
-from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton
-from PyQt5.QtWidgets import QTextEdit
+from PySide6 import QtGui, QtWidgets
+from PySide6.QtCore import Slot, Qt, QThreadPool, QTimer
+from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton
+from PySide6.QtWidgets import QTextEdit
 import sys
 import re
 
 
 try:
-    import RPi.GPIO as GPIO
+#    import RPi.GPIO as GPIO
+    import gpiozero
 
 except:
     print("RPi.GPIO library unavailable - Are you using a Pi?")
 
+    class PIN:
+        def __init__(self,pin):
+            value = 0
+            is_pressed = 0
+
     class GPIO:
-        BOARD = 1
-        OUT = 1
-        IN = 1
-        HIGH = 5
-        LOW = 0
-        simulated = True
+        def __init__(self):
+            BOARD = 1
+            OUT= 1
+            IN = 1
+            HIGH = 5
+            LOW = 0
+            simulated = True
+        
+        def LED(self,pin_text):
+            return PIN(pin_text)
+            
+        def BUTTON(self,pin_text):
+            return PIN(pin_text)
 
         def setmode(a):
             # print(a)
@@ -78,10 +91,13 @@ except:
 
 # %% setup Raspberry Pi pins
 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(3, GPIO.OUT)
-GPIO.setup(5, GPIO.OUT)
-GPIO.setup(7, GPIO.IN)
+#GPIO.setmode(GPIO.BOARD)
+#GPIO.setup(3, GPIO.OUT)
+#GPIO.setup(5, GPIO.OUT)
+#GPIO.setup(7, GPIO.IN)
+breath_pin = gpiozero.LED(2)
+heart_pin = gpiozero.LED(3)
+sense_pin = gpiozero.Button(4)
 
 
 # %% functions
@@ -148,11 +164,13 @@ def pulse(instance, borh, pulse_timer, timings_dict, pulse_toggle, pin=None):
 
     if pulse_timer == 1:
         getattr(instance, borh).setStyleSheet("background-color: red")
-        GPIO.output(pin, GPIO.HIGH)
+        #GPIO.output(pin, GPIO.HIGH)
+        pin.value = 1
 
     elif pulse_timer == on_limit:
         getattr(instance, borh).setStyleSheet("background-color: black")
-        GPIO.output(pin, GPIO.LOW)
+        #GPIO.output(pin, GPIO.LOW)
+        pin.value = 0
     elif pulse_timer == beat_limit:
         pulse_timer = 0
         pulse_toggle = int(not (bool(pulse_toggle)))
@@ -161,10 +179,10 @@ def pulse(instance, borh, pulse_timer, timings_dict, pulse_toggle, pin=None):
 
 
 def trigger_check(pin=None, text_widget=None):
-    gpio_reading = GPIO.input(pin)
+    gpio_reading = pin.is_pressed
     text_widget.setText(f"input pin: {gpio_reading}")
 
-    if GPIO.input(pin) == GPIO.HIGH:
+    if gpio_reading:
         return 1
     else:
         return 0
@@ -172,7 +190,8 @@ def trigger_check(pin=None, text_widget=None):
 
 def pin_reset(pin_list):
     for i in pin_list:
-        GPIO.output(i, GPIO.LOW)
+        #GPIO.output(i, GPIO.LOW)
+        i.value = 0
 
 
 def widget_builder(
@@ -442,28 +461,32 @@ class MainWindow(QMainWindow):
         self.oride_breathing.released.connect(self.oride_breathing_released)
         self.oride_heartbeat.released.connect(self.oride_heartbeat_released)
 
-    @pyqtSlot()
-    def oride_breathing_clicked(self):
+    @Slot()
+    def oride_breathing_clicked(self, breath_pin = breath_pin):
         self.breathing.setStyleSheet("background-color: red")
-        GPIO.output(3, GPIO.HIGH)
+        breath_pin.value=1
+        #GPIO.output(3, GPIO.HIGH)
         self.OFF_action(reset_pins=False)
 
-    @pyqtSlot()
-    def oride_heartbeat_clicked(self):
+    @Slot()
+    def oride_heartbeat_clicked(self, heart_pin = heart_pin):
         self.heartbeat.setStyleSheet("background-color: red")
-        GPIO.output(5, GPIO.HIGH)
+        heart_pin.value=1
+        #GPIO.output(5, GPIO.HIGH)
         self.OFF_action(reset_pins=False)
 
-    @pyqtSlot()
-    def oride_breathing_released(self):
+    @Slot()
+    def oride_breathing_released(self, breath_pin = breath_pin):
         self.breathing.setStyleSheet("background-color: black")
-        GPIO.output(3, GPIO.LOW)
+        breath_pin.value = 0
+        #GPIO.output(3, GPIO.LOW)
         self.OFF_action(reset_pins=False)
 
-    @pyqtSlot()
-    def oride_heartbeat_released(self):
+    @Slot()
+    def oride_heartbeat_released(self, heart_pin = heart_pin):
         self.heartbeat.setStyleSheet("background-color: black")
-        GPIO.output(5, GPIO.LOW)
+        heart_pin.value = 0
+        #GPIO.output(5, GPIO.LOW)
         self.OFF_action(reset_pins=False)
 
     def reset_timers(self, label, hold=False):
@@ -485,11 +508,11 @@ class MainWindow(QMainWindow):
     def get_delay_timers(self):
         self.running = 1
 
-    @pyqtSlot()
+    @Slot()
     def increment_duration(self):
         self.duration += 1
 
-    @pyqtSlot()
+    @Slot()
     def Calibration_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Calibration_Hold')
@@ -498,7 +521,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Habituation_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Habituation_Hold')
@@ -507,7 +530,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Baseline_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Baseline Hold')
@@ -516,7 +539,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Hypervent_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Hypervent_Hold')
@@ -525,7 +548,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Apnea_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Apnea_Hold')
@@ -534,7 +557,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Recovery_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Recovery_Hold')
@@ -543,7 +566,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def Ready_Hold_action(self):
         self.singleshot_timer.stop()
         # print('Ready_Hold')
@@ -552,7 +575,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.looptimer.start()
 
-    @pyqtSlot()
+    @Slot()
     def CHB_RHAR_cycle_action(self):
         self.singleshot_timer.stop()
         print("CHB->(RHAR)")
@@ -567,7 +590,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.timed_run()
 
-    @pyqtSlot()
+    @Slot()
     def RHAR_cycle_action(self):
         self.singleshot_timer.stop()
         print("(RHAR)")
@@ -582,7 +605,7 @@ class MainWindow(QMainWindow):
         self.state_label.setText(f"<h1>{self.state}</h1>")
         self.timed_run()
 
-    @pyqtSlot()
+    @Slot()
     def timed_run(self):
         if int(self.repeat_challenges) <= int(self.recovery_rounds):
             # print(self.state)
@@ -609,7 +632,7 @@ class MainWindow(QMainWindow):
             self.state_label.setText(f"<h1>{self.state}</h1>")
             print("Finished")
 
-    @pyqtSlot()
+    @Slot()
     def advance_state(self):
         self.running = 0
 
@@ -633,7 +656,7 @@ class MainWindow(QMainWindow):
 
         self.timed_run()
 
-    @pyqtSlot()
+    @Slot()
     def run(self):
         if self.running == 0:
             self.looptimer.stop()
@@ -645,7 +668,7 @@ class MainWindow(QMainWindow):
             self.TT_timer,
             self.TT_RR_timings["TT"],
             self.TT_1v2_toggle,
-            pin=3,
+            pin=breath_pin,
         )
 
         # HR pulse
@@ -655,11 +678,11 @@ class MainWindow(QMainWindow):
             self.RR_timer,
             self.TT_RR_timings["RR"],
             self.RR_1v2_toggle,
-            pin=5,
+            pin=heart_pin,
         )
 
         # check for trigger
-        self.trigger = trigger_check(pin=7, text_widget=self.pin_input_reading)
+        self.trigger = trigger_check(pin=sense_pin, text_widget=self.pin_input_reading)
         if (
             self.trigger == 1
             and self.state in ["ready", "delay", "hypervent", "recovery"]
@@ -672,7 +695,7 @@ class MainWindow(QMainWindow):
             self.delay_for_trigger = 0
             self.advance_state()
 
-    @pyqtSlot()
+    @Slot()
     def OFF_action(self, reset_pins=True):
         self.reset_timers("ready", hold=True)
         self.state = "off"
@@ -681,7 +704,7 @@ class MainWindow(QMainWindow):
         self.singleshot_timer.stop()
         self.repeat_challenges = int(self.recovery_rounds)
         if reset_pins == True:
-            pin_reset([3, 5])
+            pin_reset([breath_pin, heart_pin])
 
 
 # %% main
@@ -694,7 +717,7 @@ def main():
     app = QApplication(sys.argv)
     MW = MainWindow()
     MW.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 # %% run main()
