@@ -1010,6 +1010,38 @@ box_qual_test = labeledbutton(
     WHITE, BLACK, qual_test_xySize[0], qual_test_xySize[1], "", qual_test_TL
 )
 
+box_arduino_quick_1 = labeledbutton(
+    BLUE,
+    WHITE,
+    arduino_quick_1_xySize[0],
+    arduino_quick_1_xySize[1],
+    "<P,1,0>",
+    arduino_quick_1_TL,
+)
+box_arduino_quick_2 = labeledbutton(
+    WHITE,
+    BLUE,
+    arduino_quick_2_xySize[0],
+    arduino_quick_2_xySize[1],
+    "<P,2,0>",
+    arduino_quick_2_TL,
+)
+box_arduino_quick_3 = labeledbutton(
+    WHITE,
+    GREEN,
+    arduino_quick_3_xySize[0],
+    arduino_quick_3_xySize[1],
+    "<B,0,0>",
+    arduino_quick_3_TL,
+)
+box_arduino_quick_4 = labeledbutton(
+    GREEN,
+    WHITE,
+    arduino_quick_4_xySize[0],
+    arduino_quick_4_xySize[1],
+    "<F,0,0>",
+    arduino_quick_4_TL,
+)
 graph1 = labeledbutton(WHITE, WHITE, g1_xySize[0], g1_xySize[1], "", g1_TL)
 graph2 = labeledbutton(WHITE, WHITE, g2_xySize[0], g2_xySize[1], "", g2_TL)
 graph3 = labeledbutton(WHITE, WHITE, g3_xySize[0], g3_xySize[1], "", g3_TL)
@@ -1356,6 +1388,10 @@ sprite_list.add(box_sincelastbreath)
 sprite_list.add(box_qual_bouts)
 sprite_list.add(box_qual_dur)
 sprite_list.add(box_qual_test)
+sprite_list.add(box_arduino_quick_1)
+sprite_list.add(box_arduino_quick_2)
+sprite_list.add(box_arduino_quick_3)
+sprite_list.add(box_arduino_quick_4)
 sprite_list.add(box_SAVE)
 sprite_list.add(box_NOTIFICATION)
 sprite_list.add(box_stream_lag)
