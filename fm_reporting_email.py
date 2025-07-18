@@ -7,6 +7,8 @@ import argparse
 import os
 import sys
 import fm_tools
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import pandas
 import datetime
 from dateutil.relativedelta import relativedelta
@@ -87,12 +89,32 @@ def collect_error_reports():
     return error_df
 
 
-def build_summary_sheets(df, output_path="report.xlsx"):
+def build_summary_sheets(df, output_path="report"):
     # "all errors" list of all records sort by "error_type", "Component", "error_status"
     all_errors = df.sort_values(by=["error_type", "Component", "error_status"])
     all_errors.loc[:, "Plethysmography::Experimental_Date"] = pandas.to_datetime(
         all_errors["Plethysmography::Experimental_Date"]
     )
+    all_errors["error_type_subcategory"] = all_errors[
+        [
+            "error_type",
+            "Biological Error",
+            "Human Error",
+            "Component",
+            "Bell Housing Error",
+            "Connectivity Error",
+            "ECG Error",
+            "Facemask Error",
+            "Software Error",
+        ]
+    ].apply(lambda row: "|".join(i for i in row if i), axis=1)
+
+    all_errors["week of the year"] = (
+        pandas.to_datetime(all_errors["Plethysmography::Experimental_Date"])
+        .dt.isocalendar()
+        .week
+    )
+
     last_month = all_errors[
         all_errors["Plethysmography::Experimental_Date"]
         >= datetime.datetime.now() - relativedelta(months=1)
@@ -114,12 +136,101 @@ def build_summary_sheets(df, output_path="report.xlsx"):
         .count()
     )
     # create summary xlsx
-    writer = pandas.ExcelWriter(output_path, engine="xlsxwriter")
+    writer = pandas.ExcelWriter(output_path + ".xlsx", engine="xlsxwriter")
     all_errors.to_excel(writer, sheet_name="all_errors", index=False)
     last_month.to_excel(writer, sheet_name="last_month", index=False)
     facemask.to_excel(writer, sheet_name="facemask", index=False)
     rig.to_excel(writer, sheet_name="rig", index=False)
     writer.close()
+
+    # prepare graphs
+    all_errors_last_8_weeks = all_errors[
+        all_errors["week of the year"] >= datetime.datetime.now().isocalendar().week - 8
+    ]
+    error_count = (
+        all_errors_last_8_weeks[["error_type", "week of the year", "EUID"]]
+        .groupby(by=["error_type", "week of the year"], as_index=False)
+        .count()
+    )
+    error_subcategory_count = (
+        all_errors_last_8_weeks[
+            ["error_type_subcategory", "error_type", "week of the year", "EUID"]
+        ]
+        .groupby(
+            by=["error_type_subcategory", "error_type", "week of the year"],
+            as_index=False,
+        )
+        .count()
+    )
+    pdf_filename = output_path + ".pdf"
+    with PdfPages(pdf_filename) as pdf:
+        # error_count.plot(
+        #     x="week of the year",
+        #     y="EUID",
+        #     label="error_type",
+        #     title="Count of Errors by error_type",
+        # )
+        graph = error_count.pivot(
+            index="week of the year", columns="error_type", values="EUID"
+        ).plot(kind="line")
+        graph.legend(
+            fontsize=6, loc="upper left", bbox_to_anchor=(-0.10, -0.25), ncol=2
+        )
+        graph.set_title("Weekly count of errors", fontsize=10)
+        graph.set_ylabel("count", fontsize=10)
+        plt.subplots_adjust(bottom=0.5)
+        pdf.savefig()
+        plt.close()
+
+        # error_subcategory_count.plot(
+        #     x="week of the year",
+        #     y="EUID",
+        #     label="error_type_subcategory",
+        #     title="Count of Errors by error_type_subcategory",
+        # )
+        for e in error_count["error_type"].unique():
+            if (
+                error_subcategory_count[
+                    error_subcategory_count["error_type"] == e
+                ].shape[0]
+                > 0
+            ):
+                graph = (
+                    error_subcategory_count[error_subcategory_count["error_type"] == e]
+                    .pivot(
+                        index="week of the year",
+                        columns="error_type_subcategory",
+                        values="EUID",
+                    )
+                    .plot(kind="line", title="weekly count of errors")
+                )
+                graph.legend(
+                    fontsize=6, loc="upper left", bbox_to_anchor=(-0.10, -0.25), ncol=2
+                )
+                graph.set_title("Weekly count of errors", fontsize=10)
+                graph.set_ylabel("count", fontsize=10)
+                plt.subplots_adjust(bottom=0.5)
+                pdf.savefig()
+                plt.close()
+
+        for e in error_subcategory_count["error_type_subcategory"].unique():
+            if (
+                error_subcategory_count[
+                    error_subcategory_count["error_type_subcategory"] == e
+                ].shape[0]
+                > 0
+            ):
+                graph = error_subcategory_count[
+                    error_subcategory_count["error_type_subcategory"] == e
+                ].plot(x="week of the year", y="EUID", title=e, kind="scatter")
+                graph.legend(
+                    fontsize=6, loc="upper left", bbox_to_anchor=(-0.10, -0.25), ncol=2
+                )
+                graph.set_title(e, fontsize=10)
+                graph.set_ylabel("count", fontsize=10)
+                plt.subplots_adjust(bottom=0.5)
+                pdf.savefig()
+                plt.close()
 
 
 # send email
