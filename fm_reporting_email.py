@@ -144,8 +144,10 @@ def build_summary_sheets(df, output_path="report"):
     writer.close()
 
     # prepare graphs
+    isoweek = datetime.datetime.now().isocalendar().week
+    isoweek_minus_8 = isoweek - 8
     all_errors_last_8_weeks = all_errors[
-        all_errors["week of the year"] >= datetime.datetime.now().isocalendar().week - 8
+        all_errors["week of the year"] >= isoweek_minus_8
     ]
     error_count = (
         all_errors_last_8_weeks[["error_type", "week of the year", "EUID"]]
@@ -178,6 +180,8 @@ def build_summary_sheets(df, output_path="report"):
         )
         graph.set_title("Weekly count of errors", fontsize=10)
         graph.set_ylabel("count", fontsize=10)
+        graph.set_ylim(bottom=0)
+        graph.set_xlim(left=isoweek_minus_8,right=isoweek)
         plt.subplots_adjust(bottom=0.5)
         pdf.savefig()
         plt.close()
@@ -209,6 +213,8 @@ def build_summary_sheets(df, output_path="report"):
                 )
                 graph.set_title("Weekly count of errors", fontsize=10)
                 graph.set_ylabel("count", fontsize=10)
+                graph.set_ylim(bottom=0)
+                graph.set_xlim(left=isoweek_minus_8,right=isoweek)
                 plt.subplots_adjust(bottom=0.5)
                 pdf.savefig()
                 plt.close()
@@ -228,6 +234,8 @@ def build_summary_sheets(df, output_path="report"):
                 )
                 graph.set_title(e, fontsize=10)
                 graph.set_ylabel("count", fontsize=10)
+                graph.set_ylim(bottom=0)
+                graph.set_xlim(left=isoweek_minus_8,right=isoweek)
                 plt.subplots_adjust(bottom=0.5)
                 pdf.savefig()
                 plt.close()
@@ -241,8 +249,10 @@ def get_gmail_credentials():
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
+            print('attempting to refresh token')
             creds.refresh(Request())
         else:
+            print('non-refreshable token')
             flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(port=0)
         with open("token.json", "w") as token:
@@ -322,6 +332,11 @@ if __name__ == "__main__":
         messageBody="Rig Error Reporting test_message - Please see the attached Error Summary (xlsx file). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Friday ~7am.",
         subject=f"Rig Error Reporting Summary - {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}",
         to_email=email_list,
-        attachments=["report.xlsx"],
+        attachments=["report.xlsx","report.pdf"],
     )
+    print("cleaning up")
+    if os.path.exists("report.xlsx"):
+        os.remove("report.xlsx")
+    if os.path.exists("report.pdf"):
+        os.remove("report.pdf")
     print("!!! finished !!!")
