@@ -39,6 +39,7 @@ class RabbitMQClient:
 
             # Declare queue with TTL for streaming data
             # Messages older than TTL will be automatically discarded
+            # Stream queues should be durable=True for persistence
             self.channel.queue_declare(
                 queue=self.queue,
                 durable=True,
@@ -53,10 +54,10 @@ class RabbitMQClient:
             )
         else:
             # Declare queue without TTL for ping/command queues
-            # Use durable=False to match TypeScript side configuration
+            # Using durable=True to make all queues durable
             self.channel.queue_declare(
                 queue=self.queue,
-                durable=True
+                durable=True  # Changed to True to make all queues durable
             )
             # Publish message without TTL
             self.channel.basic_publish(
@@ -90,8 +91,19 @@ class RabbitMQClient:
         print("rabbit mq _is_running True")
 
         try:
-            # Declare queue with consistent settings (durable=False to match TypeScript side)
-            self.channel.queue_declare(queue=self.queue, durable=False)
+            # Declare queue with consistent settings based on use_ttl flag
+            # All queues should be durable=True
+            if self.use_ttl:
+                # Calculate TTL in milliseconds for streaming queues
+                ttl_ms = STREAM_MESSAGE_TTL_SECONDS * 1000
+                self.channel.queue_declare(
+                    queue=self.queue,
+                    durable=True,
+                    arguments={'x-message-ttl': ttl_ms}
+                )
+            else:
+                # Command and ping queues also use durable=True to make all queues durable
+                self.channel.queue_declare(queue=self.queue, durable=True)
             self.channel.basic_consume(
                 queue=self.queue,
                 on_message_callback=message_callback_wrapper,

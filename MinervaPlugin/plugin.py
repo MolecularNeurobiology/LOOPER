@@ -222,7 +222,8 @@ class Plugin:
                         # Map string command types to their enum values
                         string_command_map = {
                             'start': COMMANDS.START.value,
-                            'go_to_next_step': COMMANDS.GO_TO_NEXT_STEP.value,
+                            'go_to_next': COMMANDS.GO_TO_NEXT_STEP.value,  # Fixed: Frontend sends 'go_to_next'
+                            'go_to_next_step': COMMANDS.GO_TO_NEXT_STEP.value,  # Keep backward compatibility
                             'stream': COMMANDS.STREAM.value,
                             'stop_stream': COMMANDS.STOP_STREAM.value,
                             # Add other command mappings as needed
@@ -246,7 +247,7 @@ class Plugin:
                     # Process based on command type
                     if command_type == COMMANDS.START.value or command_type == 'start':
                         commandObj = StartCommand(payload)
-                    elif command_type == COMMANDS.GO_TO_NEXT_STEP.value or command_type == 'go_to_next_step':
+                    elif command_type == COMMANDS.GO_TO_NEXT_STEP.value or command_type == 'go_to_next_step' or command_type == 'go_to_next':
                         commandObj = GoToNextStep()
                     elif command_type == COMMANDS.STREAM.value or command_type == 'stream':
                         # Handle the stream command - pass the full command to get userId from top level
