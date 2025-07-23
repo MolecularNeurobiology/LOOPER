@@ -26,7 +26,7 @@ class StreamArduino(object):
         self.data = Queue.Queue()
         self.finished = False
         self.Connected_Arduino = False
-        
+
         try:
             # search for Arduino on comports
             arduino_list = []
@@ -54,15 +54,14 @@ class StreamArduino(object):
             self.finished = False
         except:
             self.Connected_Arduino = False
-            
-        #self.update_interval_ms = 1000
-        #self.arduino_sim_timer = QTimer()
-        #self.arduino_sim_timer.timeout.connect(self.readStreamData)
-        #self.arduino_sim_timer.start(self.update_interval_ms)
+
+        # self.update_interval_ms = 1000
+        # self.arduino_sim_timer = QTimer()
+        # self.arduino_sim_timer.timeout.connect(self.readStreamData)
+        # self.arduino_sim_timer.start(self.update_interval_ms)
         self.ard_worker = Worker(self.readStreamData)
         self.ard_thread = QThreadPool()
         self.ard_thread.start(self.ard_worker)
-        
 
     def sendCommand(self, command):
         try:
@@ -75,12 +74,11 @@ class StreamArduino(object):
             self.logger.error(f"unable to send command {e}")
 
     def readStreamData(self):
-        #print("check Arduino")
+        # print("check Arduino")
         while not self.finished:
             returnText = self.device.readline().decode()
             if returnText:
                 self.data.put_nowait(deepcopy(returnText))
-            
 
 
 class SimulatedArduino:
@@ -164,8 +162,8 @@ class SimulatedDataReader:
         self.data_sim_timer.timeout.connect(self.readStreamData)
         # default is 2.5Hz for ain0 and 8.5Hz for ain1 - odd behavior if using x.3 !!!TODO!!!
         self.sim_sig_ain = {
-            0:[math.sin(i * 6.28 *2* 2.5) for i in range(60000)],
-            1:[math.sin(i * 6.28 *2* 8.5) for i in range(60000)]
+            0: [math.sin(i * 6.28 * 2 * 2.5) for i in range(60000)],
+            1: [math.sin(i * 6.28 * 2 * 8.5) for i in range(60000)],
         }
         self.counter = 0
         self.counter_limit = 60000
@@ -179,25 +177,23 @@ class SimulatedDataReader:
 
         self.data_sim_timer.start(self.update_interval_ms)
 
-
     def setDIOState(self, *args):
         pass
 
-
-    def set_sim_sig_ain(self,ain,new_Hz):
+    def set_sim_sig_ain(self, ain, new_Hz):
         print(100)
         try:
             print(110)
-            self.sim_sig_ain[ain] = [math.sin(i * 6.28 * 2 * new_Hz) for i in range(60000)]
+            self.sim_sig_ain[ain] = [
+                math.sin(i * 6.28 * 2 * new_Hz) for i in range(60000)
+            ]
             self.logger.info(f"ain{ain} set to {new_Hz}Hz")
         except Exception as e:
             print(120)
             self.logger.warning(f"unable to set ain: {e}")
 
-
     def close(self, *args):
         pass
-
 
     def get_labjack_temperature(self):
         return 42
@@ -237,7 +233,6 @@ class SimulatedDataReader:
             self.readCount += 1
             self.counter += self.update_interval_ms
             self.current = datetime.now()
-            
 
     def stopStreamData(self):
         self.finished = True
@@ -250,7 +245,7 @@ class Worker(QRunnable):
         self.args = args
         self.kwargs = kwargs
         self.setAutoDelete(True)
-        
+
     def run(self):
         self.func(*self.args, **self.kwargs)
 
@@ -259,7 +254,6 @@ class StreamDataReader(object):
     def __init__(self, logger):
         self.logger = logger
         self.device = u6.U6()
-        
 
         self.channel_list = [0, 1, 2, 3, 4, 5]
         self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
@@ -305,13 +299,11 @@ class StreamDataReader(object):
         self.device.setDIOState(1, 0)
         self.device.setDIOState(2, 0)
         self.device.setDIOState(3, 0)
-        
+
         self.readStreamData()
 
-
-    def set_sim_sig_ain(self,ain,new_Hz):
+    def set_sim_sig_ain(self, ain, new_Hz):
         pass
-
 
     def get_labjack_temperature(self):
         return self.device.getTemperature() - 273.15
@@ -340,7 +332,7 @@ class StreamDataReader(object):
                 self.device.streamStop()
             except:
                 pass
-            #self.finished = True
+            # self.finished = True
             e = sys.exc_info()[1]
             print("readStreamData exception: %s %s" % (type(e), e))
         self.data_timer = QTimer()
@@ -354,13 +346,12 @@ class StreamDataReader(object):
     def readStreamDataThread(self):
         try:
 
-            
             # Calling with convert = False, because we are going to convert in
             # the main thread.
             returnDict = next(self.device.streamData(convert=False))
             if returnDict is None:
                 print("No stream data")
-                #continue
+                # continue
 
             self.data.put_nowait(deepcopy(returnDict))
 
@@ -368,8 +359,8 @@ class StreamDataReader(object):
             self.readCount += 1
             self.current = datetime.now()
 
-            #print("Stream stopped.\n")
-            #self.device.streamStop()
+            # print("Stream stopped.\n")
+            # self.device.streamStop()
 
         except Exception:
             try:
@@ -393,10 +384,15 @@ class StreamDataReader(object):
 class MinervaReceiver:
     def __init__(self, minerva_plugin_object, logger):
         self.data = None
+        self.minerva_plugin_object = minerva_plugin_object
         pass
 
-    def process_data(self, data_object, settings_object, callbacks_object):
-        pass
+    def process_data(self, pcc):
+        for command in self.data:
+            print(command.__dict__)
+            print(command.type._name_ == "GO_TO_NEXT_STEP")
+            if command.type._name_ == "GO_TO_NEXT_STEP":
+                pcc.action_next_stage()
 
     def readStreamData(self):
-        self.data = minerva_plugin_object.pop_commands
+        self.data = self.minerva_plugin_object.pop_commands()

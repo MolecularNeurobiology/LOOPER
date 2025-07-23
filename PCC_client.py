@@ -770,9 +770,11 @@ class MainWindow(QWidget):
             #         Challenge_Toggle = 1
 
         # collect minerva stream
+        self.minerva_stream_reader.readStreamData()
         if self.minerva_stream_reader.data:
-            self.logger.info(self.minerva_stream_reader.data)
+            self.logger.info(f"minerva - {self.minerva_stream_reader.data}")
             print(f"minerva - {self.minerva_stream_reader.data}")
+            self.minerva_stream_reader.process_data(self)
             self.minerva_stream_reader.data = None
 
         # append to output
