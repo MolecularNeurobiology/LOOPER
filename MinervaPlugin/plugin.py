@@ -216,8 +216,9 @@ class Plugin:
             # Make sure stream_data is updated with the current MAC address
             session.stream_data.mac_address = self._mac_address
 
-            # !!! changed from info to debug level, info level floods the status window of the local gui and overworks the client
+            # !!! changed from info to debug level, info level floods the status window of the local gui and overworks the client, also just commenting out since use is primarily for debug testing of signal sending
             # Debug: Log airflow signal data before serialization
+            """
             airflow_signal = next(
                 (s for s in session.stream_data.signals if s.get("name") == "Airflow"),
                 None,
@@ -226,11 +227,12 @@ class Plugin:
                 self._log_debug(
                     f"Airflow signal before serialization: name={airflow_signal['name']}, type={airflow_signal['type']}, data_points={len(airflow_signal['data'])}"
                 )
-
+            """
             # Convert stream data to JSON using safe serialization
             stream_message = safe_json_dumps(asdict(session.stream_data))
 
             # Debug: Check if airflow data is in the serialized message
+            """
             if '"Airflow"' in stream_message:
                 self._log_debug(
                     f"✓ Airflow signal found in serialized message for user {session.user_id}"
@@ -239,15 +241,15 @@ class Plugin:
                 self._log_debug(
                     f"✗ Airflow signal NOT found in serialized message for user {session.user_id}"
                 )
-                self._log_debug(f"airflow_signal:{airflow_signal}")
-                self._log_debug(f"signals: {session.stream_data.signals}")
-                self._log_debug(f"signals: {session.stream_data.__dict__}")
+            """
 
             # Send the stream data to the server
             session.rabbit_mq_client.send_message(stream_message)
+            """
             self._log_debug(
                 f"Stream data sent to server for user {session.user_id}, MAC {session.stream_data.mac_address}"
             )
+            """
         except Exception as e:
             exc_type, exc_obj, tb = sys.exc_info()
             f = tb.tb_frame
@@ -256,9 +258,6 @@ class Plugin:
             self._log_error(
                 f"Error streaming data for user {session.user_id}: {e} \n {lineno}"
             )
-
-            self._log_debug(f"signals: {session.stream_data.signals}")
-            self._log_debug(f"signals: {session.stream_data.__dict__}")
 
     def _handle_command(self, command):
         self._log_info(f"Plugin {self._mac_address} - Command received: {command}")
@@ -487,9 +486,9 @@ class Plugin:
         Args:
             user_id (str): The user ID to stop streaming for.
         """
-        print("_stop_user_streaming")
+
         with self._sessions_lock:
-            print("using _sessions_lock")
+
             if user_id in self._user_sessions:
                 session = self._user_sessions[user_id]
                 session.is_active = False
@@ -497,7 +496,6 @@ class Plugin:
                 # Wait for thread to finish
                 if session.thread and session.thread.is_alive():
                     session.thread.join(timeout=5)
-                print("session.thread ended")
                 # Close RabbitMQ connection
                 try:
                     session.rabbit_mq_client.close()
@@ -505,7 +503,7 @@ class Plugin:
                     self._log_error(
                         f"Error closing RabbitMQ client for user {user_id}: {e}"
                     )
-                print("rabbitmq connection closed")
+
                 # Remove session
                 del self._user_sessions[user_id]
                 self._log_info(f"✅ STREAMING STOPPED for user {user_id}")

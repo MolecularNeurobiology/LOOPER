@@ -792,7 +792,7 @@ class MainWindow(QWidget):
         if self.payload_counter % self.payload_counter_interval == 0:
             self.payload_counter = 0
             # self.logger.info("payload test in debug")
-            self.logger.debug("payload sent")
+            # self.logger.debug("payload sent")
             self.payload = mp.MinervaStreamData(
                 mac_address=self.mac,
                 stages=[
@@ -814,7 +814,9 @@ class MainWindow(QWidget):
                 signals=self.data.prepare_data_payload()["signals"],
             )
             if self.minerva_stream:
-                self.minerva_stream.update_stream_data(self.payload, user_id="1")
+                self.minerva_stream.update_stream_data(
+                    self.payload, user_id="1"
+                )  #!!! should the user_id be "1" or is this supposed to match what is registerred with minerva?
 
         self.payload_counter += 10
 
