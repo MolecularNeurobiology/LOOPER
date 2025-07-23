@@ -1653,6 +1653,38 @@ try:
                                     serialtext
                                 )
                             )
+                elif box_arduino_quick_5.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_5.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_6.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_6.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
 
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle = 1

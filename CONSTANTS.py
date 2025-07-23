@@ -142,6 +142,8 @@ arduino_quick_1_TL = (700, 800)
 arduino_quick_2_TL = (800, 800)
 arduino_quick_3_TL = (700, 825)
 arduino_quick_4_TL = (800, 825)
+arduino_quick_5_TL = (700, 850)
+arduino_quick_6_TL = (800, 850)
 
 # sizes
 # sensor value displays
@@ -169,6 +171,8 @@ arduino_quick_1_xySize = (100, 25)
 arduino_quick_2_xySize = (100, 25)
 arduino_quick_3_xySize = (100, 25)
 arduino_quick_4_xySize = (100, 25)
+arduino_quick_5_xySize = (100, 25)
+arduino_quick_6_xySize = (100, 25)
 
 increment = 0.1
 inc_TL = (450, 100)

@@ -1042,6 +1042,23 @@ box_arduino_quick_4 = labeledbutton(
     "<F,0,0>",
     arduino_quick_4_TL,
 )
+box_arduino_quick_5 = labeledbutton(
+    WHITE,
+    GREEN,
+    arduino_quick_5_xySize[0],
+    arduino_quick_5_xySize[1],
+    "<C,10,0>",
+    arduino_quick_5_TL,
+)
+box_arduino_quick_6 = labeledbutton(
+    GREEN,
+    WHITE,
+    arduino_quick_6_xySize[0],
+    arduino_quick_6_xySize[1],
+    "<C,30,0>",
+    arduino_quick_6_TL,
+)
+
 graph1 = labeledbutton(WHITE, WHITE, g1_xySize[0], g1_xySize[1], "", g1_TL)
 graph2 = labeledbutton(WHITE, WHITE, g2_xySize[0], g2_xySize[1], "", g2_TL)
 graph3 = labeledbutton(WHITE, WHITE, g3_xySize[0], g3_xySize[1], "", g3_TL)
@@ -1392,6 +1409,8 @@ sprite_list.add(box_arduino_quick_1)
 sprite_list.add(box_arduino_quick_2)
 sprite_list.add(box_arduino_quick_3)
 sprite_list.add(box_arduino_quick_4)
+sprite_list.add(box_arduino_quick_5)
+sprite_list.add(box_arduino_quick_6)
 sprite_list.add(box_SAVE)
 sprite_list.add(box_NOTIFICATION)
 sprite_list.add(box_stream_lag)
