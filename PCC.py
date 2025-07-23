@@ -2294,7 +2294,7 @@ try:
             g1_app_ctr = 0
             downsample_rate1 = 20
             g3_app_ctr = 0
-            downsample_rate3 = 2
+            downsample_rate3 = 1
 
             # for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]:
             #     g1_app_ctr+=1
@@ -2338,21 +2338,21 @@ try:
                 ECGFILT_TOGGLE.update(GREEN, BLACK, "ECG FILTER ON")
                 if INVERT_ECG == 0:
                     data3 = list(basicFilt(PreFilt_data3, 1000, 60, 30))[
-                        -1251:-1:1
-                    ]  # downsample to 500Hz
+                        -2501:-1:1
+                    ]  # 
                 else:
                     data3 = [
                         i * -1
                         for i in list(basicFilt(PreFilt_data3, 1000, 60, 30))[
-                            -1251:-1:1
+                            -2501:-1:1
                         ]
-                    ]  # downsample to 500Hz
+                    ]  
             else:
                 ECGFILT_TOGGLE.update(RED, BLACK, "ECG FILTER OFF")
                 if INVERT_ECG == 0:
-                    data3 = PreFilt_data3[-1250:-1:1]
+                    data3 = PreFilt_data3[-2501:-1:1]
                 else:
-                    data3 = [i * -1 for i in PreFilt_data3[-1250:-1:1]]
+                    data3 = [i * -1 for i in PreFilt_data3[-2501:-1:1]]
 
             # 5 second ts window
             ts1 = [
