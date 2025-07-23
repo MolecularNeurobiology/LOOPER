@@ -250,16 +250,12 @@ class MainWindow(QWidget):
         self.pushButton_c01.clicked.connect(self.action_c01)
         self.pushButton_v00.clicked.connect(self.action_v00)
         self.pushButton_v01.clicked.connect(self.action_v01)
-        self.pushButton_transmit_arduino_quick_command.clicked.connect(self.action_transmit_arduino_quick_command)
+        self.pushButton_transmit_arduino_quick_command.clicked.connect(
+            self.action_transmit_arduino_quick_command
+        )
         # populate arduino quick command combo box
         self.comboBox_arduino_quick_command.addItems(
-            [
-                "<P,4,0>",
-                "<P,1,0>",
-                "<P,4,1>",
-                "<P,1,1>",
-                "<P,3,2>"
-            ]
+            ["<P,4,0>", "<P,1,0>", "<P,4,1>", "<P,1,1>", "<P,3,2>"]
         )
 
     def prepare_graphs(self):
@@ -480,7 +476,7 @@ class MainWindow(QWidget):
             else:
                 setattr(self.settings, set_command[2], set_command[3])
         else:
-            
+
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
@@ -495,7 +491,7 @@ class MainWindow(QWidget):
 
     def action_c01(self):
         self.arduino_stream.sendCommand("<C,0,1>")
-    
+
     def action_v00(self):
         self.arduino_stream.sendCommand("<V,0,0>")
 
@@ -503,7 +499,9 @@ class MainWindow(QWidget):
         self.arduino_stream.sendCommand("<V,0,1>")
 
     def action_transmit_arduino_quick_command(self):
-        self.arduino_stream.sendCommand(self.comboBox_arduino_quick_command.currentText())
+        self.arduino_stream.sendCommand(
+            self.comboBox_arduino_quick_command.currentText()
+        )
 
     def action_start_timers(self):
         self.pulse_timer.start(1000)
@@ -813,10 +811,10 @@ class MainWindow(QWidget):
                     for k, v in self.settings.Mode_settings.items()
                 ],
                 current_stage=self.active_stage.name,
-                signals=self.data.prepare_data_payload(),
+                signals=self.data.prepare_data_payload()["signals"],
             )
             if self.minerva_stream:
-                self.minerva_stream.update_stream_data(self.payload)
+                self.minerva_stream.update_stream_data(self.payload, user_id="1")
 
         self.payload_counter += 10
 

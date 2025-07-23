@@ -170,4 +170,16 @@ class DATA:
                         ],
                     }
                 )
+        # !!! remove this after confirming Airflow is not a needed signal name
+        signal_payload["signals"].append(
+            {
+                "name": "Airflow",
+                "type": "time_series",
+                "xUnit": "seconds",
+                "data": [
+                    {"x": self.time[i], "y": getattr(self, "trimmed_pneumo")[i]}
+                    for i in range(len(self.time))
+                ],
+            }
+        )
         return signal_payload
