@@ -1043,16 +1043,16 @@ box_arduino_quick_4 = labeledbutton(
     arduino_quick_4_TL,
 )
 box_arduino_quick_5 = labeledbutton(
+    BLACK,
     WHITE,
-    GREEN,
     arduino_quick_5_xySize[0],
     arduino_quick_5_xySize[1],
     "<C,10,0>",
     arduino_quick_5_TL,
 )
 box_arduino_quick_6 = labeledbutton(
-    GREEN,
     WHITE,
+    BLACK,
     arduino_quick_6_xySize[0],
     arduino_quick_6_xySize[1],
     "<C,30,0>",
