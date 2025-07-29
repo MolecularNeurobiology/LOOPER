@@ -10,10 +10,12 @@ except:
 # Debug toggle - set to False to disable all debug logs
 DEBUG_ENABLED = True
 class RabbitMQClient:
-    def __init__(self, logger, queue, id = None, use_ttl = False):
+    def __init__(self, logger, queue, id = None, use_ttl = False, ttl_seconds = None, max_length = None):
         self.logger = logger
         self.id = id
         self.use_ttl = use_ttl  # Flag to determine if TTL should be applied
+        self.ttl_seconds = ttl_seconds  # Custom TTL in seconds (overrides default)
+        self.max_length = max_length  # Max queue length (for latest-only processing)
         _queue = "{}-{}".format(queue, id.replace(":", "")) if id is not None else queue
         self._log_info("Attempting to connect to {}".format(_queue))
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
@@ -34,16 +36,20 @@ class RabbitMQClient:
 
     def send_message(self, message):
         if self.use_ttl:
-            # Calculate TTL in milliseconds
-            ttl_ms = STREAM_MESSAGE_TTL_SECONDS * 1000
+            # Calculate TTL in milliseconds - use custom TTL if provided, otherwise default
+            ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
+            ttl_ms = ttl_seconds * 1000
 
             # Declare queue with TTL for streaming data
             # Messages older than TTL will be automatically discarded
             # Stream queues should be durable=True for persistence
+            queue_args = {'x-message-ttl': ttl_ms}
+            if self.max_length is not None:
+                queue_args['x-max-length'] = self.max_length
             self.channel.queue_declare(
                 queue=self.queue,
                 durable=True,
-                arguments={'x-message-ttl': ttl_ms}
+                arguments=queue_args
             )
             # Publish message with TTL properties
             self.channel.basic_publish(
@@ -100,12 +106,16 @@ class RabbitMQClient:
             # Declare queue with consistent settings based on use_ttl flag
             # All queues should be durable=True
             if self.use_ttl:
-                # Calculate TTL in milliseconds for streaming queues
-                ttl_ms = STREAM_MESSAGE_TTL_SECONDS * 1000
+                # Calculate TTL in milliseconds for streaming queues - use custom TTL if provided
+                ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
+                ttl_ms = ttl_seconds * 1000
+                queue_args = {'x-message-ttl': ttl_ms}
+                if self.max_length is not None:
+                    queue_args['x-max-length'] = self.max_length
                 self.channel.queue_declare(
                     queue=self.queue,
                     durable=True,
-                    arguments={'x-message-ttl': ttl_ms}
+                    arguments=queue_args
                 )
             else:
                 # Command and ping queues also use durable=True to make all queues durable

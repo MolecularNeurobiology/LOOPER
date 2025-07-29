@@ -173,8 +173,9 @@ class Plugin:
         )
 
         # Stream control consumer (for stream heartbeat commands - latest-only)
+        # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
         self._stream_control_consumer = RabbitMQClient(
-            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=False
+            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
         )
 
         # Single rig stream producer (broadcasts to all clients for this rig)
