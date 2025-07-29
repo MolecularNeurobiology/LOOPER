@@ -31,7 +31,7 @@ def simulate_stream_command(user_id="test_user", mac_address="test:mac:address")
 
 def test_timeout_functionality():
     """Test that streaming stops after 30 seconds without stream commands."""
-    print("🧪 Testing 30-second timeout functionality")
+    print("Testing 30-second timeout functionality")
     print("=" * 50)
 
     # Create plugin instance

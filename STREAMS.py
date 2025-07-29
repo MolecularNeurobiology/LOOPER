@@ -395,4 +395,7 @@ class MinervaReceiver:
                 pcc.action_next_stage()
 
     def readStreamData(self):
-        self.data = self.minerva_plugin_object.pop_commands()
+        if self.minerva_plugin_object is not None:
+            self.data = self.minerva_plugin_object.pop_commands()
+        else:
+            self.data = []
