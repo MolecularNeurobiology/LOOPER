@@ -147,13 +147,32 @@ class DATA:
                 )
 
             if v["sig_type"] == "TIMESTAMP":
+                timestamp_data = getattr(self, k, [])
+
+                # Handle different data types for timestamp signals
+                if hasattr(timestamp_data, 'columns') and 'ts' in timestamp_data.columns:
+                    # DataFrame case (like beat_list from beat_caller)
+                    numeric_timestamps = list(timestamp_data['ts'])
+                elif isinstance(timestamp_data, dict):
+                    # Dictionary case (like breath_list from basic_breathcall)
+                    numeric_timestamps = list(timestamp_data.keys())
+                elif isinstance(timestamp_data, list):
+                    # List case - filter to only include numeric time values
+                    numeric_timestamps = [
+                        time_value for time_value in timestamp_data
+                        if time_value is not None and isinstance(time_value, (int, float))
+                    ]
+                else:
+                    # Fallback for other types
+                    numeric_timestamps = []
+
                 signal_payload["signals"].append(
                     {
                         "name": k,
                         "type": "timestamp",
                         "displayWith": v["displayWith"],
                         "data": [
-                            {"x": """x value""", "y": 1} for i in getattr(self, k)
+                            {"x": time_value, "y": 1} for time_value in numeric_timestamps
                         ],
                     }
                 )
