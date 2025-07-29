@@ -14,8 +14,8 @@ class RabbitMQClient:
         self.logger = logger
         self.id = id
         self.use_ttl = use_ttl  # Flag to determine if TTL should be applied
-        _queue = f"{queue}-{id.replace(":", "")}" if id is not None else queue
-        self._log_info(f"Attempting to connect to {_queue}")
+        _queue = "{}-{}".format(queue, id.replace(":", "")) if id is not None else queue
+        self._log_info("Attempting to connect to {}".format(_queue))
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self.queue = _queue
@@ -67,7 +67,13 @@ class RabbitMQClient:
             )
 
     def reconnect(self):
-        self.connection.close()
+        # Safely close existing connection if it's still open
+        try:
+            if self.connection and not self.connection.is_closed:
+                self.connection.close()
+        except Exception as e:
+            self._log_error("Error closing connection during reconnect: {}".format(e))
+
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(RABBITMQ_SERVER))
         self.channel = self.connection.channel()
         self._log_info("Reconnected to RabbitMQ server.")
@@ -81,13 +87,13 @@ class RabbitMQClient:
                 callback(message)
                 # Acknowledge the message after successful processing
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-                self._log_info(f"Message processed and acknowledged: {message}")
+                self._log_info("Message processed and acknowledged: {}".format(message))
             except Exception as e:
                 # Log error but still acknowledge to prevent redelivery
-                self._log_error(f"Error processing message: {e}")
+                self._log_error("Error processing message: {}".format(e))
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
-        self._log_info(f"Starting message consumption on queue: {self.queue}")
+        self._log_info("Starting message consumption on queue: {}".format(self.queue))
         print("rabbit mq _is_running True")
 
         try:
@@ -109,16 +115,18 @@ class RabbitMQClient:
                 on_message_callback=message_callback_wrapper,
                 auto_ack=False  # Manual acknowledgment for better reliability
             )
-            self._log_info(f"Listening for messages on {self.queue}. To exit press CTRL+C")
+            self._log_info("Listening for messages on {}. To exit press CTRL+C".format(self.queue))
 
             # Start consuming - this will block until stop() is called
             self.channel.start_consuming()
 
         except pika.exceptions.AMQPConnectionError as e:
-            self._log_error(f"Connection lost: {e}")
-            self.reconnect()
+            self._log_error("Connection lost: {}".format(e))
+            # Only attempt reconnect if we're still supposed to be running
+            if self._is_running:
+                self.reconnect()
         except Exception as e:
-            self._log_error(f"Error in consume_message: {e}")
+            self._log_error("Error in consume_message: {}".format(e))
         finally:
             print("rabbit mq _is_running False")
             self.close()
@@ -131,16 +139,29 @@ class RabbitMQClient:
             try:
                 self.channel.stop_consuming()
                 self._log_info("Stopped consuming messages")
+            except (pika.exceptions.ConnectionWrongStateError, pika.exceptions.ChannelWrongStateError) as e:
+                # These exceptions are expected during shutdown when connection is already closed
+                self._log_info("Consumer already stopped or connection closed: {}".format(e))
             except Exception as e:
-                self._log_error(f"Error stopping consumer: {e}")
+                self._log_error("Error stopping consumer: {}".format(e))
 
     def close(self):
         """Close the channel and connection"""
         try:
             if self.channel and not self.channel.is_closed:
                 self.channel.close()
+        except (pika.exceptions.ConnectionWrongStateError, pika.exceptions.ChannelWrongStateError) as e:
+            # These exceptions are expected during shutdown when connection is already closed
+            self._log_info("Channel already closed: {}".format(e))
+        except Exception as e:
+            self._log_error("Error closing channel: {}".format(e))
+
+        try:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
             self._log_info("RabbitMQ connection closed")
+        except (pika.exceptions.ConnectionWrongStateError, pika.exceptions.ChannelWrongStateError) as e:
+            # These exceptions are expected during shutdown when connection is already closed
+            self._log_info("Connection already closed: {}".format(e))
         except Exception as e:
-            self._log_error(f"Error closing connection: {e}")
+            self._log_error("Error closing connection: {}".format(e))

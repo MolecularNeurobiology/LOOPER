@@ -816,9 +816,19 @@ class MainWindow(QWidget):
                 signals=self.data.prepare_data_payload()["signals"],
             )
             if self.minerva_stream:
-                self.minerva_stream.update_stream_data(
-                    self.payload, user_id="1"
-                )  #!!! should the user_id be "1" or is this supposed to match what is registerred with minerva?
+                # Send data to all active user sessions instead of hardcoding user_id="1"
+                active_users = self.minerva_stream.get_active_user_sessions()
+                if active_users:
+                    # Send to each active user session
+                    for user_id in active_users:
+                        self.minerva_stream.update_stream_data(
+                            self.payload, user_id=user_id
+                        )
+                    self.logger.debug(f"Sent stream data to {len(active_users)} active users: {active_users}")
+                else:
+                    # Fallback: send to default stream data (for backward compatibility)
+                    self.minerva_stream.update_stream_data(self.payload)
+                    self.logger.debug("No active users, sent to default stream data")
 
         self.payload_counter += 10
 

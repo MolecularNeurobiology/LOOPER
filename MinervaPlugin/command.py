@@ -67,39 +67,39 @@ class BaseSignal:
     """Base class for signals."""
     name: str
     type: str  # SignalType as string
-    displayWith: Optional[str] = None  # Optional field at the end
+    displayWith: Optional[str] = field(default=None)  # Optional field with explicit default
 
-@dataclass(kw_only=True)  # Make all fields keyword-only to avoid ordering issues
+@dataclass
 class TimeSeriesSignal(BaseSignal):
     """Time series signal with x,y data points."""
-    xUnit: str
-    yUnit: str
-    xWindowMinInSeconds: float
-    xWindowMaxInSeconds: float
-    yWindowMinInSeconds: float
-    yWindowMaxInSeconds: float
+    xUnit: str = ""
+    yUnit: str = ""
+    xWindowMinInSeconds: float = 0.0
+    xWindowMaxInSeconds: float = 300.0
+    yWindowMinInSeconds: float = 0.0
+    yWindowMaxInSeconds: float = 200.0
     data: List[Dict[str, float]] = field(default_factory=list)
 
-@dataclass(kw_only=True)
+@dataclass
 class TimestampSignal(BaseSignal):
     """Timestamp signal showing events."""
-    data: List[Dict[str, float]]
+    data: List[Dict[str, float]] = field(default_factory=list)
 
-@dataclass(kw_only=True)
+@dataclass
 class SingleValueSignal(BaseSignal):
     """Signal with a single numeric value."""
-    valueUnit: str
-    data: float
+    valueUnit: str = ""
+    data: float = 0.0
 
-@dataclass(kw_only=True)
+@dataclass
 class StatusSignal(BaseSignal):
     """Signal with a boolean status."""
-    data: bool
+    data: bool = False
 
-@dataclass(kw_only=True)
+@dataclass
 class DebugSignal(BaseSignal):
     """Signal with debug text."""
-    data: str
+    data: str = ""
 
 # Union type for Signal
 Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSignal, DebugSignal]
