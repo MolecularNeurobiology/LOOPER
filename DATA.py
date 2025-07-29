@@ -119,7 +119,7 @@ class DATA:
                 "trimmed_pneumo": {"sig_type": "TIME_SERIES"},
                 "trimmed_ecg": {"sig_type": "TIME_SERIES"},
                 "breath_list": {
-                    "sig_type": "TIMESTMP",
+                    "sig_type": "TIMESTAMP",
                     "displayWith": "trimmed_pneumo",
                 },
                 "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
@@ -170,16 +170,4 @@ class DATA:
                         ],
                     }
                 )
-        # !!! remove this after confirming Airflow is not a needed signal name
-        signal_payload["signals"].append(
-            {
-                "name": "Airflow",
-                "type": "time_series",
-                "xUnit": "seconds",
-                "data": [
-                    {"x": self.time[i], "y": getattr(self, "trimmed_pneumo")[i]}
-                    for i in range(len(self.time))
-                ],
-            }
-        )
         return signal_payload
