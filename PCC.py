@@ -152,6 +152,10 @@ import serial.tools.list_ports
 
 import logging
 
+from pathlib import Path
+home_dir = str(Path.home())
+print(home_dir)
+
 # Import constants from CONSTANTS.PY
 from CONSTANTS import *
 
@@ -329,7 +333,7 @@ def guiGetText(title, text, default_if_canceled):
 # %%
 def load_rig_config(config_path=None):
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir,"rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
     return config
@@ -337,7 +341,7 @@ def load_rig_config(config_path=None):
 
 def update_rig_config(field, config_path=None, logger=None):
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir,"rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
 
@@ -360,7 +364,7 @@ def update_rig_log(
     rigconfig, filename, field_dict=None, daily_key=None, daily_index=None, logpath=None
 ):
     if not logpath:
-        logpath = "/home/pi/rig_run_log.log"
+        logpath = os.path.join(home_dir,"rig_run_log.log")
 
     with open(logpath, "r") as openfile:
         riglog = json.load(openfile)
@@ -2978,7 +2982,7 @@ try:
                 rig_odometer = int(rig_config.get("rig_odometer", 1)) + 1
                 rig_config["rig_odometer"] = rig_odometer
 
-                with open("/home/pi/rig.config", "w") as openfile:
+                with open(os.path.join(home_dir,"rig.config"), "w") as openfile:
                     json.dump(rig_config, openfile, indent=4)
 
                 fm_record_dict["SLB_Trigger"] = SLB_Trigger
