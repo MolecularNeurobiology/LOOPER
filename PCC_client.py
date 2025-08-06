@@ -55,17 +55,19 @@ import STAGES
 # %% define functions
 def get_mac():
     interfaces = psutil.net_if_addrs()
+    mac = "nn:nn:nn:nn"
     for i_name, i_addr in interfaces.items():
         for addr in i_addr:
             try:
                 if (
-                    addr.family == psutil.AF_LINK
-                ):  # or addr.family == psutil.AF_PACKET: <--removed, incompatible on raspi?
-                    return addr.address
+                    addr.family.name == "AF_LINK" or addr.family.name == "AF_PACKET"
+                ):  
+                    mac = addr.address
                 else:
-                    return "nn:nn:nn:nn"
+                    pass
             except:
                 return "na:na:na:na"
+    return mac
 
 
 # %% define classes
