@@ -1,7 +1,7 @@
 # Configuration for RabbitMQ
 # Use localhost to connect to Docker RabbitMQ instance
 RABBITMQ_SERVER = (
-    "localhost"  # Connect to local Docker instance
+    "10.51.142.189"  # Connect to local Docker instance
 )
 RABBITMQ_PORT = 15672  # Management UI port
 RABBITMQ_AMQP_PORT = 5672  # AMQP protocol port (used by pika)
