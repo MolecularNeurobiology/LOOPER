@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "43.0.0"
+__version__ = "43.0.1"
 
 """
 Physiology Command Center
@@ -171,6 +171,8 @@ __git_status__ = (
 
 # %%
 # prep serial connection to arduino
+logger = None
+
 try:
     ser = serial.Serial()
     ser.baudrate = 9600
