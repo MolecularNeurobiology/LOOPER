@@ -623,7 +623,6 @@ def beat_caller(CT, TS, absthresh=0.74, minRR=0.10):
         CT, height=absthresh_ecg, distance=peak_finding_distance
     )  # Adjust 'distance' as needed
 
-    print(f"CT:{len(CT)}, TS:{len(TS)}")
     # Extract timestamps for the detected peaks
     timestamps_peaks = numpy.take(TS, peaks, axis=0)
 
