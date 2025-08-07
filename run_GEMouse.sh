@@ -2,7 +2,7 @@
 # bash script to run gemouse
 
 
-$tag = "dev_2025-07-23b"
+tag = "dev_2025-07-23b"
 
 # go to repository directory, git reset to tag for testing
 cd $HOME/git/Autoresuscitation
