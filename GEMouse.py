@@ -27,7 +27,7 @@ v1.0.1
 
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # %% import libraries
 from PySide6 import QtGui, QtWidgets
@@ -97,7 +97,7 @@ except:
 # GPIO.setup(7, GPIO.IN)
 breath_pin = gpiozero.LED(2)
 heart_pin = gpiozero.LED(3)
-sense_pin = gpiozero.Button(4)
+sense_pin = gpiozero.Button(4, pull_up = False)
 
 
 # %% functions
