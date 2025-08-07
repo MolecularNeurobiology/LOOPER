@@ -2,11 +2,11 @@
 # bash script to run gemouse
 
 
-tag="dev_2025-07-23b"
+tag="dev_2025-08-06e"
 
 # go to repository directory, git reset to tag for testing
 cd $HOME/git/Autoresuscitation
-git fetch
+git fetch --tags
 git checkout $tag
 git reset --hard $tag
 
@@ -49,6 +49,7 @@ else
   echo "uv is installed"
   cd $HOME/git/Autoresuscitation
   uv run $HOME/git/Autoresuscitation/GEMouse.py &
-  uv run $HOME/git/Autoresuscitation/PCC.py
+  source activate py38
+  python $HOME/git/Autoresuscitation/PCC.py
 }
 fi

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "43.0.1"
+__version__ = "43.0.2"
 
 """
 Physiology Command Center
@@ -1182,10 +1182,10 @@ try:
                 ):
                     if logger:
                         logger.info(
-                            f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                            f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                         )
                     serial_list.append(
-                        f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                        f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                     )
                     Current_Mode = advance(Current_Mode, 0, len(Mode_dict) - 1)
                     sdr.stopStreamData()
