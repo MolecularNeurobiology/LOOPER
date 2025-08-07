@@ -1,6 +1,16 @@
 #!/bin/bash
 # bash script to run gemouse
 
+
+$tag = "dev_2025-07-23b"
+
+# go to repository directory, git reset to tag for testing
+cd $HOME/git/Autoresuscitation
+git fetch
+git checkout $tag
+git reset --hard $tag
+
+
 # check for dependency 
 # swig - is a recently needed dependency for 2025 updates 
 # to autoresuscitation repository
