@@ -173,8 +173,9 @@ class Plugin:
         )
 
         # Stream control consumer (for stream heartbeat commands - latest-only)
+        # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
         self._stream_control_consumer = RabbitMQClient(
-            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=False
+            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
         )
 
         # Single rig stream producer (broadcasts to all clients for this rig)
@@ -742,24 +743,21 @@ class Plugin:
 
     def _generate_current_stream_data(self):
         """
-        Generate the current stream data payload.
+        Generate the current stream data payload using data from PCC_client.
 
         Returns:
             dict: Stream data payload for the current rig state.
         """
-        # Use the existing default stream data and update with current metrics
-        stream_data = MinervaStreamData(mac_address=self._mac_address)
-
-        # Add current signals (ECG, airflow, BPM, etc.)
-        current_signals = self._generate_mock_signals()
-        stream_data.signals = current_signals
-
-        # Add current stage information if available
-        if hasattr(self, '_current_stage'):
-            stream_data.current_stage = self._current_stage
-
-        # Convert to dict for JSON serialization
-        return asdict(stream_data)
+        # Use the stream data provided by PCC_client via update_stream_data()
+        # This ensures we use real PCC data (whether from hardware or PCC's simulation)
+        if self._default_stream_data:
+            # Convert to dict for JSON serialization
+            return asdict(self._default_stream_data)
+        else:
+            # Fallback: create minimal stream data if no data has been provided yet
+            stream_data = MinervaStreamData(mac_address=self._mac_address)
+            stream_data.signals = []  # Empty signals until PCC_client provides data
+            return asdict(stream_data)
 
     def _generate_mock_signals(self):
         """
