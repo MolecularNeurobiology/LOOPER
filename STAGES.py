@@ -270,7 +270,7 @@ class baseline(STAGE):
     def additional_exit_test(self):
         # if quality time > minimum quality time return True
         if self.pcc.data.quality_test == 0:
-            self.pcc.data.qb_timer_running_sec = self.pcc.data.qb_timer
+            self.pcc.data.qb_time_running_sec = self.pcc.data.qb_timer
             if (
                 self.pcc.data.qb_timer
                 > self.setting_dict["minimum_cummulative_QB_duration"]
@@ -283,11 +283,11 @@ class baseline(STAGE):
             else:
                 return False
         else:
-            self.pcc.data.qb_timer_running_sec = self.pcc.data.qb_timer
+            self.pcc.data.qb_time_running_sec = self.pcc.data.qb_timer
             + self.pcc.data.quality_seg_list[-1][1]
             - self.pcc.data.quality_seg_list[-1][0] 
             
-            if self.data.qb_time_running_sec > self.setting_dict["minimum_cummulative_QB_duration"] and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
+            if self.pcc.data.qb_time_running_sec > self.setting_dict["minimum_cummulative_QB_duration"] and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
                 self.pcc.logger.info(
                     f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit}), QB duration met {self.pcc.data.qb_timer}"
                 )
