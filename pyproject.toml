@@ -9,6 +9,7 @@ dependencies = [
     "dataclasses==0.6",
     "gpiozero==2.0",
     "LabJackPython==2.1.0",
+    "lgpio",
     "numpy==1.24.4",
     "pandas==2.0.3",
     "pygame==1.9.6",
