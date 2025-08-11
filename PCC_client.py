@@ -827,15 +827,21 @@ class MainWindow(QMainWindow):
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
-        # update recent log buffer
-        self.data.recent_log_entries = "<br>".join(
-            self.textBrowser_Status.toHtml().split("<br>")[-20:]
-        )
+        
 
         # prepare payload
 
         if self.payload_counter % self.payload_counter_interval == 0:
             self.payload_counter = 0
+            
+            # update recent log buffer
+            self.data.recent_log_entries = "<br>".join(
+            self.textBrowser_Status.toHtml().split("<br>")[-20:]
+            )
+
+            self.data.error_state = len(self.data.error_dict)>0
+            self.data.error_state_text = "; ".join(self.data.error_dict.keys())
+
             # self.logger.info("payload test in debug")
             # self.logger.debug("payload sent")
             self.payload = mp.MinervaStreamData(

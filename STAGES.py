@@ -220,6 +220,7 @@ class baseline(STAGE):
         self.pcc.data.quality_test = 0
         self.pcc.data.prev_quality_test = 0
         self.pcc.data.qb_timer = 0
+        self.pcc.data.qb_time_running_sec = 0
         self.pcc.data.quality_status = ""
         self.pcc.data.baseline_tt = 0
         self.pcc.data.baseline_bpm = 0
@@ -269,9 +270,7 @@ class baseline(STAGE):
     def additional_exit_test(self):
         # if quality time > minimum quality time return True
         if self.pcc.data.quality_test == 0:
-            # debug
-            self.pcc.label_debug.setText(f"DEBUG: QualStatus {self.pcc.data.quality_test} - {int(self.pcc.data.qb_timer)}")
-            
+            self.pcc.data.qb_timer_running_sec = self.pcc.data.qb_timer
             if (
                 self.pcc.data.qb_timer
                 > self.setting_dict["minimum_cummulative_QB_duration"]
@@ -284,14 +283,11 @@ class baseline(STAGE):
             else:
                 return False
         else:
-            # debug
-            self.pcc.label_debug.setText(f"DEBUG: QualStatus {self.pcc.data.quality_test} - {int(self.pcc.data.qb_timer+self.pcc.data.quality_seg_list[-1][1]-self.pcc.data.quality_seg_list[-1][0])}")
+            self.pcc.data.qb_timer_running_sec = self.pcc.data.qb_timer
+            + self.pcc.data.quality_seg_list[-1][1]
+            - self.pcc.data.quality_seg_list[-1][0] 
             
-            if (
-                self.pcc.data.qb_timer
-                + self.pcc.data.quality_seg_list[-1][1]
-                - self.pcc.data.quality_seg_list[-1][0]
-            ) > self.setting_dict["minimum_cummulative_QB_duration"] and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
+            if self.data.qb_time_running_sec > self.setting_dict["minimum_cummulative_QB_duration"] and self.stage_time_limit < self.pcc.data.time_in_stage_seconds:
                 self.pcc.logger.info(
                     f"time in stage ({self.pcc.data.time_in_stage_seconds}) greater than time limit ({self.stage_time_limit}), QB duration met {self.pcc.data.qb_timer}"
                 )
