@@ -99,7 +99,7 @@ class DATA:
                 "error_state": {"sig_type": "STATUS"},
                 "error_state_text": {"sig_type": "DEBUG"},
                 "quality_status":{"sig_type": "DEBUG"},
-                "qb_timer_running_sec":{"sig_type":"SINGLE_VALUE"},
+                "qb_time_running_sec":{"sig_type":"SINGLE_VALUE"},
                 "baseline_bpm":{"sig_type": "SINGLE_VALUE"},
                 "baseline_hr":{"sig_type":"SINGLE_VALUE"}
             }
