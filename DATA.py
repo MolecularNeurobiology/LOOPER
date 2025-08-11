@@ -96,7 +96,14 @@ class DATA:
                 "avg_hr": {"sig_type": "SINGLE_VALUE"},
                 "arduino_startup_motion_tested": {"sig_type": "STATUS"},
                 "recent_log_entries": {"sig_type": "DEBUG"},
+                "error_state": {"sig_type": "STATUS"},
+                "error_state_text": {"sig_type": "DEBUG"},
+                "quality_status":{"sig_type": "DEBUG"},
+                "qb_timer_running_sec":{"sig_type":"SINGLE_VALUE"},
+                "baseline_bpm":{"sig_type": "SINGLE_VALUE"},
+                "baseline_hr":{"sig_type":"SINGLE_VALUE"}
             }
+            # updated datas
 
         signal_payload = {"signals": []}
         for k, v in attr_dict.items():
