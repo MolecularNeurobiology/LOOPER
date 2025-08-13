@@ -7,6 +7,7 @@ try:
     from command import (
         COMMANDS,
         GoToNextStep,
+        GoToStep,
         StartCommand,
         StreamCommand,
         StopStreamCommand,
@@ -16,6 +17,7 @@ except:
     from .command import (
         COMMANDS,
         GoToNextStep,
+        GoToStep,
         StartCommand,
         StreamCommand,
         StopStreamCommand,
@@ -293,6 +295,12 @@ class Plugin:
                 ):
                     commandObj = GoToNextStep()
                     self._log_info(f"⏭️ GO_TO_NEXT COMMAND: Advancing to next step")
+                elif (
+                    command_type == COMMANDS.GO_TO_STEP.value
+                    or command_type == "go_to_step"
+                ):
+                    commandObj = GoToStep(payload)
+                    self._log_info(f"⏭️ GO_TO_STEP COMMAND: Advancing to Specified Step")
                 elif command_type == COMMANDS.STREAM.value or command_type == "stream":
                     # This should NOT happen - stream commands go to stream control queue
                     self._log_error(f"❌ Stream command received in critical command handler - this is incorrect routing!")

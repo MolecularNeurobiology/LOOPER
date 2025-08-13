@@ -815,8 +815,8 @@ class MainWindow(QMainWindow):
         # collect minerva stream
         self.minerva_stream_reader.readStreamData()
         if self.minerva_stream_reader.data:
-            self.logger.info(f"minerva - {self.minerva_stream_reader.data}")
-            print(f"minerva - {self.minerva_stream_reader.data}")
+            self.logger.info(f"Minerva data received by PCC_client")
+            # print(f"minerva - {str(self.minerva_stream_reader.data)}")
             self.minerva_stream_reader.process_data(self)
             self.minerva_stream_reader.data = None
 

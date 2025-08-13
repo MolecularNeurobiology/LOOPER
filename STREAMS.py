@@ -390,9 +390,21 @@ class MinervaReceiver:
     def process_data(self, pcc):
         for command in self.data:
             print(command.__dict__)
-            print(command.type._name_ == "GO_TO_NEXT_STEP")
+            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {command.type._name_}")
+            
             if command.type._name_ == "GO_TO_NEXT_STEP":
+                pcc.logger.info("going to next step")
                 pcc.action_next_stage()
+            elif command.type._name_ == "GO_TO_PREV_STEP":
+                pcc.logger.warning("go to prev step command received, this is not implemented in PCC")
+            elif command.type._name_ == "GO_TO_STEP":
+                pcc.logger.info(f"going to a step: {command.payload['stepName']}")
+                pcc.comboBox_Jump_To_Stage.setCurrentText(command.payload['stepName'])
+            elif command.type._name_ == "STOP":
+                pcc.logger.info("STOP command received")
+            elif command.type._name_ == "START":
+                pcc.logger.info(f"START command received - {command.__dict__}")
+                
             else:
                 pcc.logger.warning(f"unknown minerva command: {command.__dict__}")
 

@@ -29,6 +29,10 @@ class Command(ABC):
 class StartPayload:
     steps: list[Step]
 
+@dataclass
+class GoToPayload:
+    step: Step
+
 class StartCommand(Command):
     def __init__(self, payload: StartPayload):
         super().__init__(command_type=COMMANDS.START, payload=payload)
@@ -36,6 +40,10 @@ class StartCommand(Command):
 class GoToNextStep(Command):
     def __init__(self):
         super().__init__(command_type=COMMANDS.GO_TO_NEXT_STEP, payload=None)
+
+class GoToStep(Command):
+    def __init__(self, payload: GoToPayload):
+        super().__init__(command_type=COMMANDS.GO_TO_STEP, payload=payload)
 
 # New classes for stream data based on TypeScript types
 class StageType(Enum):
