@@ -3,6 +3,7 @@ import json
 import threading
 import sys
 
+# Legacy command types kept for compatibility; plugin no longer uses them
 try:
     from command import (
         COMMANDS,
