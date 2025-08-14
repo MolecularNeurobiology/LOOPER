@@ -222,14 +222,18 @@ class Simulation:
         if hasattr(self, 'stream_data'):
             stages = []
             for i, step in enumerate(steps):
-                # Map step to a stage type
-                stage_type = 'wait_for_user'  # Default
-                if i == 0 or i == len(steps) - 1:
-                    stage_type = 'wait_for_user'  # First and last steps are wait_for_user
-                elif i % 2 == 0:
-                    stage_type = 'timed'  # Even steps are timed
+                # Use step type if provided, otherwise use default logic
+                if hasattr(step, 'type') and step.type:
+                    stage_type = step.type
                 else:
-                    stage_type = 'wait_for_condition'  # Odd steps wait for condition
+                    # Fallback to default logic
+                    stage_type = 'wait_for_user'  # Default
+                    if i == 0 or i == len(steps) - 1:
+                        stage_type = 'wait_for_user'  # First and last steps are wait_for_user
+                    elif i % 2 == 0:
+                        stage_type = 'timed'  # Even steps are timed
+                    else:
+                        stage_type = 'wait_for_condition'  # Odd steps wait for condition
 
                 stage = {
                     'name': step.name,
@@ -238,12 +242,19 @@ class Simulation:
 
                 # Add duration for timed stages (use snake_case for backend)
                 if stage_type == 'timed':
-                    stage['duration_in_seconds'] = 120
+                    # Use step duration if provided, otherwise default to 120 seconds
+                    if hasattr(step, 'durationInSeconds') and step.durationInSeconds:
+                        stage['duration_in_seconds'] = step.durationInSeconds
+                    elif hasattr(step, 'duration_in_seconds') and step.duration_in_seconds:
+                        stage['duration_in_seconds'] = step.duration_in_seconds
+                    else:
+                        stage['duration_in_seconds'] = 120
 
                 stages.append(stage)
 
             self.stream_data.stages = stages
             self._plugin.update_stream_data(self.stream_data)
+            self.logger.info(f"Configured run with {len(stages)} dynamic stages: {[s['name'] for s in stages]}")
 
         self.update_step()
 

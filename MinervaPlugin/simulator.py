@@ -5,7 +5,12 @@ import sys
 from time import sleep
 from typing import List
 
-from command import GoToNextStep, StartCommand
+# Legacy typed commands imported for backward compatibility
+try:
+    from command import GoToNextStep, StartCommand
+except Exception:
+    GoToNextStep = None
+    StartCommand = None
 from faker import Faker
 from simulation import Simulation
 
@@ -66,13 +71,45 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
 
                     commands_to_process = sim.plugin.pop_commands()
                     for command in commands_to_process:
-                        match command:
-                            case StartCommand():
+                        # Support both legacy typed commands and new dynamic dict commands
+                        try:
+                            # Legacy typed command handling (if classes are available)
+                            if StartCommand is not None and isinstance(command, StartCommand):
+                                if hasattr(command, 'payload') and hasattr(command.payload, 'steps') and command.payload.steps:
+                                    logging.info(f"Configuring run with {len(command.payload.steps)} steps from payload (legacy)")
+                                    sim.configure_run(command.payload.steps)
+                                else:
+                                    logging.info("Start received (legacy), using PCC default steps")
                                 sim.start()
-                            case GoToNextStep():
+                                continue
+                            if GoToNextStep is not None and isinstance(command, GoToNextStep):
                                 sim.go_to_next_step()
-                            case _:
-                                logging.debug(f"Unknown command received: {command}")
+                                continue
+                        except Exception as e:
+                            logging.error(f"Error handling legacy command type: {e}")
+
+                        # New dynamic command handling expects a dict with 'type'
+                        if isinstance(command, dict):
+                            cmd_type = str(command.get('type', '')).lower()
+                            payload = command.get('payload')
+
+                            if cmd_type == 'start':
+                                # Ignore steps in payload; PCC owns step resolution now
+                                if payload and isinstance(payload, dict) and 'steps' in payload:
+                                    logging.info("Start payload contained 'steps' - ignoring per new architecture")
+                                sim.start()
+                            elif cmd_type in ('go_to_next', 'go_to_next_step'):
+                                sim.go_to_next_step()
+                            elif cmd_type == 'go_to_step':
+                                # Optional: jump to specific step if PCC exposes such API
+                                step_id = None
+                                if isinstance(payload, dict):
+                                    step_id = payload.get('step') or payload.get('index') or payload.get('name')
+                                logging.info(f"go_to_step received (step={step_id}) - implement in PCC as needed")
+                            else:
+                                logging.debug(f"Unknown or unsupported command type: {cmd_type}")
+                        else:
+                            logging.debug(f"Unknown command format: {type(command)}")
 
                     # Update metrics
                     metrics = sim.plugin.get_metrics()

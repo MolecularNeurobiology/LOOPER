@@ -230,102 +230,29 @@ class Plugin:
 
     def _handle_command(self, command):
         """
-        Handle critical commands (start, go_to_next, stop_stream) with sequential processing.
-        Stream commands are handled separately by _handle_stream_control for latest-only processing.
+        Dynamic command passthrough: enqueue non-`stream` commands as raw dicts for PCC to handle.
+        `stream` commands are handled separately by _handle_stream_control.
         """
-        self._log_info(f"Plugin {self._mac_address} - Critical command received: {command}")
+        self._log_info(f"Plugin {self._mac_address} - Command received: {command}")
 
-        if "type" not in command or command["type"] is None:
+        # Validate input
+        cmd_type = command.get("type") if isinstance(command, dict) else None
+        if not cmd_type:
             self._log_error("Command received with no type")
+            return
+
+        # Do not handle stream heartbeats here
+        if isinstance(cmd_type, str) and cmd_type.lower() == "stream":
+            self._log_warn("Stream command received in command queue - should be routed to stream_control queue")
             return
 
         try:
             with self._commands_lock:
-                command_type = command["type"]
-                payload = command.get("payload")
-                commandObj = None
-
-                # Handle string command types
-                if isinstance(command_type, str):
-                    # Map string command types to their enum values (excluding stream commands)
-                    string_command_map = {
-                        "start": COMMANDS.START.value,
-                        "go_to_next": COMMANDS.GO_TO_NEXT_STEP.value,  # Fixed: Frontend sends 'go_to_next'
-                        "go_to_next_step": COMMANDS.GO_TO_NEXT_STEP.value,  # Keep backward compatibility
-                        "stop_stream": COMMANDS.STOP_STREAM.value,
-                        # NOTE: 'stream' commands are NOT handled here - they go to stream control queue
-                    }
-
-                    # Try to convert to int first (for backward compatibility)
-                    try:
-                        command_type = int(command_type)
-                    except ValueError:
-                        # If not a number, try to map the string to a command value
-                        command_type_lower = command_type.lower()
-
-                        # Check if this is a stream command (should be handled by stream control)
-                        if command_type_lower == "stream":
-                            self._log_warn(f"Stream command received in critical command handler - this should go to stream control queue")
-                            return  # Don't process stream commands here
-
-                        if command_type_lower in string_command_map:
-                            command_type = string_command_map[command_type_lower]
-                        else:
-                            # Also check if it matches an enum name (excluding STREAM)
-                            try:
-                                if command_type.upper() == "STREAM":
-                                    self._log_warn(f"Stream command received in critical command handler")
-                                    return
-                                command_type = COMMANDS[command_type.upper()].value
-                            except (KeyError, ValueError):
-                                self._log_info(
-                                    f"Attempting to process string command type: {command_type}"
-                                )
-
-                # Process based on command type (CRITICAL COMMANDS ONLY)
-                if command_type == COMMANDS.START.value or command_type == "start":
-                    commandObj = StartCommand(payload)
-                    self._log_info(f"🚀 START COMMAND: Processing protocol start")
-                elif (
-                    command_type == COMMANDS.GO_TO_NEXT_STEP.value
-                    or command_type == "go_to_next_step"
-                    or command_type == "go_to_next"
-                ):
-                    commandObj = GoToNextStep()
-                    self._log_info(f"⏭️ GO_TO_NEXT COMMAND: Advancing to next step")
-                elif command_type == COMMANDS.STREAM.value or command_type == "stream":
-                    # This should NOT happen - stream commands go to stream control queue
-                    self._log_error(f"❌ Stream command received in critical command handler - this is incorrect routing!")
-                    self._log_error(f"   Stream commands should be sent to stream_control queue, not command queue")
-                    return  # Don't process stream commands in critical command handler
-                elif (
-                    command_type == COMMANDS.STOP_STREAM.value
-                    or command_type == "stop_stream"
-                ):
-                    # Handle stop streaming command (this is a critical command)
-                    commandObj = StopStreamCommand()
-                    # Check top level first, then payload
-                    user_id = command.get("userId")
-                    if user_id is None and payload:
-                        user_id = payload.get("userId")
-                    if user_id is None:
-                        user_id = "default_user"
-                    self._log_info(
-                        f"🛑 STOP STREAM COMMAND RECEIVED for user: {user_id}"
-                    )
-                    # Stop streaming for the user
-                    self._stop_user_streaming(str(user_id))
-                else:
-                    self._log_error(f"Unknown critical command type: {command_type}")
-                    self._log_error(f"Valid critical commands: start, go_to_next, stop_stream")
-                    return
-
-                # Add valid commands to the command queue (if not None)
-                if commandObj is not None:
-                    self._commands.append(commandObj)
-                    self._log_info(f"✅ Critical command processed and stored: {command_type}")
+                # Append raw command for PCC/simulator dispatcher
+                self._commands.append(command)
+                self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
         except Exception as e:
-            self._log_error(f"Unknown error occurred processing critical command {str(command)}: {e}")
+            self._log_error(f"Unknown error occurred processing command {str(command)}: {e}")
 
 
 
