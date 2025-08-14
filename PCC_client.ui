@@ -461,7 +461,7 @@
      <string>Debug-Label</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_c01">
+   <widget class="QPushButton" name="pushButton_c_10">
     <property name="geometry">
      <rect>
       <x>710</x>
@@ -471,7 +471,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>&lt;C,0,1&gt;</string>
+     <string>&lt;C,-1,0&gt;</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_f00">
@@ -500,7 +500,7 @@
      <string>&lt;C,0,0&gt;</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_v01">
+   <widget class="QPushButton" name="pushButton_v2_1">
     <property name="geometry">
      <rect>
       <x>760</x>
@@ -510,10 +510,10 @@
      </rect>
     </property>
     <property name="text">
-     <string>&lt;V,0,1&gt;</string>
+     <string>&lt;V,2,-1&gt;</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_v00">
+   <widget class="QPushButton" name="pushButton_v20">
     <property name="geometry">
      <rect>
       <x>760</x>
@@ -523,7 +523,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>&lt;V,0,0&gt;</string>
+     <string>&lt;V,2,0&gt;</string>
     </property>
    </widget>
    <widget class="QComboBox" name="comboBox_arduino_quick_command">
@@ -595,7 +595,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>33</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

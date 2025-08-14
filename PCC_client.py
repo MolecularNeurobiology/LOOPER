@@ -262,9 +262,9 @@ class MainWindow(QMainWindow):
         self.pushButton_f00.clicked.connect(self.action_f00)
         self.pushButton_b00.clicked.connect(self.action_b00)
         self.pushButton_c00.clicked.connect(self.action_c00)
-        self.pushButton_c01.clicked.connect(self.action_c01)
-        self.pushButton_v00.clicked.connect(self.action_v00)
-        self.pushButton_v01.clicked.connect(self.action_v01)
+        self.pushButton_c_10.clicked.connect(self.action_c_10)
+        self.pushButton_v2_1.clicked.connect(self.action_v2_1)
+        self.pushButton_v20.clicked.connect(self.action_v20)
         self.pushButton_ljssa000.clicked.connect(self.action_ljssa000)
         self.pushButton_ljssa025.clicked.connect(self.action_ljssa025)
         self.pushButton_transmit_arduino_quick_command.clicked.connect(
@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
         )
         # populate arduino quick command combo box
         self.comboBox_arduino_quick_command.addItems(
-            ["<P,4,0>", "<P,1,0>", "<P,4,1>", "<P,1,1>", "<P,3,2>"]
+            ["<P,4,0>", "<P,1,0>", "<P,4,-1>", "<P,1,-1>", "<P,3,5>"]
         )
 
     def action_RESET(self):
@@ -524,14 +524,14 @@ class MainWindow(QMainWindow):
     def action_c00(self):
         self.arduino_stream.sendCommand("<C,0,0>")
 
-    def action_c01(self):
-        self.arduino_stream.sendCommand("<C,0,1>")
+    def action_c_10(self):
+        self.arduino_stream.sendCommand("<C,-1,0>")
 
-    def action_v00(self):
-        self.arduino_stream.sendCommand("<V,0,0>")
+    def action_v2_1(self):
+        self.arduino_stream.sendCommand("<V,2,-1>")
 
-    def action_v01(self):
-        self.arduino_stream.sendCommand("<V,0,1>")
+    def action_v20(self):
+        self.arduino_stream.sendCommand("<V,2,0>")
 
     def action_ljssa000(self):
         print('ljssa000')
