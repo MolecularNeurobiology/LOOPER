@@ -13,6 +13,7 @@ except Exception:
     StartCommand = None
 from faker import Faker
 from simulation import Simulation
+from status_reporting import StatusSeverity, StatusCategory
 
 def setup_logger(start_time):
     log_directory = "logs"
@@ -86,6 +87,19 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
                                 sim.go_to_next_step()
                                 continue
                         except Exception as e:
+                            # Report legacy command processing status
+                            sim.plugin.report_status(
+                                severity=StatusSeverity.HIGH,
+                                category=StatusCategory.COMMAND_PROCESSING,
+                                code="LEGACY_COMMAND_PROCESSING_FAILED",
+                                message=f"Failed to process legacy command: {type(command).__name__}",
+                                details={
+                                    'command_type': type(command).__name__,
+                                    'mac_address': sim.rig.mac_address
+                                },
+                                component="legacy_command_processor",
+                                exception=e
+                            )
                             logging.error(f"Error handling legacy command type: {e}")
 
                         # New dynamic command handling expects a dict with 'type'
@@ -111,18 +125,61 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
                         else:
                             logging.debug(f"Unknown command format: {type(command)}")
 
-                    # Update metrics
-                    metrics = sim.plugin.get_metrics()
-                    metrics.avg_bpm = Faker.generate_fake_bpm()
-                    metrics.avg_hr = Faker.generate_fake_hr()
-                    sim.update_metrics(metrics)
+                    # Update metrics with error handling
+                    try:
+                        metrics = sim.plugin.get_metrics()
+                        metrics.avg_bpm = Faker.generate_fake_bpm()
+                        metrics.avg_hr = Faker.generate_fake_hr()
+                        sim.update_metrics(metrics)
+                    except Exception as e:
+                        # Report metrics update status
+                        sim.plugin.report_status(
+                            severity=StatusSeverity.MEDIUM,
+                            category=StatusCategory.DATA_PROCESSING,
+                            code="METRICS_UPDATE_FAILED",
+                            message="Failed to update simulation metrics",
+                            details={
+                                'mac_address': sim.rig.mac_address,
+                                'attempted_bpm': Faker.generate_fake_bpm() if 'Faker' in globals() else None
+                            },
+                            component="metrics_updater",
+                            exception=e
+                        )
+                        logging.error(f"Error updating metrics for {sim.rig.mac_address}: {e}")
+
                 except Exception as e:
+                    # Report simulation processing status
+                    if hasattr(sim, 'plugin'):
+                        sim.plugin.report_status(
+                            severity=StatusSeverity.HIGH,
+                            category=StatusCategory.SYSTEM,
+                            code="SIMULATION_PROCESSING_FAILED",
+                            message=f"Error processing simulation for rig {sim.rig.mac_address}",
+                            details={
+                                'mac_address': sim.rig.mac_address,
+                                'rig_state': str(sim.rig.state) if hasattr(sim, 'rig') else 'unknown'
+                            },
+                            component="simulation_loop",
+                            exception=e
+                        )
                     logging.error(f"Error processing simulation {sim.rig.mac_address}: {e}")
 
         except KeyboardInterrupt:
             print("\nReceived shutdown signal. Cleaning up...")
             running = False
         except Exception as e:
+            # Report critical system status
+            for sim in simulations:
+                if hasattr(sim, 'plugin'):
+                    sim.plugin.report_status(
+                        severity=StatusSeverity.CRITICAL,
+                        category=StatusCategory.SYSTEM,
+                        code="SIMULATION_LOOP_CRITICAL_ERROR",
+                        message="Critical error in main simulation loop",
+                        details={'error_type': type(e).__name__},
+                        component="main_loop",
+                        exception=e
+                    )
             logging.error(f"Error in simulation loop: {e}")
             running = False
 

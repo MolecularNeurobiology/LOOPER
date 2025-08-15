@@ -27,6 +27,7 @@ class RabbitMQClient:
         self._connection_lock = threading.Lock()  # Prevent concurrent reconnection attempts
         self._reconnect_delay = 1  # Start with 1 second delay
         self._max_reconnect_delay = 30  # Maximum delay between reconnection attempts
+        self._status_callback = None  # Callback function for reporting statuses to plugin
         self._log_info("Initializing RabbitMQ client for queue: {}".format(_queue))
         self._connect_with_retry()
 
@@ -44,6 +45,35 @@ class RabbitMQClient:
         """Log warning message (always logged regardless of debug setting)"""
         if self.logger is not None:
             self.logger.warning(message)
+
+    def set_error_callback(self, callback):
+        """Set callback function for reporting statuses to plugin"""
+        self._status_callback = callback
+
+    def _report_status(self, severity, category, code, message, details=None, exception=None):
+        """Report status through callback if available"""
+        if self._status_callback:
+            try:
+                # Import here to avoid circular imports
+                from status_reporting import StatusSeverity, StatusCategory
+
+                # Convert string severity to enum if needed
+                if isinstance(severity, str):
+                    severity = StatusSeverity(severity)
+                if isinstance(category, str):
+                    category = StatusCategory(category)
+
+                self._status_callback(
+                    severity=severity,
+                    category=category,
+                    code=code,
+                    message=message,
+                    details=details or {},
+                    component="rabbitmq_client",
+                    exception=exception
+                )
+            except Exception as e:
+                self._log_error("Failed to report status through callback: {}".format(e))
 
     def _is_rabbitmq_available(self):
         """Check if RabbitMQ server is available by attempting a socket connection"""
@@ -82,6 +112,22 @@ class RabbitMQClient:
                     return True
                 except Exception as e:
                     self._log_error("Failed to connect to RabbitMQ: {}".format(e))
+
+                    # Report connection status
+                    self._report_status(
+                        severity="critical",
+                        category="connectivity",
+                        code="RABBITMQ_CONNECTION_FAILED",
+                        message="Failed to establish RabbitMQ connection",
+                        details={
+                            'queue': self.queue,
+                            'server': RABBITMQ_SERVER,
+                            'retry_delay': self._reconnect_delay,
+                            'error_type': type(e).__name__
+                        },
+                        exception=e
+                    )
+
                     if self.connection and not self.connection.is_closed:
                         try:
                             self.connection.close()
@@ -107,6 +153,18 @@ class RabbitMQClient:
         """Send a message to the queue with automatic reconnection handling"""
         if not self._ensure_connection():
             self._log_error("Failed to establish connection for sending message")
+
+            # Report connection failure for sending
+            self._report_status(
+                severity="critical",
+                category="connectivity",
+                code="RABBITMQ_SEND_CONNECTION_FAILED",
+                message="Failed to establish RabbitMQ connection for sending message",
+                details={
+                    'queue': self.queue,
+                    'message_length': len(message) if message else 0
+                }
+            )
             return False
 
         try:
@@ -149,6 +207,22 @@ class RabbitMQClient:
             return True
         except Exception as e:
             self._log_error("Error sending message: {}".format(e))
+
+            # Report send failure
+            self._report_status(
+                severity="high",
+                category="connectivity",
+                code="RABBITMQ_SEND_FAILED",
+                message="Failed to send message to RabbitMQ queue",
+                details={
+                    'queue': self.queue,
+                    'message_length': len(message) if message else 0,
+                    'use_ttl': self.use_ttl,
+                    'error_type': type(e).__name__
+                },
+                exception=e
+            )
+
             # Mark connection as invalid to trigger reconnection on next attempt
             if self.connection:
                 try:

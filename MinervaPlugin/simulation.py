@@ -1,4 +1,5 @@
 from plugin import Plugin, PluginRegistration, MinervaStreamData
+from status_reporting import StatusSeverity, StatusCategory
 from rig import Rig
 from run import Run
 import random
@@ -35,6 +36,21 @@ class Simulation:
             logger.info("Attempting to start plugin")
             self._plugin.start()
         except Exception as e:
+            # Report structured status to the plugin's status system
+            if hasattr(self, '_plugin'):
+                self._plugin.report_status(
+                    severity=StatusSeverity.CRITICAL,
+                    category=StatusCategory.SYSTEM,
+                    code="PLUGIN_INITIALIZATION_FAILED",
+                    message=f"Failed to initialize plugin for MAC {mac_address}",
+                    details={
+                        'mac_address': mac_address,
+                        'step': self._run.get_current_step_name() if hasattr(self, '_run') else None,
+                        'error_type': type(e).__name__
+                    },
+                    component="simulation_init",
+                    exception=e
+                )
             logger.error(f"Failed to initialize plugin: {e}")
             raise
 
@@ -81,6 +97,20 @@ class Simulation:
             # Update plugin with stream data
             self._plugin.update_stream_data(self.stream_data)
         except Exception as e:
+            # Report data processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.HIGH,
+                category=StatusCategory.DATA_PROCESSING,
+                code="STREAM_DATA_SETUP_FAILED",
+                message="Failed to setup initial stream data",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'stages_count': len(stages) if 'stages' in locals() else 0,
+                    'signals_count': len(signals) if 'signals' in locals() else 0
+                },
+                component="stream_data_setup",
+                exception=e
+            )
             self.logger.error(f"Failed to setup stream data: {e}")
             raise
 
@@ -96,6 +126,21 @@ class Simulation:
                 # Just prepare basic signal data without intensive updates
                 self._prepare_signal_data()
         except Exception as e:
+            # Report performance/processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.PERFORMANCE,
+                code="SIMULATION_REPORT_FAILED",
+                message="Failed to update simulation report",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'rig_state': str(self.rig.state),
+                    'current_step': self._run.get_current_step_name(),
+                    'active_sessions': self._plugin.get_user_session_count()
+                },
+                component="simulation_report",
+                exception=e
+            )
             self.logger.error(f"Error in report: {e}")
 
     def _update_signal_data(self):
@@ -146,6 +191,20 @@ class Simulation:
             # Also update the default stream data (for backward compatibility)
             self._plugin.update_stream_data(self.stream_data)
         except Exception as e:
+            # Report signal data processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.DATA_PROCESSING,
+                code="SIGNAL_DATA_UPDATE_FAILED",
+                message="Failed to update signal data for streaming",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'active_sessions': len(self._plugin.get_active_user_sessions()) if hasattr(self, '_plugin') else 0,
+                    'signals_count': len(self.stream_data.signals) if hasattr(self, 'stream_data') and self.stream_data else 0
+                },
+                component="signal_data_update",
+                exception=e
+            )
             self.logger.error(f"Error updating signal data: {e}")
 
     def _prepare_signal_data(self):

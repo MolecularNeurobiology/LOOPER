@@ -49,6 +49,13 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional, Union
 
+# Import status reporting system
+try:
+    from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+except:
+    print("attempting relative import of status_reporting")
+    from .status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+
 # Try to import numpy for type checking
 try:
     import numpy as np
@@ -112,11 +119,16 @@ class PluginRegistration:
 
 @dataclass
 class PingMetrics:
+    """Ping metrics with status reporting"""
+    # Existing operational metrics (maintained for backward compatibility)
     avg_bpm: int
     avg_hr: int
     step: str
     challengeCount: int
     longestChallenge: str
+
+    # Status reporting - just the statuses list for now
+    statuses: List[Dict[str, Any]] = field(default_factory=list)  # Serialized status reports
 
 
 @dataclass
@@ -212,22 +224,84 @@ class Plugin:
         # Monitoring and observability
         self._start_time = datetime.now()  # Track plugin start time for uptime calculation
 
+        # Status reporting system
+        self._status_manager = StatusManager()
+
+        # Set status callbacks for RabbitMQ clients
+        self._rabbit_mq_client_consumer.set_error_callback(self._status_manager.report_status)
+        self._rabbit_mq_client_producer.set_error_callback(self._status_manager.report_status)
+        self._stream_control_consumer.set_error_callback(self._status_manager.report_status)
+        self._rig_stream_producer.set_error_callback(self._status_manager.report_status)
+
     def _ping_server(self):
+        """Enhanced ping with comprehensive status reporting"""
         with self._ping_lock:
-            payload = {
-                "mac_address": self._mac_address,
-                "timestamp": datetime.now().isoformat(),  # ISO 8601 timestamp
-                "avg_hr": self._metrics.avg_hr,
-                "step": self._metrics.step,
-                **asdict(self._metrics),
-            }
+            try:
+                # Get recent statuses for ping
+                recent_statuses = self._status_manager.get_statuses_for_ping(max_statuses=5)
 
-            ping_message = safe_json_dumps(payload)
+                # Update metrics with current statuses - just the statuses list for now
+                self._metrics.statuses = [
+                    {
+                        'id': s.id,
+                        'timestamp': s.timestamp.isoformat(),
+                        'severity': s.severity.value,
+                        'category': s.category.value,
+                        'code': s.code,
+                        'message': s.message,
+                        'component': s.component,
+                        'count': s.count,
+                        'resolved': s.resolved
+                    }
+                    for s in recent_statuses
+                ]
 
-            self._rabbit_mq_client_producer.send_message(ping_message)
-            self._log_debug(f"Ping sent to the server. {payload}")
+                payload = {
+                    "mac_address": self._mac_address,
+                    "timestamp": datetime.now().isoformat(),  # ISO 8601 timestamp
+                    "avg_hr": self._metrics.avg_hr,
+                    "step": self._metrics.step,
+                    **asdict(self._metrics),
+                }
 
+                ping_message = safe_json_dumps(payload)
+                self._rabbit_mq_client_producer.send_message(ping_message)
+                self._log_debug(f"Ping sent with {len(recent_statuses)} status reports")
 
+            except Exception as e:
+                # Report the ping status itself
+                self._status_manager.report_status(
+                    severity=StatusSeverity.HIGH,
+                    category=StatusCategory.SYSTEM,
+                    code="PING_FAILED",
+                    message=f"Failed to send ping: {str(e)}",
+                    component="ping_server",
+                    exception=e
+                )
+                self._log_error(f"Failed to send ping: {e}")
+
+    def report_status(self, severity: StatusSeverity, category: StatusCategory,
+                    code: str, message: str, **kwargs) -> str:
+        """Public method to report statuses from external components"""
+        return self._status_manager.report_status(
+            severity=severity,
+            category=category,
+            code=code,
+            message=message,
+            **kwargs
+        )
+
+    def resolve_status(self, status_id: str) -> bool:
+        """Public method to resolve statuses"""
+        return self._status_manager.resolve_status(status_id)
+
+    def get_active_statuses(self) -> List[StatusReport]:
+        """Get all active (unresolved) statuses"""
+        return self._status_manager.get_active_statuses()
+
+    def get_status_summary(self) -> Dict[str, Any]:
+        """Get status summary statistics"""
+        return self._status_manager.get_status_summary()
 
     def _handle_command(self, command):
         """
@@ -239,11 +313,33 @@ class Plugin:
         # Validate input
         cmd_type = command.get("type") if isinstance(command, dict) else None
         if not cmd_type:
+            self._status_manager.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.VALIDATION,
+                code="COMMAND_MISSING_TYPE",
+                message="Command received without type field",
+                details={
+                    'command': str(command)[:200],  # Truncate for safety
+                    'mac_address': self._mac_address
+                },
+                component="command_handler"
+            )
             self._log_error("Command received with no type")
             return
 
         # Do not handle stream heartbeats here
         if isinstance(cmd_type, str) and cmd_type.lower() == "stream":
+            self._status_manager.report_status(
+                severity=StatusSeverity.LOW,
+                category=StatusCategory.CONFIGURATION,
+                code="STREAM_COMMAND_MISROUTED",
+                message="Stream command received in command queue instead of stream_control queue",
+                details={
+                    'command_type': cmd_type,
+                    'mac_address': self._mac_address
+                },
+                component="command_handler"
+            )
             self._log_warn("Stream command received in command queue - should be routed to stream_control queue")
             return
 
@@ -252,7 +348,35 @@ class Plugin:
                 # Append raw command for PCC/simulator dispatcher
                 self._commands.append(command)
                 self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
+
+                # Report successful command processing
+                self._status_manager.report_status(
+                    severity=StatusSeverity.INFO,
+                    category=StatusCategory.COMMAND_PROCESSING,
+                    code="COMMAND_ENQUEUED_SUCCESS",
+                    message=f"Command successfully enqueued: {cmd_type}",
+                    details={
+                        'command_type': cmd_type,
+                        'mac_address': self._mac_address,
+                        'queue_size': len(self._commands)
+                    },
+                    component="command_handler"
+                )
         except Exception as e:
+            self._status_manager.report_status(
+                severity=StatusSeverity.HIGH,
+                category=StatusCategory.COMMAND_PROCESSING,
+                code="COMMAND_PROCESSING_FAILED",
+                message=f"Failed to process command: {cmd_type}",
+                details={
+                    'command_type': cmd_type,
+                    'command_data': str(command)[:200],  # Truncate for safety
+                    'mac_address': self._mac_address,
+                    'error_type': type(e).__name__
+                },
+                component="command_handler",
+                exception=e
+            )
             self._log_error(f"Unknown error occurred processing command {str(command)}: {e}")
 
 
@@ -553,15 +677,66 @@ class Plugin:
         if command.get('type') == 'stream':
             user_id = command.get('userId')
             if user_id:
-                with self._heartbeat_lock:
-                    self._active_users.add(str(user_id))
-                    self._last_heartbeat[str(user_id)] = datetime.now()
-                    self._log_info(f"💓 Stream heartbeat from user {user_id}")
-                    self._log_info(f"📡 User {user_id} added to active streaming set")
+                try:
+                    with self._heartbeat_lock:
+                        self._active_users.add(str(user_id))
+                        self._last_heartbeat[str(user_id)] = datetime.now()
+                        self._log_info(f"💓 Stream heartbeat from user {user_id}")
+                        self._log_info(f"📡 User {user_id} added to active streaming set")
 
+                        # Report successful stream heartbeat
+                        self._status_manager.report_status(
+                            severity=StatusSeverity.INFO,
+                            category=StatusCategory.COMMAND_PROCESSING,
+                            code="STREAM_HEARTBEAT_SUCCESS",
+                            message=f"Stream heartbeat processed successfully for user {user_id}",
+                            details={
+                                'user_id': str(user_id),
+                                'mac_address': self._mac_address,
+                                'active_users_count': len(self._active_users)
+                            },
+                            component="stream_control_handler"
+                        )
+                except Exception as e:
+                    self._status_manager.report_status(
+                        severity=StatusSeverity.MEDIUM,
+                        category=StatusCategory.COMMAND_PROCESSING,
+                        code="STREAM_HEARTBEAT_PROCESSING_FAILED",
+                        message=f"Failed to process stream heartbeat for user {user_id}",
+                        details={
+                            'user_id': str(user_id),
+                            'mac_address': self._mac_address
+                        },
+                        component="stream_control_handler",
+                        exception=e
+                    )
+                    self._log_error(f"Error processing stream heartbeat for user {user_id}: {e}")
             else:
+                self._status_manager.report_status(
+                    severity=StatusSeverity.MEDIUM,
+                    category=StatusCategory.VALIDATION,
+                    code="STREAM_COMMAND_MISSING_USER_ID",
+                    message="Stream command received without userId",
+                    details={
+                        'command': str(command)[:200],
+                        'mac_address': self._mac_address
+                    },
+                    component="stream_control_handler"
+                )
                 self._log_error("Stream command received without userId")
         else:
+            self._status_manager.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.VALIDATION,
+                code="UNEXPECTED_STREAM_CONTROL_COMMAND",
+                message=f"Unexpected command type in stream control: {command.get('type')}",
+                details={
+                    'command_type': command.get('type'),
+                    'command': str(command)[:200],
+                    'mac_address': self._mac_address
+                },
+                component="stream_control_handler"
+            )
             self._log_error(f"Unexpected command type in stream control: {command.get('type')}")
 
     def _cleanup_inactive_users(self):
