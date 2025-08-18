@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 __version__ = "deprecated as legacy code example"
 
 """
@@ -65,6 +66,9 @@ related but slightly seperate
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
 
+!!! v43.0.0 !!!
+1.  add improved version tracking (including grabbing git status)
+2.  populate study settings via query to filemaker
 
 !!! v42.1.0 !!!
 1.	Fix baseline establishment criteria to be more lenient [described - awaiting new recommend defaults]
@@ -139,6 +143,7 @@ import tkinter
 import tkinter.filedialog
 import tkinter.simpledialog
 import os
+import subprocess
 
 import smtplib
 import ssl
@@ -148,9 +153,13 @@ import serial.tools.list_ports
 import logging
 
 
-import SETTINGS
+from pathlib import Path
 
-#Import constants from CONSTANTS.PY
+home_dir = str(Path.home())
+print(home_dir)
+
+# Import constants from CONSTANTS.PY
+
 from CONSTANTS import *
 
 # GET GUI classes from GUI.py
@@ -160,15 +169,19 @@ from GUI import *
 import Stream
 
 ##
-#%%
-settings = SETTINGS.SETTINGS()
-
-#!!! set for sim mode
-settings.sim_mode = 1
 
 
-#%%
+__git_status__ = (
+    subprocess.run(["git", "status"], encoding="utf-8", stdout=subprocess.PIPE)
+    .stdout.replace("\n", "; ")
+    .strip()
+)
+
+# %%
+
 # prep serial connection to arduino
+logger = None
+
 try:
     if settings.sim_mode == 0:
 
@@ -342,7 +355,7 @@ def load_rig_config(settings, config_path=None):
         }
 
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir, "rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
     return config
@@ -350,7 +363,7 @@ def load_rig_config(settings, config_path=None):
 
 def update_rig_config(field, config_path=None, logger=None):
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir, "rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
 
@@ -373,7 +386,7 @@ def update_rig_log(
     rigconfig, filename, field_dict=None, daily_key=None, daily_index=None, logpath=None
 ):
     if not logpath:
-        logpath = "/home/pi/rig_run_log.log"
+        logpath = os.path.join(home_dir, "rig_run_log.log")
 
     with open(logpath, "r") as openfile:
         riglog = json.load(openfile)
@@ -1198,10 +1211,10 @@ try:
                 ):
                     if logger:
                         logger.info(
-                            f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                            f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                         )
                     serial_list.append(
-                        f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                        f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                     )
                     Current_Mode = advance(Current_Mode, 0, len(Mode_dict) - 1)
                     sdr.stopStreamData()
@@ -1494,10 +1507,8 @@ try:
                             layout,
                             fm_record_dict["recordId"],
                             {
-                                "Rig": rig_config["RIGNAME"]
-                                #'Gas 1':'0% O2, 3% CO2, Balance Nitrogen'
-                                #'Tank 1':rig_config.get('Tank_Number','unk'),
-                                #'FacemaskID':rig_config.get('Facemask_ID','unk')
+                                "Rig": rig_config["RIGNAME"],
+                                "Acquisition_Software_Version": f"{__version__} - {__git_status__}",
                             },
                         )
                     if new_rts == 0:
@@ -1614,6 +1625,103 @@ try:
                                     serialtext
                                 )
                             )
+                elif box_arduino_quick_1.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_1.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_2.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_2.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_3.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_3.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_4.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_4.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_5.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_5.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+                elif box_arduino_quick_6.rect.collidepoint(event.pos):
+                    serialtext = box_arduino_quick_6.label
+                    try:
+                        ser.write(serialtext.encode())
+                        log_to_file(logger, "{} - sent".format(serialtext))
+                        if logger:
+                            logger.warning(
+                                "{} - sent - rig override !!!".format(serialtext)
+                            )
+                    except:
+                        if logger:
+                            logger.warning(
+                                'unable to transmit "{} "via serial io - rig override attemped but failed !!!'.format(
+                                    serialtext
+                                )
+                            )
+
                 elif Serial_Rec_OR.rect.collidepoint(event.pos):
                     Recovery_Override_Toggle = 1
                     print("override")
@@ -2193,6 +2301,7 @@ try:
                         "CALL_DEATH_Trigger:{}".format(CALL_DEATH_trigger),
                         "QB_minimum_duration:{}".format(QB_minimum_duration),
                         "filt_crit_Dict:{}".format(filt_crit_Dict),
+                        "version_info:{} - {}".format(__version__, __git_status__),
                     ]
                     colheader = "\t".join(
                         ["time"] + CHANNEL_KEY + ["labjack_temp", "mode", "statuscodes"]
@@ -2225,7 +2334,7 @@ try:
             g1_app_ctr = 0
             downsample_rate1 = 20
             g3_app_ctr = 0
-            downsample_rate3 = 2
+            downsample_rate3 = 1
 
             # for i in r['AIN{}'.format(CHANNEL_LIST[CHANNEL_DICT['FLOW']])]:
             #     g1_app_ctr+=1
@@ -2268,34 +2377,36 @@ try:
             if ecg_filt_state == 1:
                 ECGFILT_TOGGLE.update(GREEN, BLACK, "ECG FILTER ON")
                 if INVERT_ECG == 0:
-                    data3 = list(basicFilt(PreFilt_data3, 1000, 60, 30))[
-                        -1251:-1:1
-                    ]  # downsample to 500Hz
+                    data3 = list(basicFilt(PreFilt_data3, 1000, 60, 30))[-2501:-1:1]  #
                 else:
                     data3 = [
                         i * -1
                         for i in list(basicFilt(PreFilt_data3, 1000, 60, 30))[
-                            -1251:-1:1
+                            -2501:-1:1
                         ]
-                    ]  # downsample to 500Hz
+                    ]
             else:
                 ECGFILT_TOGGLE.update(RED, BLACK, "ECG FILTER OFF")
                 if INVERT_ECG == 0:
-                    data3 = PreFilt_data3[-1250:-1:1]
+                    data3 = PreFilt_data3[-2501:-1:1]
                 else:
-                    data3 = [i * -1 for i in PreFilt_data3[-1250:-1:1]]
+                    data3 = [i * -1 for i in PreFilt_data3[-2501:-1:1]]
 
             # 5 second ts window
             ts1 = [
                 i / 1000 + 20 / 1000
                 for i in range(
-                    int(round((REL_TIMER - 5) * 1000, 3)), int(REL_TIMER * 1000), 20
+                    int(round((REL_TIMER - 5) * 1000, 3)),
+                    int(REL_TIMER * 1000),
+                    downsample_rate1,
                 )
             ]  # this may need adjusting if frequency is changed
             ts3 = [
                 i / 1000 + 1 / 1000
                 for i in range(
-                    int(round((REL_TIMER - 2.5) * 1000, 3)), int(REL_TIMER * 1000), 2
+                    int(round((REL_TIMER - 2.5) * 1000, 3)),
+                    int(REL_TIMER * 1000),
+                    downsample_rate3,
                 )
             ]
 
@@ -2907,7 +3018,7 @@ try:
                 rig_odometer = int(rig_config.get("rig_odometer", 1)) + 1
                 rig_config["rig_odometer"] = rig_odometer
 
-                with open("/home/pi/rig.config", "w") as openfile:
+                with open(os.path.join(home_dir, "rig.config"), "w") as openfile:
                     json.dump(rig_config, openfile, indent=4)
 
                 fm_record_dict["SLB_Trigger"] = SLB_Trigger
