@@ -2,7 +2,7 @@
 name = "PCC"
 version = "2.0.0"
 description = "PCC"
-authors = [{ name = "Christopher Scott Ward", email = "achristopher.ward@bcm.edu" }]
+authors = [{ name = "Christopher Scott Ward", email = "christopher.ward@bcm.edu" }]
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
