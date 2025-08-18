@@ -27,7 +27,7 @@ v1.0.1
 
 """
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # %% import libraries
 from PySide6 import QtGui, QtWidgets
@@ -39,30 +39,30 @@ import re
 
 
 try:
-#    import RPi.GPIO as GPIO
+    #    import RPi.GPIO as GPIO
     import gpiozero
 
 except:
     print("RPi.GPIO library unavailable - Are you using a Pi?")
 
     class PIN:
-        def __init__(self,pin):
+        def __init__(self, pin):
             value = 0
             is_pressed = 0
 
     class GPIO:
         def __init__(self):
             BOARD = 1
-            OUT= 1
+            OUT = 1
             IN = 1
             HIGH = 5
             LOW = 0
             simulated = True
-        
-        def LED(self,pin_text):
+
+        def LED(self, pin_text):
             return PIN(pin_text)
-            
-        def BUTTON(self,pin_text):
+
+        def BUTTON(self, pin_text):
             return PIN(pin_text)
 
         def setmode(a):
@@ -91,13 +91,13 @@ except:
 
 # %% setup Raspberry Pi pins
 
-#GPIO.setmode(GPIO.BOARD)
-#GPIO.setup(3, GPIO.OUT)
-#GPIO.setup(5, GPIO.OUT)
-#GPIO.setup(7, GPIO.IN)
+# GPIO.setmode(GPIO.BOARD)
+# GPIO.setup(3, GPIO.OUT)
+# GPIO.setup(5, GPIO.OUT)
+# GPIO.setup(7, GPIO.IN)
 breath_pin = gpiozero.LED(2)
 heart_pin = gpiozero.LED(3)
-sense_pin = gpiozero.Button(4)
+sense_pin = gpiozero.Button(4, pull_up = False)
 
 
 # %% functions
@@ -164,12 +164,12 @@ def pulse(instance, borh, pulse_timer, timings_dict, pulse_toggle, pin=None):
 
     if pulse_timer == 1:
         getattr(instance, borh).setStyleSheet("background-color: red")
-        #GPIO.output(pin, GPIO.HIGH)
+        # GPIO.output(pin, GPIO.HIGH)
         pin.value = 1
 
     elif pulse_timer == on_limit:
         getattr(instance, borh).setStyleSheet("background-color: black")
-        #GPIO.output(pin, GPIO.LOW)
+        # GPIO.output(pin, GPIO.LOW)
         pin.value = 0
     elif pulse_timer == beat_limit:
         pulse_timer = 0
@@ -190,7 +190,7 @@ def trigger_check(pin=None, text_widget=None):
 
 def pin_reset(pin_list):
     for i in pin_list:
-        #GPIO.output(i, GPIO.LOW)
+        # GPIO.output(i, GPIO.LOW)
         i.value = 0
 
 
@@ -389,6 +389,8 @@ class MainWindow(QMainWindow):
             start_position=(450, 300),
         )
 
+        self.delay_for_trigger = 0
+
         self.delay_VF = self.ready_VF
         self.delay_VF_IS = self.ready_VF_IS
         self.delay_HR = self.ready_HR
@@ -462,31 +464,31 @@ class MainWindow(QMainWindow):
         self.oride_heartbeat.released.connect(self.oride_heartbeat_released)
 
     @Slot()
-    def oride_breathing_clicked(self, breath_pin = breath_pin):
+    def oride_breathing_clicked(self, breath_pin=breath_pin):
         self.breathing.setStyleSheet("background-color: red")
-        breath_pin.value=1
-        #GPIO.output(3, GPIO.HIGH)
+        breath_pin.value = 1
+        # GPIO.output(3, GPIO.HIGH)
         self.OFF_action(reset_pins=False)
 
     @Slot()
-    def oride_heartbeat_clicked(self, heart_pin = heart_pin):
+    def oride_heartbeat_clicked(self, heart_pin=heart_pin):
         self.heartbeat.setStyleSheet("background-color: red")
-        heart_pin.value=1
-        #GPIO.output(5, GPIO.HIGH)
+        heart_pin.value = 1
+        # GPIO.output(5, GPIO.HIGH)
         self.OFF_action(reset_pins=False)
 
     @Slot()
-    def oride_breathing_released(self, breath_pin = breath_pin):
+    def oride_breathing_released(self, breath_pin=breath_pin):
         self.breathing.setStyleSheet("background-color: black")
         breath_pin.value = 0
-        #GPIO.output(3, GPIO.LOW)
+        # GPIO.output(3, GPIO.LOW)
         self.OFF_action(reset_pins=False)
 
     @Slot()
-    def oride_heartbeat_released(self, heart_pin = heart_pin):
+    def oride_heartbeat_released(self, heart_pin=heart_pin):
         self.heartbeat.setStyleSheet("background-color: black")
         heart_pin.value = 0
-        #GPIO.output(5, GPIO.LOW)
+        # GPIO.output(5, GPIO.LOW)
         self.OFF_action(reset_pins=False)
 
     def reset_timers(self, label, hold=False):

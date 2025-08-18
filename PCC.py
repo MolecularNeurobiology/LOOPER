@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "43.0.0"
+__version__ = "43.0.2"
 
 """
 Physiology Command Center
@@ -152,6 +152,11 @@ import serial.tools.list_ports
 
 import logging
 
+from pathlib import Path
+
+home_dir = str(Path.home())
+print(home_dir)
+
 # Import constants from CONSTANTS.PY
 from CONSTANTS import *
 
@@ -171,6 +176,8 @@ __git_status__ = (
 
 # %%
 # prep serial connection to arduino
+logger = None
+
 try:
     ser = serial.Serial()
     ser.baudrate = 9600
@@ -327,7 +334,7 @@ def guiGetText(title, text, default_if_canceled):
 # %%
 def load_rig_config(config_path=None):
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir, "rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
     return config
@@ -335,7 +342,7 @@ def load_rig_config(config_path=None):
 
 def update_rig_config(field, config_path=None, logger=None):
     if not config_path:
-        config_path = "/home/pi/rig.config"
+        config_path = os.path.join(home_dir, "rig.config")
     with open(config_path, "r") as openfile:
         config = json.load(openfile)
 
@@ -358,7 +365,7 @@ def update_rig_log(
     rigconfig, filename, field_dict=None, daily_key=None, daily_index=None, logpath=None
 ):
     if not logpath:
-        logpath = "/home/pi/rig_run_log.log"
+        logpath = os.path.join(home_dir, "rig_run_log.log")
 
     with open(logpath, "r") as openfile:
         riglog = json.load(openfile)
@@ -1175,10 +1182,10 @@ try:
                 ):
                     if logger:
                         logger.info(
-                            f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                            f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                         )
                     serial_list.append(
-                        f"OVERLY LONG INDUCTION (>{long_challenge_induction_threshold}sec)"
+                        f"OVERLY LONG INDUCTION ({value_CurrentChallengeCO2_Timer}>{long_challenge_induction_threshold}sec)"
                     )
                     Current_Mode = advance(Current_Mode, 0, len(Mode_dict) - 1)
                     sdr.stopStreamData()
@@ -2337,16 +2344,14 @@ try:
             if ecg_filt_state == 1:
                 ECGFILT_TOGGLE.update(GREEN, BLACK, "ECG FILTER ON")
                 if INVERT_ECG == 0:
-                    data3 = list(basicFilt(PreFilt_data3, 1000, 60, 30))[
-                        -2501:-1:1
-                    ]  # 
+                    data3 = list(basicFilt(PreFilt_data3, 1000, 60, 30))[-2501:-1:1]  #
                 else:
                     data3 = [
                         i * -1
                         for i in list(basicFilt(PreFilt_data3, 1000, 60, 30))[
                             -2501:-1:1
                         ]
-                    ]  
+                    ]
             else:
                 ECGFILT_TOGGLE.update(RED, BLACK, "ECG FILTER OFF")
                 if INVERT_ECG == 0:
@@ -2358,13 +2363,17 @@ try:
             ts1 = [
                 i / 1000 + 20 / 1000
                 for i in range(
-                    int(round((REL_TIMER - 5) * 1000, 3)), int(REL_TIMER * 1000), 20
+                    int(round((REL_TIMER - 5) * 1000, 3)),
+                    int(REL_TIMER * 1000),
+                    downsample_rate1,
                 )
             ]  # this may need adjusting if frequency is changed
             ts3 = [
                 i / 1000 + 1 / 1000
                 for i in range(
-                    int(round((REL_TIMER - 2.5) * 1000, 3)), int(REL_TIMER * 1000), 2
+                    int(round((REL_TIMER - 2.5) * 1000, 3)),
+                    int(REL_TIMER * 1000),
+                    downsample_rate3,
                 )
             ]
 
@@ -2976,7 +2985,7 @@ try:
                 rig_odometer = int(rig_config.get("rig_odometer", 1)) + 1
                 rig_config["rig_odometer"] = rig_odometer
 
-                with open("/home/pi/rig.config", "w") as openfile:
+                with open(os.path.join(home_dir, "rig.config"), "w") as openfile:
                     json.dump(rig_config, openfile, indent=4)
 
                 fm_record_dict["SLB_Trigger"] = SLB_Trigger
