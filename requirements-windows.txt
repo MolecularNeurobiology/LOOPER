@@ -1,5 +1,3 @@
-google.oauth2
-googleapiclient
 dataclasses
 gpiozero
 LabJackPython
@@ -8,12 +6,13 @@ pandas
 pyserial
 python-dateutil
 python-fmrest
+pyqtgraph
 pytz
 requests
-RPi.GPIO
 scipy
 six
 tzdata
 urllib3
 pika
 pyside6
+psutil

@@ -56,12 +56,14 @@ def pull_the_table(
         
     fms.logout()
 
-
-    record_dict = {
-        i['recordId']:{
-            k:i[k] for k in table_keys 
-        } for i in records
-    }
+    if table_keys is None:
+        record_dict = {i.record_id:{k:v for k,v in zip(i.keys(),i.values())} for i in records}
+    else:
+        record_dict = {
+            i['recordId']:{
+                k:i[k] for k in table_keys 
+            } for i in records
+        }
     return record_dict
 
 
@@ -245,8 +247,9 @@ def generate_rig_save_path(filename, config_path=None):
         'user':config['USER'],
         'password':config['PASSWORD']
     }
-            
+    print(f"generate_rig_save_path filename {filename}")
     ruid = extract_ruid(filename)
+    print(ruid)
     
     query_dict = pull_specific_record(
         credentials, 

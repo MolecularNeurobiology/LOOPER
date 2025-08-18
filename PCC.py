@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "43.0.2"
+__version__ = "deprecated as legacy code example"
 
 """
 Physiology Command Center
@@ -152,21 +152,24 @@ import serial.tools.list_ports
 
 import logging
 
+
 from pathlib import Path
 
 home_dir = str(Path.home())
 print(home_dir)
 
 # Import constants from CONSTANTS.PY
+
 from CONSTANTS import *
 
 # GET GUI classes from GUI.py
 from GUI import *
 
-# Import Stream classes fro Strem.py
-from Stream import *
+#Import Stream classes fro Strem.py
+import Stream
 
 ##
+
 
 __git_status__ = (
     subprocess.run(["git", "status"], encoding="utf-8", stdout=subprocess.PIPE)
@@ -175,34 +178,40 @@ __git_status__ = (
 )
 
 # %%
+
 # prep serial connection to arduino
 logger = None
 
 try:
-    ser = serial.Serial()
-    ser.baudrate = 9600
+    if settings.sim_mode == 0:
 
-    # search for Arduino on comports
-    arduino_list = []
-    device_list = [d for d in serial.tools.list_ports.comports()]
-    for d in device_list:
-        if d.manufacturer is not None and "Arduino" in d.manufacturer:
-            arduino_list.append(d)
-        elif d.description is not None and "Arduino" in d.description:
-            arduino_list.append(d)
 
-    if len(arduino_list) > 1:
-        if logger:
-            logger.warning("multiple arduinos found, using first")
-        ser.port = arduino_list[0].device
-    elif len(arduino_list) == 1:
-        ser.port = arduino_list[0].device
-    else:
-        if logger:
-            logger.warning("unable to locate arduino")
-    ser.timeout = 1
-    ser.open()
-    Connected_Arduino = True
+        ser=serial.Serial()
+        ser.baudrate = 9600
+        
+        # search for Arduino on comports
+        arduino_list = []
+        device_list = [d for d in serial.tools.list_ports.comports()]
+        for d in device_list:
+            if d.manufacturer is not None and 'Arduino' in d.manufacturer:
+                arduino_list.append(d)
+            elif d.description is not None and 'Arduino' in d.description:
+                arduino_list.append(d)
+        
+        if len(arduino_list) > 1:
+            if logger: logger.warning('multiple arduinos found, using first')
+            ser.port = arduino_list[0].device
+        elif len(arduino_list) == 1:
+            ser.port = arduino_list[0].device
+        else:
+            if logger: logger.warning('unable to locate arduino')
+        ser.timeout=1
+        ser.open()
+        Connected_Arduino=True
+
+    elif settings.sim_mode == 1:
+        ser = Stream.SimulatedArduino()
+
 except Exception as e:
     if logger:
         logger.warning("unable to connect to arduino {}".format(e))
@@ -330,9 +339,21 @@ def guiGetText(title, text, default_if_canceled):
             pass
         return outputtext
 
+#%%
+def load_rig_config(settings, config_path=None):
 
-# %%
-def load_rig_config(config_path=None):
+    if settings.sim_mode==1:
+        return {
+            "RIGNAME": "Change My Name",
+            "SERVER_IP" : "https://3.141.29.47",
+            "USER" : "Fix_Database",
+            "PASSWORD" : "Fix_Database",
+            "DATABASE" : "MICE",
+            "LAYOUT" : "Autoresuscitation",
+            "Tank_Number" : "unk",
+            "Facemask_ID" : "unk",
+        }
+
     if not config_path:
         config_path = os.path.join(home_dir, "rig.config")
     with open(config_path, "r") as openfile:
@@ -822,12 +843,12 @@ def butterFilt(CT, sampleHz):
     return buttered
 
 
-def processStatus(status, device, serial_connection, ADC, logger=None):
-    device.setDIOState(0, 0)
-    device.setDIOState(1, 0)
-    device.setDIOState(2, 0)
-    device.setDIOState(3, 0)
-    now = datetime.now()
+def processStatus(status,device,ser,ADC,logger = None):
+    device.setDIOState(0,0)
+    device.setDIOState(1,0)
+    device.setDIOState(2,0)
+    device.setDIOState(3,0)
+    now=datetime.now()
     print(status)
     serialtext = ""
 
@@ -838,12 +859,12 @@ def processStatus(status, device, serial_connection, ADC, logger=None):
         serialtext = "<U,0,0>"
         try:
             ser.write(serialtext.encode())
-            log_to_file(logger, "{} - sent".format(serialtext))
-            print("{} - sent".format(serialtext))
-            status["startup_ready"] = 1
-        except:
-            print('unable to transmit "{}"via serial io'.format(serialtext))
-            status["startup_ready"] = 1
+            if logger: log_to_file(logger, '{} - sent'.format(serialtext))
+            print('{} - sent'.format(serialtext))
+            status['startup_ready']=1
+        except Exception as e:
+            print(f'unable to transmit "{serialtext}" via serial io\n{e}')
+            status['startup_ready']=1
         return status
 
     if status["streaming"] == 1:
@@ -873,15 +894,11 @@ def processStatus(status, device, serial_connection, ADC, logger=None):
 
         try:
             ser.write(serialtext.encode())
-            log_to_file(logger, "{} - sent".format(serialtext))
-            if logger:
-                logger.info("{} - sent".format(serialtext))
-        except:
-            if logger:
-                logger.warning(
-                    'unable to transmit "{}" via serial io'.format(serialtext)
-                )
-
+            log_to_file(logger, '{} - sent'.format(serialtext))
+            if logger: logger.info('{} - sent'.format(serialtext))
+        except Exception as e:
+            if logger: logger.warning(f'unable to transmit "{serialtext}" via serial io\n{e}')
+    
     return status
 
 
@@ -949,73 +966,85 @@ SAMPLES_PER_INTERVAL = int(UPDATE_INTERVAL_SEC * SAMPLE_FREQUENCY)
 Requests = 0
 # At high frequencies ( >5 kHz), the number of samples will be ...#of requests made...
 # times 48 (packets per request) times 25 (samples per packet)
-d = u6.U6()
-# For applying the proper calibration to readings.
-d.getCalibrationData()
 
-try:
-    d.streamStop()
-    print("stream found running - now stopped")
-except:
-    print("labjack pre-stream checked")
-##
+if settings.sim_mode == 0:
+    d = u6.U6()
+    # For applying the proper calibration to readings.
+    d.getCalibrationData()
 
-# """
-# 2.6.4 - Internal Temperature Sensor [U6 Datasheet]
-# The U6 has an internal temperature sensor.  The sensor is physically located near the AIN3 screw-terminal.  It is labeled U17 on the PCB, and can be seen through the gap between the AIN3 terminal and adjacent VS terminal.
-#
-# The U6 enclosure typically makes a 1 °C difference in the temperature at the internal sensor.  With the enclosure on the temperature at the sensor is typically 3 °C higher than ambient, while with the enclosure off the temperature at the sensor is typically 2 °C higher than ambient.  The calibration constants have an offset of -3 °C, so returned calibrated readings are nominally the same as ambient with the enclosure installed, and 1 °C below ambient with the PCB in free air.
-#
-# The sensor has a specified accuracy of ±2.1 °C across the entire device operating range of -40 to +85 °C.  Allowing for a slight difference between the sensor temperature and the temperature of the screw-terminals, expect the returned value minus 3 °C to reflect the temperature of the built-in screw-terminals with an accuracy of ±2.5 °C.
-#
-# With the UD driver, the internal temperature sensor is read by acquiring analog input channel 14 and returns °K.
-#
-# The internal temperature sensor does not work in stream mode.  It takes too long to settle, thus if you stream it you will typically get totally wrong readings.
-#
-# Note on thermocouples
-# If thermocouples are connected to the CB37, you want to know the temperature of the screw-terminals on the CB37.  The CB37 is typically at the same temperature as ambient air, so use the direct value from a read of AIN14.  Better yet, add a sensor such as the LM34CAZ to an unused analog input on the CB37 to measure the actual temperature of the CB37.
-#
-# The built-in screw-terminals AIN0-AIN3 on the U6 are typically 3 °C above ambient with the enclosure installed, so when the internal temperature sensor is used for CJC for thermocouples connected to the built-in screw-terminals, it is recommended to add 3 °C to its value as you want the actual temperature of the screw-terminals, not necessarily ambient temperature.
-#
-# ***DON'T READ U6 INTERNAL TEMP THROUGH STREAM, CALL THROUGH getTemperature() -273.15 for C, (x-273.15)*9/5+32 for F***
-# ***caution regarding use and accuracy***
-# """
+    try:
+        d.streamStop()
+        print('stream found running - now stopped')
+    except:
+        print('labjack pre-stream checked')
+    ##
 
-# %%
-## get initial temperature
-CT_value = d.getTemperature() - 273.15
+    #"""
+    #2.6.4 - Internal Temperature Sensor [U6 Datasheet]
+    #The U6 has an internal temperature sensor.  The sensor is physically located near the AIN3 screw-terminal.  It is labeled U17 on the PCB, and can be seen through the gap between the AIN3 terminal and adjacent VS terminal.
+    #
+    #The U6 enclosure typically makes a 1 °C difference in the temperature at the internal sensor.  With the enclosure on the temperature at the sensor is typically 3 °C higher than ambient, while with the enclosure off the temperature at the sensor is typically 2 °C higher than ambient.  The calibration constants have an offset of -3 °C, so returned calibrated readings are nominally the same as ambient with the enclosure installed, and 1 °C below ambient with the PCB in free air.
+    #
+    #The sensor has a specified accuracy of ±2.1 °C across the entire device operating range of -40 to +85 °C.  Allowing for a slight difference between the sensor temperature and the temperature of the screw-terminals, expect the returned value minus 3 °C to reflect the temperature of the built-in screw-terminals with an accuracy of ±2.5 °C.
+    #
+    #With the UD driver, the internal temperature sensor is read by acquiring analog input channel 14 and returns °K.
+    #
+    #The internal temperature sensor does not work in stream mode.  It takes too long to settle, thus if you stream it you will typically get totally wrong readings.
+    #
+    #Note on thermocouples
+    #If thermocouples are connected to the CB37, you want to know the temperature of the screw-terminals on the CB37.  The CB37 is typically at the same temperature as ambient air, so use the direct value from a read of AIN14.  Better yet, add a sensor such as the LM34CAZ to an unused analog input on the CB37 to measure the actual temperature of the CB37.
+    #
+    #The built-in screw-terminals AIN0-AIN3 on the U6 are typically 3 °C above ambient with the enclosure installed, so when the internal temperature sensor is used for CJC for thermocouples connected to the built-in screw-terminals, it is recommended to add 3 °C to its value as you want the actual temperature of the screw-terminals, not necessarily ambient temperature.
+    #
+    #***DON'T READ U6 INTERNAL TEMP THROUGH STREAM, CALL THROUGH getTemperature() -273.15 for C, (x-273.15)*9/5+32 for F***
+    #***caution regarding use and accuracy***
+    #"""
 
-print("Configuring U6 stream")
-# settling and resolution index may need adjustment - these values are among those suggested by labjack
-d.streamConfig(
-    NumChannels=NUMBER_CHANNELS,
-    ChannelNumbers=CHANNEL_LIST,
-    ChannelOptions=[0 for i in CHANNEL_LIST],
-    SettlingFactor=1,
-    ResolutionIndex=1,
-    ScanFrequency=SCAN_FREQUENCY,
-)
+    #%%
+    ## get initial temperature
+    CT_value=d.getTemperature()-273.15
 
-# set packets per datastream call - maybe this is not neccessary - just go with default rate?
-d.packetsPerRequest = int(SAMPLES_PER_INTERVAL / 25)
+    print("Configuring U6 stream")
+    #settling and resolution index may need adjustment - these values are among those suggested by labjack
+    d.streamConfig(NumChannels=NUMBER_CHANNELS,
+                ChannelNumbers=CHANNEL_LIST,
+                ChannelOptions=[0 for i in CHANNEL_LIST],
+                SettlingFactor=1,
+                ResolutionIndex=1,
+                ScanFrequency=SCAN_FREQUENCY)
 
-d.setDIOState(0, 0)
-d.setDIOState(1, 0)
-d.setDIOState(2, 0)
-d.setDIOState(3, 0)
+    #set packets per datastream call - maybe this is not neccessary - just go with default rate?
+    d.packetsPerRequest=int(SAMPLES_PER_INTERVAL/25)
+
+    d.setDIOState(0,0)
+    d.setDIOState(1,0)
+    d.setDIOState(2,0)
+    d.setDIOState(3,0)
+elif settings.sim_mode == 1:
+    CT_value = 47
+    d=Stream.SimulatedDataReader()
 
 
-# %% start the labjack datastream
-sdr = StreamDataReader(d)
-
-sdrThread = threading.Thread(target=sdr.readStreamData)
-sdrThread.start()
-
+#%% start the labjack datastream 
+if settings.sim_mode == 0:
+    sdr = Stream.StreamDataReader(d)
+    sdrThread = threading.Thread(target=sdr.readStreamData)
+    sdrThread.start()
+elif settings.sim_mode == 1:
+    sdr = d
+    sdrThread = threading.Thread(target=sdr.readStreamData)
+    sdrThread.start()
 
 ##%% start the arduino stream
-arduino_stream = StreamArduino(ser)
-ardThread = threading.Thread(target=arduino_stream.readStreamData)
-ardThread.start()
+
+if settings.sim_mode == 0:
+    arduino_stream = Stream.StreamArduino(ser)
+    ardThread = threading.Thread(target=arduino_stream.readStreamData)
+    ardThread.start()
+elif settings.sim_mode == 1:
+    arduino_stream = ser
+    ardThread = threading.Thread(target=arduino_stream.readStreamData)
+    ardThread.start()
 
 
 # %%
@@ -1028,7 +1057,7 @@ Challenge_Timer = datetime.now()
 Challenge_Delay = 5
 challenge_history = {}
 
-rig_config = load_rig_config()
+rig_config = load_rig_config(settings)
 credentials = {
     "ip": rig_config.get("SERVER_IP"),
     "user": rig_config.get("USER"),
@@ -2247,8 +2276,12 @@ try:
                 )
 
             # Convert the raw bytes (result['result']) to voltage data.
-            r = d.processStreamData(result["result"])
-
+            if settings.sim_mode == 0:
+                r = d.processStreamData(result['result'])
+            elif settings.sim_mode == 1:
+                r = result['result']        
+            
+            
             ## save the data
             if Mode_dict[Current_Mode] in savable_modes:
                 if Current_Mode != prev_Mode:
