@@ -432,6 +432,7 @@ class challenge(STAGE):
         self.pcc.data.recovery_bout_flag = False
         self.pcc.data.gasp_detected_flag = False
         self.pcc.data.new_state = False
+        self.pcc.data.pulse_sender = None
 
     def recovery_test(self):
         # test for not recovered conditions
@@ -671,7 +672,7 @@ class challenge(STAGE):
                 self.pcc.arduino_stream.sendCommand(
                     f"<A,{self.setting_dict["position_gas"]},{self.setting_dict["prefill_duration"]}>"
                 )
-                EFFECTORS.LJ_DIO_pulse(self.pcc.labjack_stream.device, 2, 1000)
+                self.pcc.data.pulse_sender = EFFECTORS.LJ_DIO_pulse(self.pcc.labjack_stream.device, 2, 1000)
 
             self.pcc.data.current_prefill_duration = (
                 datetime.now() - self.pcc.data.current_prefill_start
