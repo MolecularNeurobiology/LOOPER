@@ -109,7 +109,7 @@ class SimulatedArduino:
         translation_dict = {
             "<C": "calibration-sim",
             "<R": "room air-sim",  # update
-            "<A": "challenge gas-sim",  # update
+            "<A": "Finished: On Anoxic - challenge gas-sim",  # update
             "<U": "startup sent",
             "<S": "standby sent-sim",
             "<Z": "abort sent-sim",
@@ -135,10 +135,19 @@ class SimulatedArduino:
 
 
 # LabJack Related
+class Simulated_U6_Device():
+    def __init__(self,logger):
+        self.logger = logger
+        
+    def setDIOState(self,pin,state):
+        self.logger.info(f"LJ DIO-pin_{pin}_; state_{state}_")
+
+
 class SimulatedDataReader:
     def __init__(self, logger):
 
         self.logger = logger
+        self.device = Simulated_U6_Device(self.logger)
         self.finished = True
         if self.logger:
             self.logger.info("using simulated labjack interface")
@@ -178,6 +187,7 @@ class SimulatedDataReader:
         self.data_sim_timer.start(self.update_interval_ms)
 
     def setDIOState(self, *args):
+
         pass
 
     def set_sim_sig_ain(self, ain, new_Hz):

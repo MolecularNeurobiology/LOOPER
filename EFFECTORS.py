@@ -10,8 +10,24 @@ collection of classes and functions that are primarily for transmitting output
 import pickle
 import datetime
 import gzip
+from PySide6.QtCore import QTimer
 
 # %% define functions
+
+class LJ_DIO_pulse():
+    def __init__(self,device,pin,duration_ms):
+        self.device = device
+        self.device.setDIOState(pin,0)
+        self.pin = pin
+        self.pulse_ender = QTimer()
+        self.pulse_ender.setSingleShot = True
+        self.pulse_ender.timeout.connect(self.on_timeout)
+        self.device.setDIOState(pin,1)
+        self.pulse_ender.start(duration_ms)
+
+    def on_timeout(self):
+        self.device.setDIOState(self.pin,0)
+
 
 
 def processStatus(status, device, ser, ADC, logger=None):
@@ -147,5 +163,4 @@ class OutputFileWriter:
                         "minerva": self.pcc.minerva_stream_reader.data
                     }
                 ))
-            pass
-        pass
+            
