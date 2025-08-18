@@ -362,16 +362,6 @@ class MainWindow(QMainWindow):
             symbolPen=None,
             symbolSize=14,
         )
-        # self.line2_threshold_2 = self.graph2.plot(
-        #     x=[-5, 0],
-        #     y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
-        #     name="threshold 2",
-        #     pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
-        #     symbol=None,
-        #     symbolBrush=None,
-        #     symbolPen=None,
-        #     symbolSize=14,
-        # )
         self.line2_baseline = self.graph2.plot(
             x=[-5, 0],
             y=[self.settings.baseline_ecg, self.settings.baseline_ecg],
@@ -423,13 +413,6 @@ class MainWindow(QMainWindow):
         self.active_stage = self.stage_dict[list(self.settings.Mode_settings.keys())[0]]
         self.active_stage.on_load()
 
-        # stage methods
-        # on_load
-        # on_exit ... runs just before moving to the next stage (includes a default next stage if multiple following stages are possible, next stage can also be an argument or derived from an ordered list of stages)
-        # event_loop
-        # exit_condition_test ... runs at end of event loop
-
-        pass
 
     def action_jump_to_stage(self):
         self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
@@ -437,6 +420,7 @@ class MainWindow(QMainWindow):
         self.automated = False
         self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
         self.active_stage.on_load()
+
 
     def action_set_output_file_path(self, barcode = None):
         # if manual oride checkbox checked, manually set filepath, else use automated partsing
@@ -467,19 +451,11 @@ class MainWindow(QMainWindow):
         self.label_output_path.setText(self.settings.output_path)
         self.output_file_writer.write_header()
 
+
     def action_next_stage(self):
         self.automated = True
         self.active_stage.on_exit()
-        # self.logger.debug(f"stages: {len(self.stage_dict)}")
-        # self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
-        # if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
-        #    self.logger.error(
-        #        'Already at last stage - use "Jump To" function to choose a stage'
-        #    )
-        # else:
-        #    self.comboBox_Jump_To_Stage.setCurrentIndex(
-        #        self.comboBox_Jump_To_Stage.currentIndex() + 1
-        #    )
+        
 
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
@@ -515,40 +491,59 @@ class MainWindow(QMainWindow):
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
+
     def action_f00(self):
         self.arduino_stream.sendCommand("<F,0,0>")
+
 
     def action_b00(self):
         self.arduino_stream.sendCommand("<B,0,0>")
 
+
     def action_c00(self):
         self.arduino_stream.sendCommand("<C,0,0>")
+
 
     def action_c_10(self):
         self.arduino_stream.sendCommand("<C,-1,0>")
 
+
     def action_v2_1(self):
         self.arduino_stream.sendCommand("<V,2,-1>")
 
+
     def action_v20(self):
         self.arduino_stream.sendCommand("<V,2,0>")
+
 
     def action_ljssa000(self):
         print('ljssa000')
         self.labjack_stream.set_sim_sig_ain(0,0)
 
+
     def action_ljssa025(self):
         print('ljssa025')
         self.labjack_stream.set_sim_sig_ain(0,2.5)
+
 
     def action_transmit_arduino_quick_command(self):
         self.arduino_stream.sendCommand(
             self.comboBox_arduino_quick_command.currentText()
         )
 
+    
+    def abort_experiment(self):
+        self.logger.warning("Experiment Aborted")
+        self.arduino_stream.sendCommand(
+            "<Z,0,0>"
+        )
+        self.comboBox_Jump_To_Stage.setCurrentText("finished")
+
+
     def action_start_timers(self):
         self.pulse_timer.start(1000)
         self.stream_timer.start(10)
+
 
     def action_pulse_timer(self):
         # print(self.pulse_counter)
@@ -560,11 +555,13 @@ class MainWindow(QMainWindow):
             # app.quit()
             sys.exit()
 
+
     def kill_app(self):
         # wait on threads for clean exit?
         if self.minerva_stream:
             self.minerva_stream.stop()
         self.arduino_stream.finished = True
+
 
     def action_stream_timer(self):
         # determine current time in stream
@@ -695,13 +692,13 @@ class MainWindow(QMainWindow):
             numpy.average(self.data.trimmed_pneumo) - self.settings.baseline_flow
         )
         if self.data.breath_list is None or len(self.data.breath_list) < 2:
-            self.data.avg_bpm = "<12"
+            self.data.avg_vf = "<12"
             self.data.avg_tv = "-----"
             self.data.avg_tt = 999
             self.data.cv_tt = 999
             self.data.avg_dvtv = 999
 
-            self.label_BPM.setText(f"VF: {self.data.avg_bpm}")
+            self.label_BPM.setText(f"VF: {self.data.avg_vf}") #!!! label needs to be renamed
         else:
             self.data.avg_tt = numpy.average(
                 [
@@ -727,9 +724,9 @@ class MainWindow(QMainWindow):
                     if "iTV" in self.data.breath_list[i].keys()
                 ]
             )
-            self.data.avg_bpm = (
+            self.data.avg_vf = (
                 60 / self.data.avg_tt
-            )  # this creates a 'less' transformed BPM (division transform) - relationship between TT and BPM modified by Irregularity
+            )  # this creates a 'less' transformed vf (division transform) - relationship between TT and vf modified by Irregularity
             self.data.avg_dvtv = numpy.average(
                 [
                     self.data.breath_list[i]["DVTV"]
@@ -738,7 +735,7 @@ class MainWindow(QMainWindow):
                 ]
             )
 
-            self.label_BPM.setText(f"VF: {self.data.avg_bpm:.0F}")
+            self.label_BPM.setText(f"VF: {self.data.avg_vf:.0F}")
 
         if self.data.beat_list is None or len(self.data.beat_list) < 5:
             self.data.avg_hr = "low"

@@ -34,7 +34,8 @@ class DATA:
         self.errors = [] # !!! is this actually used
 
         # instantaneous_values
-        self.avg_bpm = None
+        # self.avg_bpm = None
+        self.avg_vf = None
         self.avg_tt = None
         self.cv_tt = None
         self.avg_rr = None
@@ -50,6 +51,8 @@ class DATA:
 
         self.current_lag = None
 
+        self.PCC_client_status = "N/A"
+
         # stage values (#!!! are these actually used?)
         self.start_time = datetime.now()
         self.current_time = datetime.now()
@@ -57,9 +60,6 @@ class DATA:
         self.time_in_stage_seconds = 0
 
         # persistent / semi-persistant
-        self.challenge_history = {}
-        self.recovery_bpm = None
-        self.recovery_hr = None
         
 
         self.prev_mode = -1
@@ -92,7 +92,7 @@ class DATA:
                     "displayWith": "trimmed_pneumo",
                 },
                 "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
-                "avg_bpm": {"sig_type": "SINGLE_VALUE"},
+                "avg_vf": {"sig_type": "SINGLE_VALUE"},
                 "avg_hr": {"sig_type": "SINGLE_VALUE"},
                 "arduino_startup_motion_tested": {"sig_type": "STATUS"},
                 "recent_log_entries": {"sig_type": "DEBUG"},
@@ -100,7 +100,7 @@ class DATA:
                 "error_state_text": {"sig_type": "DEBUG"},
                 "quality_status":{"sig_type": "DEBUG"},
                 "qb_time_running_sec":{"sig_type":"SINGLE_VALUE"},
-                "baseline_bpm":{"sig_type": "SINGLE_VALUE"},
+                "baseline_vf":{"sig_type": "SINGLE_VALUE"},
                 "baseline_hr":{"sig_type":"SINGLE_VALUE"}
             }
             # updated datas
