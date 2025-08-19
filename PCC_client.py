@@ -228,6 +228,7 @@ class MainWindow(QMainWindow):
             output_path=self.settings.output_path, pcc=self
         )
 
+        self.resetting_stages = False
         self.prepare_stages()
 
         ## TODO !!! load settings based on signal from Minerva
@@ -256,6 +257,7 @@ class MainWindow(QMainWindow):
         self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
         self.pushButton_RESET.clicked.connect(self.action_RESET)
         self.pushButton_SHUTDOWN.clicked.connect(self.action_SHUTDOWN)
+        self.pushButton_Edit_Settings.clicked.connect(self.action_Reload_Settings)
         
 
         # arduino quick command buttons
@@ -284,6 +286,30 @@ class MainWindow(QMainWindow):
         self.exit_status = "SHUTDOWN"
         self.ui.close()
         
+
+    def action_Reload_Settings(self):
+        # test for changing up study
+        trimmed_stages = [
+            "startup1",
+            "startup2",
+            "standby",
+            "signal_preview_1",
+            "calibration",
+            "signal_preview_2",
+            "habituation_1",
+            "baseline",
+            "challenge"
+        ]
+
+        self.settings.Mode_settings = {i:self.settings.Mode_settings[i] for i in trimmed_stages}
+
+        # reinitialize stages and data
+        self.resetting_stages = True
+        self.data = DATA.DATA()
+        self.prepare_stages()
+        self.resetting_stages = False
+
+
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -415,11 +441,12 @@ class MainWindow(QMainWindow):
 
 
     def action_jump_to_stage(self):
-        self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
-        self.active_stage.on_exit()
-        self.automated = False
-        self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
-        self.active_stage.on_load()
+        if not self.resetting_stages:
+            self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
+            self.active_stage.on_exit()
+            self.automated = False
+            self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
+            self.active_stage.on_load()
 
 
     def action_set_output_file_path(self, barcode = None):
