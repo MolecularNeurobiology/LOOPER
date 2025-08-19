@@ -8,6 +8,7 @@ try:
     from command import (
         COMMANDS,
         GoToNextStep,
+        GoToStep,
         StartCommand,
         StreamCommand,
         StopStreamCommand,
@@ -17,6 +18,7 @@ except:
     from .command import (
         COMMANDS,
         GoToNextStep,
+        GoToStep,
         StartCommand,
         StreamCommand,
         StopStreamCommand,
@@ -345,6 +347,7 @@ class Plugin:
 
         try:
             with self._commands_lock:
+
                 # Append raw command for PCC/simulator dispatcher
                 self._commands.append(command)
                 self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
@@ -362,6 +365,7 @@ class Plugin:
                     },
                     component="command_handler"
                 )
+
         except Exception as e:
             self._status_manager.report_status(
                 severity=StatusSeverity.HIGH,

@@ -26,14 +26,16 @@ class DATA:
 
         self.flow_thresh_to_use = 1
 
+        self.error_dict = {}
+
+        self.advanceable = True
+
         # instantaneous_arrays
-        # self.new_time = []
-        # self.new_pneumo = []
-        # self.new_ecg = []
-        self.errors = []
+        self.errors = [] # !!! is this actually used
 
         # instantaneous_values
-        self.avg_bpm = None
+        # self.avg_bpm = None
+        self.avg_vf = None
         self.avg_tt = None
         self.cv_tt = None
         self.avg_rr = None
@@ -49,57 +51,42 @@ class DATA:
 
         self.current_lag = None
 
-        # stage values
+        self.PCC_client_status = "N/A"
 
+        # stage values (#!!! are these actually used?)
         self.start_time = datetime.now()
         self.current_time = datetime.now()
         self.time_in_stage = 0
         self.time_in_stage_seconds = 0
-        # self.current_mode = None
-        # self.flow_thresh_to_use = 1
-
-        # self.cur_status_dict = {
-        #     "standby": 0,
-        #     "startup": 0,
-        #     "streaming": 0,
-        #     "ready to save": 0,
-        #     "calibration": 0,
-        #     "challenge air": 0,
-        #     "challenge gas": 0,
-        #     "pulse": {
-        #         "calibration": {"state": 0, "start": 0, "pin": 1},
-        #         "challenge air": {"state": 0, "start": 0, "pin": 3},
-        #         "challenge gas": {"state": 0, "start": 0, "pin": 2},
-        #     },
-        #     "startup_ready": 0,
-        # }
 
         # persistent / semi-persistant
-        self.challenge_history = {}
-        self.recovery_bpm = None
-        self.recovery_hr = None
-        # self.stage_start_time = None
+        
+
         self.prev_mode = -1
-        self.error_list = []
+        self.error_list = [] # !!! is this actually used
         self.missed = 0
 
         self.recent_log_entries = ""
 
-        # self.old_status_dict = {
-        #     "standby": 0,
-        #     "startup": 0,
-        #     "streaming": 0,
-        #     "ready to save": 0,
-        #     "calibration": 0,
-        #     "challenge air": 0,
-        #     "challenge gas": 0,
-        #     "pulse": {
-        #         "calibration": {"state": 0, "start": 0, "pin": 1},
-        #         "challenge air": {"state": 0, "start": 0, "pin": 3},
-        #         "challenge gas": {"state": 0, "start": 0, "pin": 2},
-        #     },
-        #     "startup_ready": 0,
-        # }
+        # register entries for minerva payloads
+        self.minerva_attr_dict = {
+            "trimmed_pneumo": {"sig_type": "TIME_SERIES"},
+            "trimmed_ecg": {"sig_type": "TIME_SERIES"},
+            "breath_list": {
+                "sig_type": "TIMESTAMP",
+                "displayWith": "trimmed_pneumo",
+            },
+            "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
+            "avg_vf": {"sig_type": "SINGLE_VALUE"},
+            "avg_hr": {"sig_type": "SINGLE_VALUE"},
+            "arduino_startup_motion_tested": {"sig_type": "STATUS"},
+            "recent_log_entries": {"sig_type": "DEBUG"},
+            "error_state": {"sig_type": "STATUS"},
+            "error_state_text": {"sig_type": "DEBUG"},
+            "time_in_stage_seconds": {"sig_type": "DURATION"}
+        }
+
+        
 
     def prepare_data_payload(self, attr_dict=None):
         """
@@ -124,27 +111,34 @@ class DATA:
                     "displayWith": "trimmed_pneumo",
                 },
                 "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
-                "avg_bpm": {"sig_type": "SINGLE_VALUE"},
+                "avg_vf": {"sig_type": "SINGLE_VALUE"},
                 "avg_hr": {"sig_type": "SINGLE_VALUE"},
                 "arduino_startup_motion_tested": {"sig_type": "STATUS"},
                 "recent_log_entries": {"sig_type": "DEBUG"},
+                "error_state": {"sig_type": "STATUS"},
+                "error_state_text": {"sig_type": "DEBUG"},
+                "quality_status":{"sig_type": "DEBUG"},
+                "qb_time_running_sec":{"sig_type":"SINGLE_VALUE"},
+                "baseline_vf":{"sig_type": "SINGLE_VALUE"},
+                "baseline_hr":{"sig_type":"SINGLE_VALUE"}
             }
+            # updated datas
 
         signal_payload = {"signals": []}
         for k, v in attr_dict.items():
             if v["sig_type"] == "DEBUG":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "debug", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "debug", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "STATUS":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "status", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "status", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "SINGLE_VALUE":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "single_value", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "single_value", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "TIMESTAMP":
@@ -169,7 +163,7 @@ class DATA:
 
                 signal_payload["signals"].append(
                     {
-                        "name": k,
+                        "name": v.get("name",k),
                         "type": "timestamp",
                         "displayWith": v["displayWith"],
                         "data": [
@@ -181,7 +175,7 @@ class DATA:
             if v["sig_type"] == "TIME_SERIES":
                 signal_payload["signals"].append(
                     {
-                        "name": k,
+                        "name": v.get("name",k),
                         "type": "time_series",
                         "xUnit": "seconds",
                         "data": [
@@ -190,6 +184,7 @@ class DATA:
                         ],
                     }
                 )
+
 
             if v["sig_type"] == "DURATION":
                 # Get duration data - should be a dict with 'duration' and 'severity' keys
@@ -213,4 +208,5 @@ class DATA:
                             "severity": "normal",
                         }
                     )
+
         return signal_payload

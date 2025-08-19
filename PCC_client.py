@@ -27,13 +27,14 @@ import numpy
 import os
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
-from PySide6.QtGui import QFontDatabase
+from PySide6.QtGui import QFontDatabase, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
     QWidget,
     QFileDialog,
     QInputDialog,
     QLineEdit,
+    QMainWindow
 )
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
@@ -75,17 +76,19 @@ def get_mac(custom_mac=None):
             return custom_mac
 
     interfaces = psutil.net_if_addrs()
+    mac = "nn:nn:nn:nn"
     for i_name, i_addr in interfaces.items():
         for addr in i_addr:
             try:
                 if (
-                    addr.family == psutil.AF_LINK
-                ):  # or addr.family == psutil.AF_PACKET: <--removed, incompatible on raspi?
-                    return addr.address
+                    addr.family.name == "AF_LINK" or addr.family.name == "AF_PACKET"
+                ):  
+                    mac = addr.address
                 else:
-                    return "nn:nn:nn:nn"
+                    pass
             except:
                 return "na:na:na:na"
+    return mac
 
 
 # %% define classes
@@ -132,18 +135,27 @@ class QTextEditLogger(logging.Handler):
         )
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self, version, ui, parsed_args, app):
         super().__init__()
 
         self.app = app
+        self.ui = ui 
+        self.version = version
+        self.parsed_args = parsed_args
 
-        self.ui = ui
+        self.exit_status = "running"
+        
+
         # migrate ui children to parent level of class
+        # !!! note this creates some odd behavior when closing the window
+        # calls to self.close will not succeed, but self.ui.close will
+        # it looks like not all of the attributes/methods are linked, some are 
+        # pseudo copied.
         for att, val in ui.__dict__.items():
             setattr(self, att, val)
 
-        self.setWindowTitle(f"PCC-client {version}")
+        self.setWindowTitle(f"PCC-client {self.version}")
         self.label_Title_and_Version.setText(f"PCC-client {version}")
 
         # get mac - used for registering with Minerva Server
@@ -198,16 +210,16 @@ class MainWindow(QWidget):
         self.settings = SETTINGS.SETTINGS()
 
         # override settings with CL arguments if provided
-        if parsed_args.simulation:
+        if self.parsed_args.simulation:
             self.settings.sim_mode_labjack = 1
             self.settings.sim_mode_arduino = 1
-        if parsed_args.simulation_labjack:
+        if self.parsed_args.simulation_labjack:
             self.settings.sim_mode_labjack = 1
-        if parsed_args.simulation_arduino:
+        if self.parsed_args.simulation_arduino:
             self.settings.sim_mode_arduino = 1
 
         # set kill mode if CL option provided
-        self.kill_after_count = parsed_args.kill
+        self.kill_after_count = self.parsed_args.kill
 
         # configure i/o
         if self.settings.sim_mode_labjack == 1:
@@ -243,6 +255,7 @@ class MainWindow(QWidget):
             output_path=self.settings.output_path, pcc=self
         )
 
+        self.resetting_stages = False
         self.prepare_stages()
 
         ## TODO !!! load settings based on signal from Minerva
@@ -269,21 +282,61 @@ class MainWindow(QWidget):
             self.action_jump_to_stage
         )
         self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
+        self.pushButton_RESET.clicked.connect(self.action_RESET)
+        self.pushButton_SHUTDOWN.clicked.connect(self.action_SHUTDOWN)
+        self.pushButton_Edit_Settings.clicked.connect(self.action_Reload_Settings)
+        
 
         # arduino quick command buttons
         self.pushButton_f00.clicked.connect(self.action_f00)
         self.pushButton_b00.clicked.connect(self.action_b00)
         self.pushButton_c00.clicked.connect(self.action_c00)
-        self.pushButton_c01.clicked.connect(self.action_c01)
-        self.pushButton_v00.clicked.connect(self.action_v00)
-        self.pushButton_v01.clicked.connect(self.action_v01)
+        self.pushButton_c_10.clicked.connect(self.action_c_10)
+        self.pushButton_v2_1.clicked.connect(self.action_v2_1)
+        self.pushButton_v20.clicked.connect(self.action_v20)
+        self.pushButton_ljssa000.clicked.connect(self.action_ljssa000)
+        self.pushButton_ljssa025.clicked.connect(self.action_ljssa025)
         self.pushButton_transmit_arduino_quick_command.clicked.connect(
             self.action_transmit_arduino_quick_command
         )
         # populate arduino quick command combo box
         self.comboBox_arduino_quick_command.addItems(
-            ["<P,4,0>", "<P,1,0>", "<P,4,1>", "<P,1,1>", "<P,3,2>"]
+            ["<P,4,0>", "<P,1,0>", "<P,4,-1>", "<P,1,-1>", "<P,3,5>"]
         )
+
+    def action_RESET(self):
+        self.exit_status = "RESET"
+        self.ui.close()
+        
+
+    def action_SHUTDOWN(self):
+        self.exit_status = "SHUTDOWN"
+        self.ui.close()
+        
+
+    def action_Reload_Settings(self):
+        # test for changing up study
+        trimmed_stages = [
+            "startup1",
+            "startup2",
+            "standby",
+            "signal_preview_1",
+            "calibration",
+            "signal_preview_2",
+            "habituation_1",
+            "baseline",
+            "challenge"
+        ]
+
+        self.settings.Mode_settings = {i:self.settings.Mode_settings[i] for i in trimmed_stages}
+
+        # reinitialize stages and data
+        self.resetting_stages = True
+        self.data = DATA.DATA()
+        self.prepare_stages()
+        self.resetting_stages = False
+
+
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -362,16 +415,6 @@ class MainWindow(QWidget):
             symbolPen=None,
             symbolSize=14,
         )
-        # self.line2_threshold_2 = self.graph2.plot(
-        #     x=[-5, 0],
-        #     y=[self.settings.thresh_ecg2, self.settings.thresh_ecg2],
-        #     name="threshold 2",
-        #     pen=pyqtgraph.mkPen("Green", width=1, style=Qt.PenStyle.SolidLine),
-        #     symbol=None,
-        #     symbolBrush=None,
-        #     symbolPen=None,
-        #     symbolSize=14,
-        # )
         self.line2_baseline = self.graph2.plot(
             x=[-5, 0],
             y=[self.settings.baseline_ecg, self.settings.baseline_ecg],
@@ -423,27 +466,30 @@ class MainWindow(QWidget):
         self.active_stage = self.stage_dict[list(self.settings.Mode_settings.keys())[0]]
         self.active_stage.on_load()
 
-        # stage methods
-        # on_load
-        # on_exit ... runs just before moving to the next stage (includes a default next stage if multiple following stages are possible, next stage can also be an argument or derived from an ordered list of stages)
-        # event_loop
-        # exit_condition_test ... runs at end of event loop
-
-        pass
 
     def action_jump_to_stage(self):
-        self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
-        self.active_stage.on_exit()
-        self.automated = False
-        self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
-        self.active_stage.on_load()
+        if not self.resetting_stages:
+            self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
+            self.active_stage.on_exit()
+            self.automated = False
+            self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
+            self.active_stage.on_load()
 
-    def action_set_output_file_path(self):
+
+    def action_set_output_file_path(self, barcode = None):
         # if manual oride checkbox checked, manually set filepath, else use automated partsing
         if self.checkBox_Oride.isChecked():
             self.settings.output_path = QFileDialog.getSaveFileName(
                 self, caption="select output filename", filter="PCC Output (*.pcco)"
             )[0]
+        elif barcode:
+            self.logger.info(
+                f"generating save path... config: {self.settings.config_path}"
+            )
+            self.settings.output_path, _ = fm_tools.generate_rig_save_path(
+                barcode,
+                config_path=self.settings.config_path,
+            )
         else:
             self.logger.info(
                 f"generating save path... config: {self.settings.config_path}"
@@ -459,19 +505,11 @@ class MainWindow(QWidget):
         self.label_output_path.setText(self.settings.output_path)
         self.output_file_writer.write_header()
 
+
     def action_next_stage(self):
         self.automated = True
         self.active_stage.on_exit()
-        # self.logger.debug(f"stages: {len(self.stage_dict)}")
-        # self.logger.debug(f"{self.comboBox_Jump_To_Stage.currentIndex()}")
-        # if self.comboBox_Jump_To_Stage.currentIndex() == len(self.stage_dict) - 1:
-        #    self.logger.error(
-        #        'Already at last stage - use "Jump To" function to choose a stage'
-        #    )
-        # else:
-        #    self.comboBox_Jump_To_Stage.setCurrentIndex(
-        #        self.comboBox_Jump_To_Stage.currentIndex() + 1
-        #    )
+        
 
     def action_send_serial_to_arduino(self):
         command = self.lineEdit_Arduino_Command.text()
@@ -507,32 +545,59 @@ class MainWindow(QWidget):
             self.arduino_stream.sendCommand(command)
         self.lineEdit_Arduino_Command.clear()
 
+
     def action_f00(self):
         self.arduino_stream.sendCommand("<F,0,0>")
+
 
     def action_b00(self):
         self.arduino_stream.sendCommand("<B,0,0>")
 
+
     def action_c00(self):
         self.arduino_stream.sendCommand("<C,0,0>")
 
-    def action_c01(self):
-        self.arduino_stream.sendCommand("<C,0,1>")
 
-    def action_v00(self):
-        self.arduino_stream.sendCommand("<V,0,0>")
+    def action_c_10(self):
+        self.arduino_stream.sendCommand("<C,-1,0>")
 
-    def action_v01(self):
-        self.arduino_stream.sendCommand("<V,0,1>")
+
+    def action_v2_1(self):
+        self.arduino_stream.sendCommand("<V,2,-1>")
+
+
+    def action_v20(self):
+        self.arduino_stream.sendCommand("<V,2,0>")
+
+
+    def action_ljssa000(self):
+        print('ljssa000')
+        self.labjack_stream.set_sim_sig_ain(0,0)
+
+
+    def action_ljssa025(self):
+        print('ljssa025')
+        self.labjack_stream.set_sim_sig_ain(0,2.5)
+
 
     def action_transmit_arduino_quick_command(self):
         self.arduino_stream.sendCommand(
             self.comboBox_arduino_quick_command.currentText()
         )
 
+    
+    def abort_experiment(self):
+        self.logger.warning("Experiment Aborted")
+        self.arduino_stream.sendCommand(
+            "<Z,0,0>"
+        )
+        self.comboBox_Jump_To_Stage.setCurrentText("finished")
+
+
     def action_start_timers(self):
         self.pulse_timer.start(1000)
         self.stream_timer.start(10)
+
 
     def action_pulse_timer(self):
         # print(self.pulse_counter)
@@ -544,11 +609,13 @@ class MainWindow(QWidget):
             # app.quit()
             sys.exit()
 
+
     def kill_app(self):
         # wait on threads for clean exit?
         if self.minerva_stream:
             self.minerva_stream.stop()
         self.arduino_stream.finished = True
+
 
     def action_stream_timer(self):
         # determine current time in stream
@@ -679,13 +746,13 @@ class MainWindow(QWidget):
             numpy.average(self.data.trimmed_pneumo) - self.settings.baseline_flow
         )
         if self.data.breath_list is None or len(self.data.breath_list) < 2:
-            self.data.avg_bpm = "<12"
+            self.data.avg_vf = "<12"
             self.data.avg_tv = "-----"
             self.data.avg_tt = 999
             self.data.cv_tt = 999
             self.data.avg_dvtv = 999
 
-            self.label_BPM.setText(f"VF: {self.data.avg_bpm}")
+            self.label_BPM.setText(f"VF: {self.data.avg_vf}") #!!! label needs to be renamed
         else:
             self.data.avg_tt = numpy.average(
                 [
@@ -711,9 +778,9 @@ class MainWindow(QWidget):
                     if "iTV" in self.data.breath_list[i].keys()
                 ]
             )
-            self.data.avg_bpm = (
+            self.data.avg_vf = (
                 60 / self.data.avg_tt
-            )  # this creates a 'less' transformed BPM (division transform) - relationship between TT and BPM modified by Irregularity
+            )  # this creates a 'less' transformed vf (division transform) - relationship between TT and vf modified by Irregularity
             self.data.avg_dvtv = numpy.average(
                 [
                     self.data.breath_list[i]["DVTV"]
@@ -722,7 +789,7 @@ class MainWindow(QWidget):
                 ]
             )
 
-            self.label_BPM.setText(f"VF: {self.data.avg_bpm:.0F}")
+            self.label_BPM.setText(f"VF: {self.data.avg_vf:.0F}")
 
         if self.data.beat_list is None or len(self.data.beat_list) < 5:
             self.data.avg_hr = "low"
@@ -799,8 +866,8 @@ class MainWindow(QWidget):
         # collect minerva stream
         self.minerva_stream_reader.readStreamData()
         if self.minerva_stream_reader.data:
-            self.logger.info(f"minerva - {self.minerva_stream_reader.data}")
-            print(f"minerva - {self.minerva_stream_reader.data}")
+            self.logger.info(f"Minerva data received by PCC_client")
+            # print(f"minerva - {str(self.minerva_stream_reader.data)}")
             self.minerva_stream_reader.process_data(self)
             self.minerva_stream_reader.data = None
 
@@ -811,15 +878,21 @@ class MainWindow(QWidget):
         # check for effector or auto_advance
         self.active_stage.event_loop()
 
-        # update recent log buffer
-        self.data.recent_log_entries = "<br>".join(
-            self.textBrowser_Status.toHtml().split("<br>")[-20:]
-        )
+        
 
         # prepare payload
 
         if self.payload_counter % self.payload_counter_interval == 0:
             self.payload_counter = 0
+            
+            # update recent log buffer
+            self.data.recent_log_entries = "<br>".join(
+            self.textBrowser_Status.toHtml().split("<br>")[-20:]
+            )
+
+            self.data.error_state = len(self.data.error_dict)>0
+            self.data.error_state_text = "; ".join(self.data.error_dict.keys())
+
             # self.logger.info("payload test in debug")
             # self.logger.debug("payload sent")
             self.payload = mp.MinervaStreamData(
@@ -840,7 +913,7 @@ class MainWindow(QWidget):
                     for k, v in self.settings.Mode_settings.items()
                 ],
                 current_stage=self.active_stage.name,
-                signals=self.data.prepare_data_payload()["signals"],
+                signals=self.data.prepare_data_payload(attr_dict=self.data.minerva_attr_dict)["signals"],
             )
             if self.minerva_stream:
                 # Send data to all active user sessions instead of hardcoding user_id="1"
@@ -859,104 +932,6 @@ class MainWindow(QWidget):
 
         self.payload_counter += 10
 
-
-"""
-        {
-  "macAddress": "b3:99:80:21:6a:5f",
-  "stages": [
-    {
-      "name": "STARTUP",
-      "type": "wait_for_user"
-    },
-    {
-      "name": "STANDBY",
-      "type": "wait_for_user"
-    },
-    {
-      "name": "SIG_PREVIEW_1",
-      "type": "timed",
-      "durationInSeconds": 30
-    },
-    {
-      "name": "CALIBRATION",
-      "type": "wait_for_condition"
-    },
-    {
-      "name": "SIG_PREVIEW_2",
-      "type": "timed",
-      "durationInSeconds": 30
-    },
-    {
-      "name": "HABITUATION",
-      "type": "timed",
-      "durationInSeconds": 300
-    },
-    {
-      "name": "BASELINE",
-      "type": "timed",
-      "durationInSeconds": 60
-    },
-    {
-      "name": "CHALLENGE",
-      "type": "timed",
-      "durationInSeconds": 120
-    }
-  ],
-  "signals": [
-    {
-      "name": "Heart Rate",
-      "type": "time_series",
-      "xUnit": "seconds",
-      "yUnit": "bpm",
-      "xWindowMinInSeconds": 0,
-      "xWindowMaxInSeconds": 300,
-      "yWindowMinInSeconds": 0,
-      "yWindowMaxInSeconds": 200,
-      "data": [
-        {
-          "x": 0,
-          "y": 170
-        },
-        {
-          "x": 0.1,
-          "y": 171
-        },
-        {
-          "x": 0.2,
-          "y": 173
-        },
-        ...many more
-      ]
-    },
-    {
-      "name": "Status",
-      "type": "status",
-      "data": true
-    },
-    {
-      "name": "Debug Info",
-      "type": "debug",
-      "data": "Simulation running normally"
-    }
-  ],
-  "currentStage": "NOT_STARTED"
-}
-"""
-
-## Timers (to create event loops)
-# receiver_timer
-
-# broadcast_timer
-
-# status_pulse_timer
-
-# experiment_loop_timer
-
-## METHODS
-
-# send out pulse
-
-# experiment loop
 
 
 # %% define main
@@ -988,28 +963,46 @@ def main():
     loader = QUiLoader()
     global app
     app = QApplication(args)
+    
+    restarts = 0
 
-    ui_file = QFile(os.path.join(os.path.dirname(__file__), "PCC_client.ui"))
+    while True:
 
-    ui = loader.load(ui_file)
+        ui_file = QFile(os.path.join(os.path.dirname(__file__), "PCC_client.ui"))
 
-    window = MainWindow(__version__, ui, parsed_args, app)
+        ui = loader.load(ui_file)
 
-    app.aboutToQuit.connect(window.kill_app)
 
-    window.version_info = {
-        "main": __version__,
-        "DETECTORS": DETECTORS.__version__,
-        "EFFECTORS": EFFECTORS.__version__,
-        "STREAMS": STREAMS.__version__,
-        "SETTINGS": SETTINGS.__version__,
-    }
+        print(f"window - {restarts}")
+        window = MainWindow(__version__, ui, parsed_args, app)
 
-    window.ui.show()
-    window.action_start_timers()
-    print("running")
-    # app.exec()
-    sys.exit(app.exec())
+        app.aboutToQuit.connect(window.kill_app)
+
+        window.version_info = {
+            "main": __version__,
+            "DETECTORS": DETECTORS.__version__,
+            "EFFECTORS": EFFECTORS.__version__,
+            "STREAMS": STREAMS.__version__,
+            "SETTINGS": SETTINGS.__version__,
+        }
+
+        window.ui.show()
+        window.action_start_timers()
+        print("running")
+        
+        print(window.exit_status)
+        
+        exit_code = app.exec()
+        
+        
+        if window.exit_status == "SHUTDOWN":
+            print("shutting down")
+            sys.exit(exit_code)
+        
+        print("restarting PCC_client")
+        restarts += 1
+    sys.exit(exit_code)
+        
 
 
 # run main

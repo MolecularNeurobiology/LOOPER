@@ -31,7 +31,9 @@ class StartPayload:
     steps: list[Step]
     settings: list = None  # Optional settings for backward compatibility
 
+
 # Deprecated: Plugin no longer constructs typed Start/Next commands in dynamic model
+
 class StartCommand(Command):
     def __init__(self, payload: dict):
         # Keep for backward compatibility in simulator/tests, but do not transform steps
@@ -40,6 +42,10 @@ class StartCommand(Command):
 class GoToNextStep(Command):
     def __init__(self):
         super().__init__(command_type=COMMANDS.GO_TO_NEXT_STEP, payload=None)
+
+class GoToStep(Command):
+    def __init__(self, payload: GoToPayload):
+        super().__init__(command_type=COMMANDS.GO_TO_STEP, payload=payload)
 
 # New classes for stream data based on TypeScript types
 class StageType(Enum):

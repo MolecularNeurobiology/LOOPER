@@ -20,10 +20,10 @@ class SETTINGS:
         self.output_path = None
         self.config_path = "/home/pi/rig.config"
 
+        # several of these settings migrated into the stage dict
         ## settings
-        self.HR_recovery_thresh = 63.0
-        self.BPM_recovery_thresh = 50.0
-        self.QB_minimum_duration = 5.0
+
+        #self.QB_minimum_duration = 5.0
 
         self.baseline_flow = 0.0
         self.thresh_flow = 0.050
@@ -34,8 +34,8 @@ class SETTINGS:
         self.scanHz = 1000
         self.ecg_filt_state = 0  # either 1 or 0
 
-        self.baseline_vol = 0.0
-        self.thresh_vol = 0.25
+        #self.baseline_vol = 0.0
+        #self.thresh_vol = 0.25
 
         self.baseline_ecg = 0.0
         self.minRR_ecg = 0.100
@@ -44,35 +44,18 @@ class SETTINGS:
 
         self.INVERT_FLOW = 0
         self.INVERT_ECG = 0
+        
 
-        self.current_recovery = 300.0  # is this a setting?
-        self.recovery_increment = 5 * 60.0
-        self.sustained_recovery = 60.0
-        self.minimum_sustained_recovery = 60.0
-        self.sustained_recovery_flag = 1
-
-        self.recovery_mode = "consecutive"  # or 'accumulated'
-        self.minimum_resus_time = 5 * 60.0
-
-        self.minimum_cummulative_QB_duration = 60.0
+        #self.minimum_cummulative_QB_duration = 60.0
         self.baseline_increment = 60.0
 
-        self.baseHR = 1.0
-        self.avgRR = 999.0
+        #self.baseHR = 1.0
+        #self.avgRR = 999.0
         self.OUTPUTFILE = ""
-        self.SLB_Trigger = 5.0
-        self.CALL_DEATH_trigger = 10 * 60.0
+        #self.SLB_Trigger = 5.0
+        #self.CALL_DEATH_trigger = 10 * 60.0
         self.Abort_Toggle = 0
-
-        self.Arduino_Function_Constants = {
-            "Position_RA": 0,
-            "Position_Gas": 3,
-            "Duration_Cal": 100,
-            "Duration_Prefill": 10,
-        }
-
-        self.Challenge_phrase = "Finished: On Anoxic"
-        self.Challenge_Delay = 5.0
+        
 
         self.Mode_settings = {
             "startup1": {
@@ -109,11 +92,12 @@ class SETTINGS:
             },
             "calibration": {
                 "name": "calibration",
-                "duration": 20,
+                "duration": 120,
                 "savable": True,
                 "special_exit": "na",
                 "next_stage": "signal_preview_2",
                 "stage_type": "timed",
+                "auto_pipette_duration": 100
             },
             "signal_preview_2": {
                 "name": "signal_preview_2",
@@ -163,7 +147,7 @@ class SETTINGS:
                 "next_stage": "challenge",
                 "stage_type": "wait_for_condition",
                 "minimum_cummulative_QB_duration": 60.0,
-                "avgBPM": 250,
+                "avgVF": 250,
                 "cvTT": 0.50,
                 "avgHR": 850,
                 "avgRR": 999,
@@ -178,6 +162,24 @@ class SETTINGS:
                 "special_exit": "na",
                 "next_stage": "finished",
                 "stage_type": "wait_for_condition",
+                "slb_trigger": 5.0,
+                "hr_recovery_thresh": 63.0,
+                "vf_recovery_thresh": 50,
+                "challenge_round_limit": -1,
+                "minimum_recovery": 300,
+                "recovery_increment": 300,
+                "max_gas_exposure": 120,
+                "short_recovery_warning": 5,
+                "minimum_sustained_recovery": 60,
+                "recovered_flag": False,
+                "recovery_mode": "consecutive", # or "accumulated"
+                "position_ra": 1,
+                "position_gas": 4,
+                "prefill_duration": 10,
+                "prefill_limit": 60,
+                "challenge_phrase": "Finished: On Anoxic",
+                "threshold_transition_delay": 5,
+                "call_death_trigger": 600
             },
             "finished": {
                 "name": "finished",
@@ -194,51 +196,51 @@ class SETTINGS:
 
         self.made_for_PCC_version = "43.0.0"
 
-        self.expected_fields = {
-            "filt_crit_Dict": {},
-            "sim_mode": 1,
-            "HR_recovery_thresh": 1.1,
-            "BPM_recovery_thresh": 1.1,
-            "QB_minimum_duration": 1.1,
-            "baseline_flow": 1.1,
-            "thresh_flow": 1.1,
-            "thresh2_flow": 1.1,
-            "flow_filt_state": 1,
-            "ecg_filt_state": 1,
-            "baseline_vol": 1.1,
-            "thresh_vol": 1.1,
-            "baseline_ecg": 1.1,
-            "absthresh_ecg": 1.1,
-            "minRR_ecg": 1.1,
-            "thresh_ecg1": 1.1,
-            "thresh_ecg2": 1.1,
-            "noise_ecg": 1.1,
-            "INVERT_FLOW": 1,
-            "INVERT_ECG": 1,
-            "current_recovery": 1.1,
-            "recovery_increment": 1.1,
-            "sustained_recovery": 1.1,
-            "minimum_sustained_recovery": 1.1,
-            "sustained_recovery_flag": 1,
-            "recovery_mode": "",
-            "minimum_resus_time": 1.1,
-            "minimum_cummulative_QB_duration": 1.1,
-            "baseline_increment": 1.1,
-            "baseHR": 1.1,
-            "avgRR": 1.1,
-            "OUTPUTFILE": "",
-            "SLB_Trigger": 1.1,
-            "CALL_DEATH_trigger": 1.1,
-            "Abort_Toggle": 1,
-            "Arduino_Function_Constants": {},
-            "Challenge_phrase": "",
-            "Challenge_Delay": 1.1,
-            "Mode_dict": {},
-            "Mode_timing": {},
-            "savable_modes": [],
-            "made_for_PCC_version": "",
-            "expected_fields": {},
-        }
+        # self.expected_fields = {
+        #     "filt_crit_Dict": {},
+        #     "sim_mode": 1,
+        #     "HR_recovery_thresh": 1.1,
+        #     "BPM_recovery_thresh": 1.1,
+        #     "QB_minimum_duration": 1.1,
+        #     "baseline_flow": 1.1,
+        #     "thresh_flow": 1.1,
+        #     "thresh2_flow": 1.1,
+        #     "flow_filt_state": 1,
+        #     "ecg_filt_state": 1,
+        #     "baseline_vol": 1.1,
+        #     "thresh_vol": 1.1,
+        #     "baseline_ecg": 1.1,
+        #     "absthresh_ecg": 1.1,
+        #     "minRR_ecg": 1.1,
+        #     "thresh_ecg1": 1.1,
+        #     "thresh_ecg2": 1.1,
+        #     "noise_ecg": 1.1,
+        #     "INVERT_FLOW": 1,
+        #     "INVERT_ECG": 1,
+        #     "current_recovery": 1.1,
+        #     "recovery_increment": 1.1,
+        #     "sustained_recovery": 1.1,
+        #     "minimum_sustained_recovery": 1.1,
+        #     "sustained_recovery_flag": 1,
+        #     "recovery_mode": "",
+        #     "minimum_resus_time": 1.1,
+        #     "minimum_cummulative_QB_duration": 1.1,
+        #     "baseline_increment": 1.1,
+        #     "baseHR": 1.1,
+        #     "avgRR": 1.1,
+        #     "OUTPUTFILE": "",
+        #     "SLB_Trigger": 1.1,
+        #     "CALL_DEATH_trigger": 1.1,
+        #     "Abort_Toggle": 1,
+        #     "Arduino_Function_Constants": {},
+        #     "Challenge_phrase": "",
+        #     "Challenge_Delay": 1.1,
+        #     "Mode_dict": {},
+        #     "Mode_timing": {},
+        #     "savable_modes": [],
+        #     "made_for_PCC_version": "",
+        #     "expected_fields": {},
+        # }
 
     def load_from_file(self, filepath, logger=None):
 

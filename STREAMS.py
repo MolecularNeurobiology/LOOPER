@@ -109,7 +109,7 @@ class SimulatedArduino:
         translation_dict = {
             "<C": "calibration-sim",
             "<R": "room air-sim",  # update
-            "<A": "challenge gas-sim",  # update
+            "<A": "Finished: On Anoxic - challenge gas-sim",  # update
             "<U": "startup sent",
             "<S": "standby sent-sim",
             "<Z": "abort sent-sim",
@@ -135,10 +135,19 @@ class SimulatedArduino:
 
 
 # LabJack Related
+class Simulated_U6_Device():
+    def __init__(self,logger):
+        self.logger = logger
+        
+    def setDIOState(self,pin,state):
+        self.logger.info(f"LJ DIO-pin_{pin}_; state_{state}_")
+
+
 class SimulatedDataReader:
     def __init__(self, logger):
 
         self.logger = logger
+        self.device = Simulated_U6_Device(self.logger)
         self.finished = True
         if self.logger:
             self.logger.info("using simulated labjack interface")
@@ -178,6 +187,7 @@ class SimulatedDataReader:
         self.data_sim_timer.start(self.update_interval_ms)
 
     def setDIOState(self, *args):
+
         pass
 
     def set_sim_sig_ain(self, ain, new_Hz):
@@ -390,9 +400,23 @@ class MinervaReceiver:
     def process_data(self, pcc):
         for command in self.data:
             print(command.__dict__)
-            print(command.type._name_ == "GO_TO_NEXT_STEP")
+            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {command.type._name_}")
+            
             if command.type._name_ == "GO_TO_NEXT_STEP":
+                pcc.logger.info("going to next step")
                 pcc.action_next_stage()
+            elif command.type._name_ == "GO_TO_PREV_STEP":
+                pcc.logger.warning("go to prev step command received, this is not implemented in PCC")
+            elif command.type._name_ == "GO_TO_STEP":
+                pcc.logger.info(f"going to a step: {command.payload['stepName']}")
+                pcc.comboBox_Jump_To_Stage.setCurrentText(command.payload['stepName'])
+            elif command.type._name_ == "STOP":
+                pcc.logger.info("STOP command received")
+            elif command.type._name_ == "START":
+                pcc.logger.info(f"START command received - {command.__dict__}")
+                
+            else:
+                pcc.logger.warning(f"unknown minerva command: {command.__dict__}")
 
     def readStreamData(self):
         if self.minerva_plugin_object is not None:

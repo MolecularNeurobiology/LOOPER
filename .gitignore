@@ -3,7 +3,6 @@ __pycache__/
 *.log
 *.pyc
 uv.lock
-
 token.json
 credentials.json
 report.xlsx
