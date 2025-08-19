@@ -239,7 +239,8 @@ class Simulation:
             'timestamp': self._update_timestamp_signal,
             'single_value': self._update_single_value_signal,
             'status': self._update_status_signal,
-            'debug': self._update_debug_signal
+            'debug': self._update_debug_signal,
+            'duration': self._update_duration_signal
         }
 
         if signal_type in update_methods:
@@ -389,6 +390,24 @@ class Simulation:
                 'name': 'Debug Info',
                 'type': 'debug',
                 'data': 'Simulation running normally'
+            },
+            {
+                'name': 'Calibration Timer',
+                'type': 'duration',
+                'duration': 120.0,  # 2 minutes
+                'severity': 'normal'
+            },
+            {
+                'name': 'Warning Timer',
+                'type': 'duration',
+                'duration': 30.0,   # 30 seconds
+                'severity': 'warning'
+            },
+            {
+                'name': 'Critical Timer',
+                'type': 'duration',
+                'duration': 10.0,   # 10 seconds
+                'severity': 'danger'
             }
         ]
         return signals
@@ -642,3 +661,36 @@ class Simulation:
         elapsed_time = current_time - self._start_time
 
         signal['data'] = f'Simulation running for {int(elapsed_time)}s - Step: {self._run.get_current_step_name()}'
+
+    def _update_duration_signal(self, signal):
+        """Update a duration signal with countdown timer"""
+        current_time = time.time()
+        elapsed_time = current_time - self._start_time
+
+        # Create different countdown behaviors for different signals
+        if signal['name'] == 'Calibration Timer':
+            # Count down from 120 seconds, reset when it reaches 0
+            cycle_time = 150  # Reset every 150 seconds
+            remaining = 120 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'normal' if remaining > 30 else 'warning' if remaining > 10 else 'danger'
+
+        elif signal['name'] == 'Warning Timer':
+            # Count down from 30 seconds, reset every 45 seconds
+            cycle_time = 45
+            remaining = 30 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'warning' if remaining > 5 else 'danger'
+
+        elif signal['name'] == 'Critical Timer':
+            # Count down from 10 seconds, reset every 20 seconds
+            cycle_time = 20
+            remaining = 10 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'danger'

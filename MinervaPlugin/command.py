@@ -53,6 +53,7 @@ class SignalType(Enum):
     SINGLE_VALUE = "single_value"
     STATUS = "status"
     DEBUG = "debug"
+    DURATION = "duration"
 
 @dataclass
 class TimeSeriesDataPoint:
@@ -105,8 +106,14 @@ class DebugSignal(BaseSignal):
     """Signal with debug text."""
     data: str = ""
 
+@dataclass
+class DurationSignal(BaseSignal):
+    """Signal with duration countdown and severity status."""
+    duration: float = 0.0  # Duration in seconds
+    severity: str = "normal"  # "normal", "warning", "danger"
+
 # Union type for Signal
-Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSignal, DebugSignal]
+Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSignal, DebugSignal, DurationSignal]
 
 # Stream Command (kept minimal for compatibility; plugin handles stream via _handle_stream_control)
 class StreamCommand(Command):

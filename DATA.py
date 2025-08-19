@@ -112,6 +112,7 @@ class DATA:
         SINGLE_VALUE = "single_value"
         STATUS = "status"
         DEBUG = "debug"
+        DURATION = "duration"
         """
 
         if attr_dict is None:
@@ -189,4 +190,27 @@ class DATA:
                         ],
                     }
                 )
+
+            if v["sig_type"] == "DURATION":
+                # Get duration data - should be a dict with 'duration' and 'severity' keys
+                duration_data = getattr(self, k, {"duration": 0.0, "severity": "normal"})
+                if isinstance(duration_data, dict):
+                    signal_payload["signals"].append(
+                        {
+                            "name": k,
+                            "type": "duration",
+                            "duration": duration_data.get("duration", 0.0),
+                            "severity": duration_data.get("severity", "normal"),
+                        }
+                    )
+                else:
+                    # Fallback if duration_data is not a dict
+                    signal_payload["signals"].append(
+                        {
+                            "name": k,
+                            "type": "duration",
+                            "duration": float(duration_data) if duration_data else 0.0,
+                            "severity": "normal",
+                        }
+                    )
         return signal_payload
