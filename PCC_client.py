@@ -54,7 +54,27 @@ import STAGES
 
 
 # %% define functions
-def get_mac():
+def get_mac(custom_mac=None):
+    """
+    Get MAC address for the system.
+
+    Args:
+        custom_mac (str, optional): Custom MAC address to use instead of system MAC.
+                                   Useful for simulation mode. Should be in format xx:xx:xx:xx:xx:xx
+
+    Returns:
+        str: MAC address string
+    """
+    if custom_mac is not None and custom_mac != "":
+        # Basic validation of MAC address format
+        import re
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        if re.match(mac_pattern, custom_mac):
+            return custom_mac
+        else:
+            print("Warning: Invalid MAC address format '{}'. Using as-is.".format(custom_mac))
+            return custom_mac
+
     interfaces = psutil.net_if_addrs()
     mac = "nn:nn:nn:nn"
     for i_name, i_addr in interfaces.items():
@@ -139,7 +159,9 @@ class MainWindow(QMainWindow):
         self.label_Title_and_Version.setText(f"PCC-client {version}")
 
         # get mac - used for registering with Minerva Server
-        self.mac = get_mac()
+        # use custom MAC if provided in simulation mode
+        custom_mac = getattr(parsed_args, 'custom_mac', None)
+        self.mac = get_mac(custom_mac)
         print(self.mac)
 
         # create stupid counter to use for printing things I want to calculate frequently but only want to check occasionally
@@ -166,6 +188,11 @@ class MainWindow(QMainWindow):
         # test logging output
         self.logger.debug("DEBUG")
         self.logger.info("INFO")
+
+        # Log custom MAC usage if applicable
+        custom_mac = getattr(parsed_args, 'custom_mac', None)
+        if custom_mac:
+            self.logger.info("Using custom MAC address: {}".format(self.mac))
         self.logger.warning("WARNING")
         self.logger.error("ERROR")
 
@@ -918,6 +945,8 @@ def main():
     parser.add_argument("-l", "--simulation_labjack", action="store_true")
     parser.add_argument("-a", "--simulation_arduino", action="store_true")
     parser.add_argument("-k", "--kill", type=int, help="kill process after __ seconds")
+    parser.add_argument("-m", "--custom-mac", dest="custom_mac", type=str,
+                       help="custom MAC address to use in simulation mode (format: xx:xx:xx:xx:xx:xx)")
     parsed_args = parser.parse_args()
 
     args = sys.argv.copy()

@@ -1,4 +1,5 @@
 from plugin import Plugin, PluginRegistration, MinervaStreamData
+from status_reporting import StatusSeverity, StatusCategory
 from rig import Rig
 from run import Run
 import random
@@ -35,6 +36,21 @@ class Simulation:
             logger.info("Attempting to start plugin")
             self._plugin.start()
         except Exception as e:
+            # Report structured status to the plugin's status system
+            if hasattr(self, '_plugin'):
+                self._plugin.report_status(
+                    severity=StatusSeverity.CRITICAL,
+                    category=StatusCategory.SYSTEM,
+                    code="PLUGIN_INITIALIZATION_FAILED",
+                    message=f"Failed to initialize plugin for MAC {mac_address}",
+                    details={
+                        'mac_address': mac_address,
+                        'step': self._run.get_current_step_name() if hasattr(self, '_run') else None,
+                        'error_type': type(e).__name__
+                    },
+                    component="simulation_init",
+                    exception=e
+                )
             logger.error(f"Failed to initialize plugin: {e}")
             raise
 
@@ -81,6 +97,20 @@ class Simulation:
             # Update plugin with stream data
             self._plugin.update_stream_data(self.stream_data)
         except Exception as e:
+            # Report data processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.HIGH,
+                category=StatusCategory.DATA_PROCESSING,
+                code="STREAM_DATA_SETUP_FAILED",
+                message="Failed to setup initial stream data",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'stages_count': len(stages) if 'stages' in locals() else 0,
+                    'signals_count': len(signals) if 'signals' in locals() else 0
+                },
+                component="stream_data_setup",
+                exception=e
+            )
             self.logger.error(f"Failed to setup stream data: {e}")
             raise
 
@@ -96,6 +126,21 @@ class Simulation:
                 # Just prepare basic signal data without intensive updates
                 self._prepare_signal_data()
         except Exception as e:
+            # Report performance/processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.PERFORMANCE,
+                code="SIMULATION_REPORT_FAILED",
+                message="Failed to update simulation report",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'rig_state': str(self.rig.state),
+                    'current_step': self._run.get_current_step_name(),
+                    'active_sessions': self._plugin.get_user_session_count()
+                },
+                component="simulation_report",
+                exception=e
+            )
             self.logger.error(f"Error in report: {e}")
 
     def _update_signal_data(self):
@@ -146,6 +191,20 @@ class Simulation:
             # Also update the default stream data (for backward compatibility)
             self._plugin.update_stream_data(self.stream_data)
         except Exception as e:
+            # Report signal data processing status
+            self._plugin.report_status(
+                severity=StatusSeverity.MEDIUM,
+                category=StatusCategory.DATA_PROCESSING,
+                code="SIGNAL_DATA_UPDATE_FAILED",
+                message="Failed to update signal data for streaming",
+                details={
+                    'mac_address': self.rig.mac_address,
+                    'active_sessions': len(self._plugin.get_active_user_sessions()) if hasattr(self, '_plugin') else 0,
+                    'signals_count': len(self.stream_data.signals) if hasattr(self, 'stream_data') and self.stream_data else 0
+                },
+                component="signal_data_update",
+                exception=e
+            )
             self.logger.error(f"Error updating signal data: {e}")
 
     def _prepare_signal_data(self):
@@ -180,7 +239,8 @@ class Simulation:
             'timestamp': self._update_timestamp_signal,
             'single_value': self._update_single_value_signal,
             'status': self._update_status_signal,
-            'debug': self._update_debug_signal
+            'debug': self._update_debug_signal,
+            'duration': self._update_duration_signal
         }
 
         if signal_type in update_methods:
@@ -222,14 +282,18 @@ class Simulation:
         if hasattr(self, 'stream_data'):
             stages = []
             for i, step in enumerate(steps):
-                # Map step to a stage type
-                stage_type = 'wait_for_user'  # Default
-                if i == 0 or i == len(steps) - 1:
-                    stage_type = 'wait_for_user'  # First and last steps are wait_for_user
-                elif i % 2 == 0:
-                    stage_type = 'timed'  # Even steps are timed
+                # Use step type if provided, otherwise use default logic
+                if hasattr(step, 'type') and step.type:
+                    stage_type = step.type
                 else:
-                    stage_type = 'wait_for_condition'  # Odd steps wait for condition
+                    # Fallback to default logic
+                    stage_type = 'wait_for_user'  # Default
+                    if i == 0 or i == len(steps) - 1:
+                        stage_type = 'wait_for_user'  # First and last steps are wait_for_user
+                    elif i % 2 == 0:
+                        stage_type = 'timed'  # Even steps are timed
+                    else:
+                        stage_type = 'wait_for_condition'  # Odd steps wait for condition
 
                 stage = {
                     'name': step.name,
@@ -238,12 +302,19 @@ class Simulation:
 
                 # Add duration for timed stages (use snake_case for backend)
                 if stage_type == 'timed':
-                    stage['duration_in_seconds'] = 120
+                    # Use step duration if provided, otherwise default to 120 seconds
+                    if hasattr(step, 'durationInSeconds') and step.durationInSeconds:
+                        stage['duration_in_seconds'] = step.durationInSeconds
+                    elif hasattr(step, 'duration_in_seconds') and step.duration_in_seconds:
+                        stage['duration_in_seconds'] = step.duration_in_seconds
+                    else:
+                        stage['duration_in_seconds'] = 120
 
                 stages.append(stage)
 
             self.stream_data.stages = stages
             self._plugin.update_stream_data(self.stream_data)
+            self.logger.info(f"Configured run with {len(stages)} dynamic stages: {[s['name'] for s in stages]}")
 
         self.update_step()
 
@@ -319,6 +390,24 @@ class Simulation:
                 'name': 'Debug Info',
                 'type': 'debug',
                 'data': 'Simulation running normally'
+            },
+            {
+                'name': 'Calibration Timer',
+                'type': 'duration',
+                'duration': 120.0,  # 2 minutes
+                'severity': 'normal'
+            },
+            {
+                'name': 'Warning Timer',
+                'type': 'duration',
+                'duration': 30.0,   # 30 seconds
+                'severity': 'warning'
+            },
+            {
+                'name': 'Critical Timer',
+                'type': 'duration',
+                'duration': 10.0,   # 10 seconds
+                'severity': 'danger'
             }
         ]
         return signals
@@ -572,3 +661,36 @@ class Simulation:
         elapsed_time = current_time - self._start_time
 
         signal['data'] = f'Simulation running for {int(elapsed_time)}s - Step: {self._run.get_current_step_name()}'
+
+    def _update_duration_signal(self, signal):
+        """Update a duration signal with countdown timer"""
+        current_time = time.time()
+        elapsed_time = current_time - self._start_time
+
+        # Create different countdown behaviors for different signals
+        if signal['name'] == 'Calibration Timer':
+            # Count down from 120 seconds, reset when it reaches 0
+            cycle_time = 150  # Reset every 150 seconds
+            remaining = 120 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'normal' if remaining > 30 else 'warning' if remaining > 10 else 'danger'
+
+        elif signal['name'] == 'Warning Timer':
+            # Count down from 30 seconds, reset every 45 seconds
+            cycle_time = 45
+            remaining = 30 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'warning' if remaining > 5 else 'danger'
+
+        elif signal['name'] == 'Critical Timer':
+            # Count down from 10 seconds, reset every 20 seconds
+            cycle_time = 20
+            remaining = 10 - (elapsed_time % cycle_time)
+            if remaining < 0:
+                remaining = 0
+            signal['duration'] = max(0, remaining)
+            signal['severity'] = 'danger'

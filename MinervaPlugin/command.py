@@ -8,14 +8,15 @@ except:
     print("attempting relative import of step")
     from .step import Step
 
+# Deprecated: Static command enum no longer used in dynamic command model
 class COMMANDS(Enum):
     CONFIRM_REGISTER = 0
     START = 1
     GO_TO_NEXT_STEP = 2
     GO_TO_PREV_STEP = 3
     GO_TO_STEP = 4
-    STREAM = 5  # New command type for streaming
-    STOP_STREAM = 6  # New command type for stopping the stream
+    STREAM = 5
+    STOP_STREAM = 6
 
 class Command(ABC):
     def __init__(self, command_type: COMMANDS, payload: Dict[str, Any]):
@@ -28,13 +29,14 @@ class Command(ABC):
 @dataclass
 class StartPayload:
     steps: list[Step]
+    settings: list = None  # Optional settings for backward compatibility
 
-@dataclass
-class GoToPayload:
-    step: Step
+
+# Deprecated: Plugin no longer constructs typed Start/Next commands in dynamic model
 
 class StartCommand(Command):
-    def __init__(self, payload: StartPayload):
+    def __init__(self, payload: dict):
+        # Keep for backward compatibility in simulator/tests, but do not transform steps
         super().__init__(command_type=COMMANDS.START, payload=payload)
 
 class GoToNextStep(Command):
@@ -57,6 +59,7 @@ class SignalType(Enum):
     SINGLE_VALUE = "single_value"
     STATUS = "status"
     DEBUG = "debug"
+    DURATION = "duration"
 
 @dataclass
 class TimeSeriesDataPoint:
@@ -109,58 +112,47 @@ class DebugSignal(BaseSignal):
     """Signal with debug text."""
     data: str = ""
 
-# Union type for Signal
-Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSignal, DebugSignal]
+@dataclass
+class DurationSignal(BaseSignal):
+    """Signal with duration countdown and severity status."""
+    duration: float = 0.0  # Duration in seconds
+    severity: str = "normal"  # "normal", "warning", "danger"
 
-# Stream Command
+# Union type for Signal
+Signal = Union[TimeSeriesSignal, TimestampSignal, SingleValueSignal, StatusSignal, DebugSignal, DurationSignal]
+
+# Stream Command (kept minimal for compatibility; plugin handles stream via _handle_stream_control)
 class StreamCommand(Command):
-    """Command to initiate or update streaming of Minerva data."""
     def __init__(self, command_data: Dict[str, Any]):
-        # Extract payload from the command data
         payload = command_data.get('payload', {})
         super().__init__(command_type=COMMANDS.STREAM, payload=payload)
-        # Store the full command data to access top-level fields
         self._command_data = command_data
 
     def get_user_id(self) -> str:
-        """Get the user ID from the command (checks both top level and payload)."""
-        # First check top level (where frontend sends it)
         user_id = self._command_data.get('userId')
         if user_id is not None:
             return str(user_id)
-
-        # Fallback to payload (for backward compatibility)
         user_id = self.payload.get('userId')
         if user_id is not None:
             return str(user_id)
-
-        # Final fallback
         return 'default_user'
 
     def get_mac_address(self) -> str:
-        """Get the MAC address from the command (checks both top level and payload)."""
-        # First check top level (where frontend sends it)
         mac_address = self._command_data.get('macAddress')
         if mac_address is not None:
             return mac_address
-
-        # Fallback to payload (for backward compatibility)
         return self.payload.get('macAddress')
 
     def get_stages(self) -> List[Dict[str, Any]]:
-        """Get the stages from the payload or an empty list if none."""
         return self.payload.get('stages', [])
 
     def get_signals(self) -> List[Dict[str, Any]]:
-        """Get the signals from the payload or an empty list if none."""
         return self.payload.get('signals', [])
 
     def get_current_stage(self) -> Optional[str]:
-        """Get the current stage from the payload or None if not specified."""
         return self.payload.get('currentStage')
 
-# Stop Stream Command
+# Stop Stream Command (deprecated in plugin; rely on heartbeat TTL)
 class StopStreamCommand(Command):
-    """Command to stop streaming data."""
     def __init__(self):
         super().__init__(command_type=COMMANDS.STOP_STREAM, payload=None)

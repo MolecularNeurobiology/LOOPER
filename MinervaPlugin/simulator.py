@@ -5,9 +5,15 @@ import sys
 from time import sleep
 from typing import List
 
-from command import GoToNextStep, StartCommand
+# Legacy typed commands imported for backward compatibility
+try:
+    from command import GoToNextStep, StartCommand
+except Exception:
+    GoToNextStep = None
+    StartCommand = None
 from faker import Faker
 from simulation import Simulation
+from status_reporting import StatusSeverity, StatusCategory
 
 def setup_logger(start_time):
     log_directory = "logs"
@@ -66,26 +72,114 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
 
                     commands_to_process = sim.plugin.pop_commands()
                     for command in commands_to_process:
-                        match command:
-                            case StartCommand():
+                        # Support both legacy typed commands and new dynamic dict commands
+                        try:
+                            # Legacy typed command handling (if classes are available)
+                            if StartCommand is not None and isinstance(command, StartCommand):
+                                if hasattr(command, 'payload') and hasattr(command.payload, 'steps') and command.payload.steps:
+                                    logging.info(f"Configuring run with {len(command.payload.steps)} steps from payload (legacy)")
+                                    sim.configure_run(command.payload.steps)
+                                else:
+                                    logging.info("Start received (legacy), using PCC default steps")
                                 sim.start()
-                            case GoToNextStep():
+                                continue
+                            if GoToNextStep is not None and isinstance(command, GoToNextStep):
                                 sim.go_to_next_step()
-                            case _:
-                                logging.debug(f"Unknown command received: {command}")
+                                continue
+                        except Exception as e:
+                            # Report legacy command processing status
+                            sim.plugin.report_status(
+                                severity=StatusSeverity.HIGH,
+                                category=StatusCategory.COMMAND_PROCESSING,
+                                code="LEGACY_COMMAND_PROCESSING_FAILED",
+                                message=f"Failed to process legacy command: {type(command).__name__}",
+                                details={
+                                    'command_type': type(command).__name__,
+                                    'mac_address': sim.rig.mac_address
+                                },
+                                component="legacy_command_processor",
+                                exception=e
+                            )
+                            logging.error(f"Error handling legacy command type: {e}")
 
-                    # Update metrics
-                    metrics = sim.plugin.get_metrics()
-                    metrics.avg_bpm = Faker.generate_fake_bpm()
-                    metrics.avg_hr = Faker.generate_fake_hr()
-                    sim.update_metrics(metrics)
+                        # New dynamic command handling expects a dict with 'type'
+                        if isinstance(command, dict):
+                            cmd_type = str(command.get('type', '')).lower()
+                            payload = command.get('payload')
+
+                            if cmd_type == 'start':
+                                # Ignore steps in payload; PCC owns step resolution now
+                                if payload and isinstance(payload, dict) and 'steps' in payload:
+                                    logging.info("Start payload contained 'steps' - ignoring per new architecture")
+                                sim.start()
+                            elif cmd_type in ('go_to_next', 'go_to_next_step'):
+                                sim.go_to_next_step()
+                            elif cmd_type == 'go_to_step':
+                                # Optional: jump to specific step if PCC exposes such API
+                                step_id = None
+                                if isinstance(payload, dict):
+                                    step_id = payload.get('step') or payload.get('index') or payload.get('name')
+                                logging.info(f"go_to_step received (step={step_id}) - implement in PCC as needed")
+                            else:
+                                logging.debug(f"Unknown or unsupported command type: {cmd_type}")
+                        else:
+                            logging.debug(f"Unknown command format: {type(command)}")
+
+                    # Update metrics with error handling
+                    try:
+                        metrics = sim.plugin.get_metrics()
+                        metrics.avg_bpm = Faker.generate_fake_bpm()
+                        metrics.avg_hr = Faker.generate_fake_hr()
+                        sim.update_metrics(metrics)
+                    except Exception as e:
+                        # Report metrics update status
+                        sim.plugin.report_status(
+                            severity=StatusSeverity.MEDIUM,
+                            category=StatusCategory.DATA_PROCESSING,
+                            code="METRICS_UPDATE_FAILED",
+                            message="Failed to update simulation metrics",
+                            details={
+                                'mac_address': sim.rig.mac_address,
+                                'attempted_bpm': Faker.generate_fake_bpm() if 'Faker' in globals() else None
+                            },
+                            component="metrics_updater",
+                            exception=e
+                        )
+                        logging.error(f"Error updating metrics for {sim.rig.mac_address}: {e}")
+
                 except Exception as e:
+                    # Report simulation processing status
+                    if hasattr(sim, 'plugin'):
+                        sim.plugin.report_status(
+                            severity=StatusSeverity.HIGH,
+                            category=StatusCategory.SYSTEM,
+                            code="SIMULATION_PROCESSING_FAILED",
+                            message=f"Error processing simulation for rig {sim.rig.mac_address}",
+                            details={
+                                'mac_address': sim.rig.mac_address,
+                                'rig_state': str(sim.rig.state) if hasattr(sim, 'rig') else 'unknown'
+                            },
+                            component="simulation_loop",
+                            exception=e
+                        )
                     logging.error(f"Error processing simulation {sim.rig.mac_address}: {e}")
 
         except KeyboardInterrupt:
             print("\nReceived shutdown signal. Cleaning up...")
             running = False
         except Exception as e:
+            # Report critical system status
+            for sim in simulations:
+                if hasattr(sim, 'plugin'):
+                    sim.plugin.report_status(
+                        severity=StatusSeverity.CRITICAL,
+                        category=StatusCategory.SYSTEM,
+                        code="SIMULATION_LOOP_CRITICAL_ERROR",
+                        message="Critical error in main simulation loop",
+                        details={'error_type': type(e).__name__},
+                        component="main_loop",
+                        exception=e
+                    )
             logging.error(f"Error in simulation loop: {e}")
             running = False
 
