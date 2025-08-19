@@ -859,7 +859,7 @@ class MainWindow(QMainWindow):
                     for k, v in self.settings.Mode_settings.items()
                 ],
                 current_stage=self.active_stage.name,
-                signals=self.data.prepare_data_payload()["signals"],
+                signals=self.data.prepare_data_payload(attr_dict=self.data.minerva_attr_dict)["signals"],
             )
             if self.minerva_stream:
                 # Send data to all active user sessions instead of hardcoding user_id="1"
