@@ -19,9 +19,10 @@ class STAGE(ABC):
         self.pcc.data.current_time = datetime.now()
         self.pcc.data.time_in_stage = 0
         self.pcc.data.time_in_stage_seconds = 0
+        self.pcc.data.minerva_attr_dict["time_in_stage_seconds"] = {"sig_type":"DURATION"}
+
         self.stage_time_limit = setting_dict["duration"]
         self.save_flag = setting_dict["savable"]
-        # self.register_data()
 
     def test_time_in_stage(self):
         """
@@ -124,6 +125,8 @@ class startup1(STAGE):
 class startup2(STAGE):
     def register_data(self):
         self.pcc.data.arduino_startup_motion_tested = False
+        
+        self.pcc.data.minerva_attr_dict["arduino_startup_motion_tested"] = {"sig_type":"STATUS"}
 
     def additional_on_load(self):
         self.pcc.data.arduino_startup_motion_tested = False
@@ -179,6 +182,9 @@ class calibration(STAGE):
         self.pcc.data.calibration_breath_duration = None
         self.pcc.data.calibration_breath_dict = {}
         self.pcc.data.recent_calibration_breath = 0
+
+        self.pcc.data.minerva_attr_dict["calibration_tv_voltage"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["calibration_breath_duration"] = {"sig_type":"SINGLE_VALUE"}
 
     def additional_on_load(self):
         self.pcc.arduino_stream.sendCommand(
@@ -259,6 +265,15 @@ class baseline(STAGE):
         self.pcc.data.baseline_itv = 0
         self.pcc.data.baseline_rr = 0
         self.pcc.data.baseline_hr = 0
+
+        self.pcc.data.minerva_attr_dict["quality_test"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["quality_status"] = {"sig_type":"DEBUG"}
+        self.pcc.data.minerva_attr_dict["qb_time_running_sec"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["baseline_tt"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["baseline_vf"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["baseline_itv"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["baseline_rr"] = {"sig_type":"SINGLE_VALUE"}
+        self.pcc.data.minerva_attr_dict["baseline_hr"] = {"sig_type":"SINGLE_VALUE"}
 
     def additional_on_load(self):
         self.filt_crit_Dict = {
@@ -412,6 +427,7 @@ class challenge(STAGE):
         self.pcc.data.challenge_state = "n/a"
         self.pcc.data.prev_challenge_state = "n/a"
         self.pcc.data.challenge_history = {}
+        self.pcc.data.challenge_history_text = ""
         self.pcc.data.recovery_bout_start = None
         self.pcc.data.recovery_bout_duration = 0
         self.pcc.data.accumulated_recovery_bout_duration = 0
@@ -433,6 +449,24 @@ class challenge(STAGE):
         self.pcc.data.gasp_detected_flag = False
         self.pcc.data.new_state = False
         self.pcc.data.pulse_sender = None
+
+        self.pcc.data.minerva_attr_dict["challenge_state"] = {"sig_type":"DEBUG"}
+        self.pcc.data.minerva_attr_dict["challenge_history_text"] = {"sig_type":"DEBUG"}
+        self.pcc.data.minerva_attr_dict["recovery_status"] = {"sig_type":"DEBUG"}
+
+        self.pcc.data.minerva_attr_dict["acc_rec_flag"] = {"sig_type":"STATUS"}
+        self.pcc.data.minerva_attr_dict["con_rec_flag"] = {"sig_type":"STATUS"}
+        self.pcc.data.minerva_attr_dict["recovered_flag"] = {"sig_type":"STATUS"}
+        self.pcc.data.minerva_attr_dict["gasp_detected_flag"] = {"sig_type":"STATUS"}
+
+        self.pcc.data.minerva_attr_dict["current_prefill_duration"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["current_gas_exposure_duration"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["current_recovery_waiting_interval"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["current_recovery_duration"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["current_latency_to_gasp"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["recovery_bout_duration"] = {"sig_type":"DURATION"}
+        self.pcc.data.minerva_attr_dict["accumulated_recovery_bout_duration"] = {"sig_type":"DURATION"}
+        
 
     def recovery_test(self):
         # test for not recovered conditions
@@ -626,6 +660,11 @@ class challenge(STAGE):
         self.pcc.data.challenge_state = "n/a"
         self.pcc.data.prev_challenge_state = "n/a"
 
+    def prepare_challenge_history_text(self):
+        self.pcc.logger.info("updating challenge history")
+        self.pcc.data.challenge_history_text = "\n".join([f"{chall_num}:" + ", ".join([f"{k}-{v}" for k,v in chall_outcomes.items()]) for chall_num,chall_outcomes in self.pcc.data.challenge_history.items()])
+
+
     def additional_event_loop(self):
         self.pcc.label_debug.setText(self.pcc.data.challenge_state)
 
@@ -637,6 +676,11 @@ class challenge(STAGE):
                 self.pcc.data.current_recovery_start = datetime.now()
                 # reset "gas exposure timer" for next round
                 self.pcc.data.current_gas_exposure_duration = 0
+
+                # prepare challenge_history_text
+                self.prepare_challenge_history_text()
+                self.pcc.logger.info(self.pcc.data.challenge_history_text)
+
 
             # maintain thresh2 until gasp detected then transition to thresh1 (if possible revise marker color)
             self.pcc.data.current_recovery_duration = (
@@ -668,6 +712,8 @@ class challenge(STAGE):
                 self.pcc.data.current_recovery_waiting_interval = self.setting_dict[
                     "minimum_recovery"
                 ]
+                # prepare challenge_history_text
+                self.prepare_challenge_history_text()
                 # send command to arduino to initiate gas challenge
                 self.pcc.arduino_stream.sendCommand(
                     f"<A,{self.setting_dict["position_gas"]},{self.setting_dict["prefill_duration"]}>"
@@ -685,6 +731,8 @@ class challenge(STAGE):
                 # reset "prefill timer" for next round
                 self.pcc.data.current_prefill_duration = 0
                 self.pcc.data.current_gas_exposure_start = datetime.now()
+                # prepare challenge_history_text
+                self.prepare_challenge_history_text()
 
             self.pcc.data.current_gas_exposure_duration = (
                 datetime.now() - self.pcc.data.current_gas_exposure_start
@@ -711,6 +759,10 @@ class challenge(STAGE):
     def additional_exit_test(self):
         if self.pcc.data.SLB > self.setting_dict["call_death_trigger"]:
             self.pcc.automated = True
+            self.prepare_challenge_history_text()
+            self.pcc.logger.info(self.pcc.data.challenge_history_text)
+
+
             return True
         elif (
             self.pcc.data.current_challenge_round
@@ -720,6 +772,10 @@ class challenge(STAGE):
         ):
             self.pcc.automated = True
             self.pcc.logger.info("animal reached challenge round limit")
+            self.prepare_challenge_history_text()
+            self.pcc.logger.info(self.pcc.data.challenge_history_text)
+
+
             return True
 
 
@@ -728,3 +784,4 @@ class finished(STAGE):
         self.pcc.data.PCC_client_status = "Finished"
         self.pcc.logger.info("Experiment Ended")
         self.pcc.arduino_stream.sendCommand("<D,0,0>")
+        self.pcc.label_debug.setText = self.pcc.data.challenge_history_text

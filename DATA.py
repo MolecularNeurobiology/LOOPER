@@ -68,6 +68,24 @@ class DATA:
 
         self.recent_log_entries = ""
 
+        # register entries for minerva payloads
+        self.minerva_attr_dict = {
+            "trimmed_pneumo": {"sig_type": "TIME_SERIES"},
+            "trimmed_ecg": {"sig_type": "TIME_SERIES"},
+            "breath_list": {
+                "sig_type": "TIMESTAMP",
+                "displayWith": "trimmed_pneumo",
+            },
+            "beat_list": {"sig_type": "TIMESTAMP", "displayWith": "trimmed_ecg"},
+            "avg_vf": {"sig_type": "SINGLE_VALUE"},
+            "avg_hr": {"sig_type": "SINGLE_VALUE"},
+            "arduino_startup_motion_tested": {"sig_type": "STATUS"},
+            "recent_log_entries": {"sig_type": "DEBUG"},
+            "error_state": {"sig_type": "STATUS"},
+            "error_state_text": {"sig_type": "DEBUG"},
+            "time_in_stage_seconds": {"sig_type": "DURATION"}
+        }
+
         
 
     def prepare_data_payload(self, attr_dict=None):
@@ -109,17 +127,17 @@ class DATA:
         for k, v in attr_dict.items():
             if v["sig_type"] == "DEBUG":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "debug", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "debug", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "STATUS":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "status", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "status", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "SINGLE_VALUE":
                 signal_payload["signals"].append(
-                    {"name": k, "type": "single_value", "data": getattr(self, k)}
+                    {"name": v.get("name",k), "type": "single_value", "data": getattr(self, k)}
                 )
 
             if v["sig_type"] == "TIMESTAMP":
@@ -144,7 +162,7 @@ class DATA:
 
                 signal_payload["signals"].append(
                     {
-                        "name": k,
+                        "name": v.get("name",k),
                         "type": "timestamp",
                         "displayWith": v["displayWith"],
                         "data": [
@@ -156,7 +174,7 @@ class DATA:
             if v["sig_type"] == "TIME_SERIES":
                 signal_payload["signals"].append(
                     {
-                        "name": k,
+                        "name": v.get("name",k),
                         "type": "time_series",
                         "xUnit": "seconds",
                         "data": [
@@ -165,4 +183,5 @@ class DATA:
                         ],
                     }
                 )
+
         return signal_payload
