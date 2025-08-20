@@ -1,0 +1,30 @@
+[project]
+name = "PCC"
+version = "1.0.0"
+description = "PCC"
+authors = [{ name = "Christopher Scott Ward", email = "christopher.ward@bcm.edu" }]
+readme = "README.md"
+requires-python = "==3.8.*"
+dependencies = [
+    "dataclasses==0.6",
+    "gpiozero==2.0",
+    "LabJackPython==2.1.0",
+    "lgpio",
+    "numpy==1.24.4",
+    "pandas==2.0.3",
+    "pygame==1.9.6",
+    "PySide6",
+    "pyserial==3.5",
+    "python-dateutil==2.8.2",
+    "python-fmrest==1.7.1",
+    "pytz==2023.4",
+    "requests==2.31.0",
+    "scipy==1.10.1",
+    "six==1.16.0",
+    "tzdata==2023.4",
+    "urllib3==2.2.1",
+]
+
+
+
+[project.optional-dependencies]
