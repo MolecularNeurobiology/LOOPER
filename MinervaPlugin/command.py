@@ -44,7 +44,7 @@ class GoToNextStep(Command):
         super().__init__(command_type=COMMANDS.GO_TO_NEXT_STEP, payload=None)
 
 class GoToStep(Command):
-    def __init__(self, payload: GoToPayload):
+    def __init__(self, payload: None):
         super().__init__(command_type=COMMANDS.GO_TO_STEP, payload=payload)
 
 # New classes for stream data based on TypeScript types

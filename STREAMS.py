@@ -399,10 +399,10 @@ class MinervaReceiver:
 
     def process_data(self, pcc):
         for command in self.data:
-            print(command.__dict__)
-            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {command.type._name_}")
+            print(command)
+            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {command["type"]}")
             
-            if command.type._name_ == "GO_TO_NEXT_STEP":
+            if command['type'] == "go_to_next":
                 pcc.logger.info("going to next step")
                 pcc.action_next_stage()
             elif command.type._name_ == "GO_TO_PREV_STEP":
