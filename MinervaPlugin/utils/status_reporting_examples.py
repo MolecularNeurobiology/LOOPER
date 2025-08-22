@@ -6,7 +6,7 @@ This file demonstrates practical use cases for the status reporting system
 in the PCC (Plugin Control Center) environment.
 """
 
-from status_reporting import StatusSeverity, StatusCategory
+from ..core.status_reporting import StatusSeverity, StatusCategory
 
 # Example: How to use status reporting in your PCC components
 

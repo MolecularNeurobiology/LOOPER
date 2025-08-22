@@ -6,7 +6,7 @@ This resolves the PRECONDITION_FAILED error when queue arguments don't match.
 
 import pika
 import logging
-from config import RABBITMQ_SERVER, PING_QUEUE, COMMAND_QUEUE, MINERVA_STREAM_QUEUE
+from ..core.config import RABBITMQ_SERVER, PING_QUEUE, COMMAND_QUEUE, MINERVA_STREAM_QUEUE
 
 def setup_logging():
     """Set up logging configuration."""

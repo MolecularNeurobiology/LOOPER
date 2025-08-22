@@ -13,8 +13,8 @@ Usage:
 import json
 import time
 from datetime import datetime
-from plugin import PCC_Plugin
-from config import *
+from ..core.plugin import PCC_Plugin
+from ..core.config import *
 
 class DualQueueValidator:
     """Comprehensive validation and reporting for dual queue architecture"""

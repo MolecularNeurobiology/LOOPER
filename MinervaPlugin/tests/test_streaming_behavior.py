@@ -29,7 +29,7 @@ def simulate_stream_command(user_id="test_user"):
         dict: A stream command payload.
     """
     return {
-        'type': COMMANDS.STREAM.value,
+        'type': 'stream',
         'userId': user_id,
         'payload': {
             'macAddress': 'test:mac:address',
@@ -61,7 +61,7 @@ def simulate_stop_stream_command(user_id="test_user"):
         dict: A stop stream command payload.
     """
     return {
-        'type': COMMANDS.STOP_STREAM.value,
+        'type': 'stop_stream',
         'userId': user_id,
         'payload': {
             'userId': user_id
