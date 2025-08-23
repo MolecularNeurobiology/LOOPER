@@ -55,11 +55,18 @@ class PCCDispatcher:
 #        if not dispatcher.dispatch(cmd):
 #            logger.debug(f"Unhandled command: {cmd.get('type')}")
 #
-# 2) Register concrete PCC behaviors:
+# 2) Register concrete PCC behaviors (updated for seeded commands):
 #
-#    dispatcher.register_handler('start', lambda cmd: pcc.start_run(cmd.get('payload')))
+#    # New seeded command names
+#    dispatcher.register_handler('initialize_rig', lambda cmd: pcc.start_run(cmd.get('payload')))
 #    dispatcher.register_handler('go_to_next', lambda cmd: pcc.go_to_next_step())
-#    dispatcher.register_handler('go_to_step', lambda cmd: pcc.go_to_step((cmd.get('payload') or {}).get('index')))
+#    dispatcher.register_handler('go_to_step', lambda cmd: pcc.go_to_step((cmd.get('payload') or {}).get('step')))
+#    dispatcher.register_handler('send_filename', lambda cmd: pcc.load_file((cmd.get('payload') or {}).get('filename')))
+#    dispatcher.register_handler('stop_experiment', lambda cmd: pcc.stop_experiment())
+#
+#    # Legacy command support for backward compatibility
+#    dispatcher.register_handler('start', lambda cmd: pcc.start_run(cmd.get('payload')))  # maps to initialize_rig
+#    dispatcher.register_handler('load_pups', lambda cmd: pcc.load_file((cmd.get('payload') or {}).get('filename')))  # maps to send_filename
 #
 # 3) Steps ownership: PCC resolves steps from assay settings/state internally.
 #    The 'start' command should not expect inline 'steps' in payload.

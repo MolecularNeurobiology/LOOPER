@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from step import Step
+from ..models.step import Step
 
 class Run(ABC): 
     def __init__(self):

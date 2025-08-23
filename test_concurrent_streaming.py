@@ -13,7 +13,7 @@ import logging
 # Import the plugin module
 try:
     from MinervaPlugin.plugin import Plugin, PluginRegistration
-    from MinervaPlugin.command import COMMANDS
+    from MinervaPlugin.command import SEEDED_COMMANDS
 except ImportError as e:
     print(f"Import error: {e}")
     print("Make sure you're running this from the correct directory")
@@ -36,7 +36,7 @@ def simulate_stream_command(user_id, mac_address="test:mac:address"):
         dict: A stream command payload.
     """
     return {
-        'type': COMMANDS.STREAM.value,
+        'type': 'stream',
         'payload': {
             'user_id': user_id,
             'macAddress': mac_address,
@@ -61,7 +61,7 @@ def simulate_stop_stream_command(user_id):
         dict: A stop stream command payload.
     """
     return {
-        'type': COMMANDS.STOP_STREAM.value,
+        'type': 'stop_stream',
         'payload': {
             'user_id': user_id
         }

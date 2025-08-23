@@ -169,7 +169,11 @@ class MainWindow(QMainWindow):
         self.stupid_counter_interval = 1000
 
         self.payload_counter = 0
-        self.payload_counter_interval = 100
+        self.payload_counter_interval = 200  # Send Minerva data every 200 timer cycles
+
+        # GUI update throttling
+        self.gui_update_counter = 0
+        self.gui_update_interval = 10  # Update GUI every 10 timer cycles (500ms)
 
         # create a logger
         self.logger = logging.getLogger(__name__)
@@ -516,7 +520,7 @@ class MainWindow(QMainWindow):
         if command[:2] == "lj":
             print(f"To LabJack: {command}")
             self.logger.info(
-                f"LabJack Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+                f"LabJack Sending: {command.replace('<', '&lt;').replace('>', '&gt;')}"
             )
             lj_command = command.split(",")
             if lj_command[1] == "set_sim_ain":
@@ -528,7 +532,7 @@ class MainWindow(QMainWindow):
         elif command[:3] == "set":
             print(f"Update Setting: {command}")
             self.logger.info(
-                f"Setting Update: {command.replace("<","&lt;").replace(">","&gt;")}"
+                f"Setting Update: {command.replace('<', '&lt;').replace('>', '&gt;')}"
             )
             set_command = command.split(",")
             if set_command[1] == "num":
@@ -595,8 +599,8 @@ class MainWindow(QMainWindow):
 
 
     def action_start_timers(self):
-        self.pulse_timer.start(1000)
-        self.stream_timer.start(10)
+        self.pulse_timer.start(1000)  # 1 second pulse timer
+        self.stream_timer.start(50)   # 50ms = 20 times per second (reduced from 100)
 
 
     def action_pulse_timer(self):
@@ -873,9 +877,12 @@ class MainWindow(QMainWindow):
 
         # append to output
 
-        # refresh gui (if needed)
-        self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
-        # check for effector or auto_advance
+        # refresh gui (throttled to reduce flashing)
+        if self.gui_update_counter % self.gui_update_interval == 0:
+            self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
+            self.gui_update_counter = 0
+
+        # check for effector or auto_advance (always run for functionality)
         self.active_stage.event_loop()
 
         
@@ -930,7 +937,7 @@ class MainWindow(QMainWindow):
                     self.minerva_stream.update_stream_data(self.payload)
                     self.logger.debug("No active users, sent to default stream data")
 
-        self.payload_counter += 10
+        self.payload_counter += 1  # Increment by 1 for cleaner timing
 
 
 

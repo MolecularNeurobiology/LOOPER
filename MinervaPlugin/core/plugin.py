@@ -3,33 +3,25 @@ import json
 import threading
 import sys
 
-# Legacy command types kept for compatibility; plugin no longer uses them
+# Import utility functions for dict-based commands
 try:
-    from command import (
-        COMMANDS,
-        GoToNextStep,
-        GoToStep,
-        StartCommand,
-        StreamCommand,
-        StopStreamCommand,
+    from ..models.command import (
+        LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
+        map_legacy_command, getCommandFilename, getStep
     )
 except:
     print("attempting relative import of command")
-    from .command import (
-        COMMANDS,
-        GoToNextStep,
-        GoToStep,
-        StartCommand,
-        StreamCommand,
-        StopStreamCommand,
+    from models.command import (
+        LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
+        map_legacy_command, getCommandFilename, getStep
     )
 try:
-    from rabbitmq_client import RabbitMQClient
+    from .rabbitmq_client import RabbitMQClient
 except:
     print("attempting relative import of rabbitmqclient")
-    from .rabbitmq_client import RabbitMQClient
+    from rabbitmq_client import RabbitMQClient
 try:
-    from config import (
+    from .config import (
         PING_QUEUE,
         COMMAND_QUEUE,
         STREAM_CONTROL_QUEUE,
@@ -39,7 +31,7 @@ try:
     )
 except:
     print("attempting relative import of config")
-    from .config import (
+    from config import (
         PING_QUEUE,
         COMMAND_QUEUE,
         STREAM_CONTROL_QUEUE,
@@ -53,10 +45,10 @@ from typing import List, Dict, Any, Optional, Union
 
 # Import status reporting system
 try:
-    from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+    from .status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
 except:
     print("attempting relative import of status_reporting")
-    from .status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+    from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
 
 # Try to import numpy for type checking
 try:

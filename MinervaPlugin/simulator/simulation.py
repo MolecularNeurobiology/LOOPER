@@ -1,7 +1,7 @@
-from plugin import Plugin, PluginRegistration, MinervaStreamData
-from status_reporting import StatusSeverity, StatusCategory
-from rig import Rig
-from run import Run
+from ..core.plugin import Plugin, PluginRegistration, MinervaStreamData
+from ..core.status_reporting import StatusSeverity, StatusCategory
+from .rig import Rig
+from ..scripts.run import Run
 import random
 import time
 import math

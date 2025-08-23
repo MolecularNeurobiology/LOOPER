@@ -55,7 +55,10 @@ class RabbitMQClient:
         if self._status_callback:
             try:
                 # Import here to avoid circular imports
-                from status_reporting import StatusSeverity, StatusCategory
+                try:
+                    from status_reporting import StatusSeverity, StatusCategory
+                except:
+                    from .status_reporting import StatusSeverity, StatusCategory
 
                 # Convert string severity to enum if needed
                 if isinstance(severity, str):

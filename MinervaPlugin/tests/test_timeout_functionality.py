@@ -7,8 +7,8 @@ This script demonstrates that streaming auto-stops after 30 seconds without stre
 import time
 import logging
 from datetime import datetime
-from plugin import Plugin, PluginRegistration
-from command import COMMANDS
+from ..core.plugin import Plugin, PluginRegistration
+from ..models.command import SEEDED_COMMANDS
 
 # Set up logging
 logging.basicConfig(
@@ -19,7 +19,7 @@ logging.basicConfig(
 def simulate_stream_command(user_id="test_user", mac_address="test:mac:address"):
     """Simulate a stream command from a user."""
     return {
-        'type': COMMANDS.STREAM.value,
+        'type': 'stream',
         'userId': user_id,
         'macAddress': mac_address,
         'payload': {

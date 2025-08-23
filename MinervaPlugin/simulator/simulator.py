@@ -7,13 +7,13 @@ from typing import List
 
 # Legacy typed commands imported for backward compatibility
 try:
-    from command import GoToNextStep, StartCommand
+    from ..models.command import GoToNextStep, StartCommand
 except Exception:
     GoToNextStep = None
     StartCommand = None
-from faker import Faker
-from simulation import Simulation
-from status_reporting import StatusSeverity, StatusCategory
+from .faker import Faker
+from .simulation import Simulation
+from ..core.status_reporting import StatusSeverity, StatusCategory
 
 def setup_logger(start_time):
     log_directory = "logs"
@@ -107,7 +107,9 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
                             cmd_type = str(command.get('type', '')).lower()
                             payload = command.get('payload')
 
-                            if cmd_type == 'start':
+                            # Handle new seeded command names
+                            if cmd_type in ('start', 'initialize_rig'):
+                                # Support both legacy 'start' and new 'initialize_rig' commands
                                 # Ignore steps in payload; PCC owns step resolution now
                                 if payload and isinstance(payload, dict) and 'steps' in payload:
                                     logging.info("Start payload contained 'steps' - ignoring per new architecture")
@@ -115,11 +117,23 @@ def run_simulation_loop(simulations: List[Simulation], start_time: datetime):
                             elif cmd_type in ('go_to_next', 'go_to_next_step'):
                                 sim.go_to_next_step()
                             elif cmd_type == 'go_to_step':
-                                # Optional: jump to specific step if PCC exposes such API
-                                step_id = None
+                                # Jump to specific step using new payload structure
+                                step_number = None
                                 if isinstance(payload, dict):
-                                    step_id = payload.get('step') or payload.get('index') or payload.get('name')
-                                logging.info(f"go_to_step received (step={step_id}) - implement in PCC as needed")
+                                    step_number = payload.get('step') or payload.get('index') or payload.get('name')
+                                logging.info(f"go_to_step received (step={step_number}) - implement in PCC as needed")
+                            elif cmd_type in ('load_pups', 'send_filename'):
+                                # Support both legacy 'load_pups' and new 'send_filename' commands
+                                filename = None
+                                if isinstance(payload, dict):
+                                    filename = payload.get('filename')
+                                logging.info(f"send_filename received (filename={filename}) - implement in PCC as needed")
+                            elif cmd_type == 'stream':
+                                logging.info("stream command received - handled by plugin streaming system")
+                            elif cmd_type == 'stop_stream':
+                                logging.info("stop_stream command received - handled by plugin streaming system")
+                            elif cmd_type == 'stop_experiment':
+                                logging.info("stop_experiment command received - implement in PCC as needed")
                             else:
                                 logging.debug(f"Unknown or unsupported command type: {cmd_type}")
                         else:

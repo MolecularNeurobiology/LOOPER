@@ -188,7 +188,7 @@ class calibration(STAGE):
 
     def additional_on_load(self):
         self.pcc.arduino_stream.sendCommand(
-            f"<C,{self.setting_dict["auto_pipette_duration"]},0>"
+            f"<C,{self.setting_dict['auto_pipette_duration']},0>"
         )
         self.pcc.logger.debug(f"stage time limit: {self.stage_time_limit}")
         self.pcc.data.PCC_client_status = "Running"
@@ -484,8 +484,9 @@ class challenge(STAGE):
         }  # use == instead of "is" for this comparison due to VF and HR comparisons populating as np.True_ or np.False_
         # report back conditions that are blocking a instantaneous recovered status
         self.pcc.data.recovery_status = ", ".join([i for i in recovery_dict.keys()])
+        recovery_text = "good" if self.pcc.data.recovery_status == "" else self.pcc.data.recovery_status
         self.pcc.label_debug.setText(
-            f"{"good" if self.pcc.data.recovery_status=="" else self.pcc.data.recovery_status}, {self.pcc.data.recovery_bout_duration:.1F}, {self.pcc.data.accumulated_recovery_bout_duration:.1F}"
+            f"{recovery_text}, {self.pcc.data.recovery_bout_duration:.1F}, {self.pcc.data.accumulated_recovery_bout_duration:.1F}"
         )
         # update for accumulated vs consecutive recovery bouts
         if self.pcc.data.recovery_bout_flag is False:
@@ -573,7 +574,7 @@ class challenge(STAGE):
 
             else:
                 self.pcc.data.error_dict["BAD_RECOVERY_SETTINGS"] = {
-                    "message": f"setting for recovery mode not among implemented options - {self.setting_dict["recovery_mode"]}"
+                    "message": f"setting for recovery mode not among implemented options - {self.setting_dict['recovery_mode']}"
                 }
                 self.pcc.logger.error(self.pcc.data.error_dict["BAD_RECOVERY_SETTINGS"])
                 self.pcc.abort_experiment
@@ -586,7 +587,7 @@ class challenge(STAGE):
                 "expose"
             ] = self.pcc.data.current_gas_exposure_duration
             self.pcc.arduino_stream.sendCommand(
-                f"<R,{self.setting_dict["position_ra"]},0>"
+                f"<R,{self.setting_dict['position_ra']},0>"
             )
 
         elif (
@@ -646,7 +647,7 @@ class challenge(STAGE):
                 + self.setting_dict["prefill_duration"]
             ):
                 self.pcc.data.error_dict["PREFILL ERROR"] = {
-                    "message": f"prefill duration exceeded typical timing by {self.setting_dict["prefill_limit"]}, communication with the arduino may have been lost"
+                    "message": f"prefill duration exceeded typical timing by {self.setting_dict['prefill_limit']}, communication with the arduino may have been lost"
                 }
                 self.pcc.logger.error(self.pcc.data.error_dict["PREFILL ERROR"])
                 self.pcc.abort_experiment()
@@ -716,7 +717,7 @@ class challenge(STAGE):
                 self.prepare_challenge_history_text()
                 # send command to arduino to initiate gas challenge
                 self.pcc.arduino_stream.sendCommand(
-                    f"<A,{self.setting_dict["position_gas"]},{self.setting_dict["prefill_duration"]}>"
+                    f"<A,{self.setting_dict['position_gas']},{self.setting_dict['prefill_duration']}>"
                 )
                 self.pcc.data.pulse_sender = EFFECTORS.LJ_DIO_pulse(self.pcc.labjack_stream.device, 2, 1000)
 

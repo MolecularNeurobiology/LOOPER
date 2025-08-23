@@ -17,7 +17,7 @@ Minerva supports 6 different signal types:
 Time series signals display continuous data over time as line charts.
 
 ```python
-from MinervaPlugin.command import TimeSeriesSignal
+from MinervaPlugin.signals import TimeSeriesSignal
 
 # ECG signal example
 ecg_signal = TimeSeriesSignal(
@@ -62,7 +62,7 @@ airflow_signal = TimeSeriesSignal(
 Timestamp signals mark specific events and are overlaid on time series charts.
 
 ```python
-from MinervaPlugin.command import TimestampSignal
+from MinervaPlugin.signals import TimestampSignal
 
 # Heartbeat events overlaid on ECG
 heartbeat_signal = TimestampSignal(
@@ -97,7 +97,7 @@ breath_signal = TimestampSignal(
 Single value signals display current numeric readings in compact boxes.
 
 ```python
-from MinervaPlugin.command import SingleValueSignal
+from MinervaPlugin.signals import SingleValueSignal
 
 # Heart rate
 heart_rate_signal = SingleValueSignal(
@@ -129,7 +129,7 @@ breathing_rate_signal = SingleValueSignal(
 Status signals show boolean on/off states with colored indicators.
 
 ```python
-from MinervaPlugin.command import StatusSignal
+from MinervaPlugin.signals import StatusSignal
 
 # Device connection status
 device_status = StatusSignal(
@@ -158,7 +158,7 @@ calibration_status = StatusSignal(
 Debug signals display text information for troubleshooting and system status.
 
 ```python
-from MinervaPlugin.command import DebugSignal
+from MinervaPlugin.signals import DebugSignal
 
 # System status
 system_debug = DebugSignal(
@@ -187,7 +187,7 @@ connection_debug = DebugSignal(
 Duration signals show countdown timers with severity-based color coding. All duration signals are grouped together in a single panel.
 
 ```python
-from MinervaPlugin.command import DurationSignal
+from MinervaPlugin.signals import DurationSignal
 
 # Calibration timer (normal priority)
 calibration_timer = DurationSignal(

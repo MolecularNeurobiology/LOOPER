@@ -17,7 +17,7 @@ RIG_STREAM_QUEUE = "rig_stream"
 # Streaming configuration
 STREAM_TIMEOUT_SECONDS = 30  # Stop streaming after 30 seconds without stream command
 STREAM_HEARTBEAT_INTERVAL = 10  # Frontend sends stream command every 10 seconds
-STREAM_MESSAGE_TTL_SECONDS = 30  # Messages expire after 30 seconds
+STREAM_MESSAGE_TTL_SECONDS = 5  # Messages expire after 30 seconds
 
 # Dual queue architecture timing configurations
 STREAM_USER_TIMEOUT = 30        # seconds - Remove users after this timeout

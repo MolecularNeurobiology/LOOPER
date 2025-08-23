@@ -1081,9 +1081,17 @@ try:
         #
         # from PCC_command_dispatcher_example import PCCDispatcher
         # dispatcher = PCCDispatcher()
-        # dispatcher.register_handler('start', lambda cmd: start_run(cmd.get('payload')))
+        #
+        # # New seeded command handlers
+        # dispatcher.register_handler('initialize_rig', lambda cmd: start_run(cmd.get('payload')))
         # dispatcher.register_handler('go_to_next', lambda cmd: advance_mode())
-        # dispatcher.register_handler('go_to_step', lambda cmd: jump_to_step((cmd.get('payload') or {}).get('index')))
+        # dispatcher.register_handler('go_to_step', lambda cmd: jump_to_step((cmd.get('payload') or {}).get('step')))
+        # dispatcher.register_handler('send_filename', lambda cmd: load_file((cmd.get('payload') or {}).get('filename')))
+        # dispatcher.register_handler('stop_experiment', lambda cmd: stop_experiment())
+        #
+        # # Legacy command support for backward compatibility
+        # dispatcher.register_handler('start', lambda cmd: start_run(cmd.get('payload')))  # maps to initialize_rig
+        # dispatcher.register_handler('load_pups', lambda cmd: load_file((cmd.get('payload') or {}).get('filename')))  # maps to send_filename
         #
         # try:
         #     commands = plugin.pop_commands()  # plugin should be instantiated elsewhere and started
