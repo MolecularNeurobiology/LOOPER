@@ -22,9 +22,12 @@ and general refactoring and reoganization of modules and functions.
 # %% import libraries
 # external libraries
 import argparse
+from datetime import datetime
+import json
 import logging
 import numpy
 import os
+from pathlib import Path
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QFontDatabase, QCloseEvent
@@ -39,7 +42,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
 import sys
-from datetime import datetime
+
 
 
 # internal libraries
@@ -89,6 +92,7 @@ def get_mac(custom_mac=None):
             except:
                 return "na:na:na:na"
     return mac
+
 
 
 # %% define classes
@@ -225,6 +229,9 @@ class MainWindow(QMainWindow):
         # set kill mode if CL option provided
         self.kill_after_count = self.parsed_args.kill
 
+        # get rig config
+        self.load_rig_config()
+
         # configure i/o
         if self.settings.sim_mode_labjack == 1:
             self.logger.info("Simulation Mode LJ")
@@ -339,6 +346,21 @@ class MainWindow(QMainWindow):
         self.data = DATA.DATA()
         self.prepare_stages()
         self.resetting_stages = False
+
+
+    def load_rig_config(self):
+        self.logger.info("attempting to load rig config from home directory")
+        if os.path.exists(os.path.join(Path.home(),"rig.config")):
+            try:
+                with open(os.path.join(Path.home(),"rig.config"),"r") as open_file:
+                    self.rig_config = json.load(open_file)
+                for k,v in self.rig_config.items():
+                    self.logger.info(f"rig_config: {k} - {v}")
+            except Exception as e:
+                self.logger.error("unable to load rig config - please correct and restart: {e}")
+        else:
+            self.logger.error("no rig config found - please correct and restart")
+
 
 
 
