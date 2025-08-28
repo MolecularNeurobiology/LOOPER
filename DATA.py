@@ -173,17 +173,48 @@ class DATA:
                 )
 
             if v["sig_type"] == "TIME_SERIES":
-                signal_payload["signals"].append(
-                    {
-                        "name": v.get("name",k),
-                        "type": "time_series",
-                        "xUnit": "seconds",
-                        "data": [
-                            {"x": self.time[i], "y": getattr(self, k)[i]}
-                            for i in range(len(self.time))
-                        ],
-                    }
-                )
+                # Calculate dynamic time window based on actual data
+                data_points = [
+                    {"x": self.time[i], "y": getattr(self, k)[i]}
+                    for i in range(len(self.time))
+                ]
+
+                if data_points:
+                    min_x = min(point["x"] for point in data_points)
+                    max_x = max(point["x"] for point in data_points)
+
+                    # Add some padding to the window
+                    x_range = max_x - min_x
+                    padding = x_range * 0.05  # 5% padding
+
+                    signal_payload["signals"].append(
+                        {
+                            "name": v.get("name",k),
+                            "type": "time_series",
+                            "xUnit": "seconds",
+                            "yUnit": "V",  # Default unit for signals
+                            "xWindowMinInSeconds": min_x - padding,
+                            "xWindowMaxInSeconds": max_x + padding,
+                            "yWindowMinInSeconds": -2.0,  # Default Y range
+                            "yWindowMaxInSeconds": 2.0,
+                            "data": data_points,
+                        }
+                    )
+                else:
+                    # Fallback for empty data
+                    signal_payload["signals"].append(
+                        {
+                            "name": v.get("name",k),
+                            "type": "time_series",
+                            "xUnit": "seconds",
+                            "yUnit": "V",
+                            "xWindowMinInSeconds": -5.0,
+                            "xWindowMaxInSeconds": 0.0,
+                            "yWindowMinInSeconds": -2.0,
+                            "yWindowMaxInSeconds": 2.0,
+                            "data": [],
+                        }
+                    )
 
 
             if v["sig_type"] == "DURATION":

@@ -177,10 +177,10 @@ class SimulatedDataReader:
         self.data_sim_timer.setTimerType(Qt.PreciseTimer)
         self.data_sim_timer.timeout.connect(self.readStreamData)
         # default is 2.5Hz for ain0 and 8.5Hz for ain1 - odd behavior if using x.3 !!!TODO!!!
-        self.sim_sig_ain = {
-            0: [math.sin(i * 6.28 * 2 * 2.5) for i in range(60000)],
-            1: [math.sin(i * 6.28 * 2 * 8.5) for i in range(60000)],
-        }
+        # Initialize with base frequencies but we'll generate dynamic data
+        self.base_freq_ain0 = 2.5
+        self.base_freq_ain1 = 8.5
+        self.global_time = 0  # Simple incrementing time counter
         self.counter = 0
         self.counter_limit = 60000
         self.scan_frequency = 1000
@@ -191,6 +191,7 @@ class SimulatedDataReader:
             self.update_interval_ms / 1000 * self.sample_frequency
         )
 
+        self.readCount = 0  # Initialize readCount
         self.data_sim_timer.start(self.update_interval_ms)
 
     def setDIOState(self, *args):
@@ -218,23 +219,36 @@ class SimulatedDataReader:
     def readStreamData(self):
         self.finished = False
         self.start = datetime.now()
-        self.readCount = 0
+        self.readCount += 1  # Increment readCount each time this is called
 
         if self.counter + self.update_interval_ms >= self.counter_limit:
             self.counter = 0
 
         if not self.finished:
+            # Simple approach: increment global time and generate changing data
+            self.global_time += 0.1  # Increment by 0.1 seconds each call
+
+            # Generate simple but changing sine waves
+            ain0_data = []
+            ain1_data = []
+
+            for i in range(self.update_interval_ms):
+                t = self.global_time + i * 0.001  # Each sample is 1ms apart
+
+                # AIN0: Simple breathing pattern that changes over time
+                ain0_value = math.sin(t * 2 * math.pi * 0.3) + 0.5 * math.sin(t * 2 * math.pi * 0.05)  # 0.3Hz + slow variation
+                ain0_data.append(ain0_value)
+
+                # AIN1: Simple heart pattern that changes over time
+                ain1_value = math.sin(t * 2 * math.pi * 1.2) + 0.3 * math.sin(t * 2 * math.pi * 0.1)  # 1.2Hz + slow variation
+                ain1_data.append(ain1_value)
 
             returnDict = {
                 "errors": 0,
                 "missed": [],
                 "result": {
-                    "AIN0": self.sim_sig_ain[0][
-                        self.counter : self.counter + self.update_interval_ms
-                    ],
-                    "AIN1": self.sim_sig_ain[1][
-                        self.counter : self.counter + self.update_interval_ms
-                    ],
+                    "AIN0": ain0_data,
+                    "AIN1": ain1_data,
                     "AIN2": [0.2 for i in range(self.update_interval_ms)],
                     "AIN3": [0.3 for i in range(self.update_interval_ms)],
                     "AIN4": [0.4 for i in range(self.update_interval_ms)],
