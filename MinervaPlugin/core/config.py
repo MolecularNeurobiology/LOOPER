@@ -13,7 +13,7 @@ COMMAND_QUEUE = "command_queue"
 # Dual queue architecture queue types
 STREAM_CONTROL_QUEUE = "stream_control"
 RIG_STREAM_QUEUE = "rig_stream"
-PERFORMANCE_METRICS_QUEUE = "performance_metrics"
+
 
 # Streaming configuration
 STREAM_TIMEOUT_SECONDS = 30  # Stop streaming after 30 seconds without stream command
@@ -23,4 +23,4 @@ STREAM_MESSAGE_TTL_SECONDS = 30  # Messages expire after 30 seconds
 # Dual queue architecture timing configurations
 STREAM_USER_TIMEOUT = 60        # seconds - Remove users after this timeout (increased for reliability)
 STREAM_CONTROL_TTL = 10         # seconds - TTL for stream control messages
-PERFORMANCE_METRICS_TTL = 60    # seconds - TTL for performance metrics messages
+

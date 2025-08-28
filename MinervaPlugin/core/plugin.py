@@ -26,10 +26,8 @@ try:
         COMMAND_QUEUE,
         STREAM_CONTROL_QUEUE,
         RIG_STREAM_QUEUE,
-        PERFORMANCE_METRICS_QUEUE,
         STREAM_USER_TIMEOUT,
         STREAM_CONTROL_TTL,
-        PERFORMANCE_METRICS_TTL,
     )
 except:
     print("attempting relative import of config")
@@ -38,10 +36,8 @@ except:
         COMMAND_QUEUE,
         STREAM_CONTROL_QUEUE,
         RIG_STREAM_QUEUE,
-        PERFORMANCE_METRICS_QUEUE,
         STREAM_USER_TIMEOUT,
         STREAM_CONTROL_TTL,
-        PERFORMANCE_METRICS_TTL,
     )
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
@@ -157,137 +153,12 @@ class UserStreamSession:
     is_active: bool = True
 
 
-@dataclass
-class PerformanceMetrics:
-    """
-    Class representing client performance metrics.
-    """
-    user_id: str
-    mac_address: str
-    rendering_time_ms: float
-    memory_usage_mb: float
-    frame_rate: float
-    timestamp: datetime
-    dropped_frames: int = 0
-    cpu_usage_percent: float = 0.0
 
 
-class DynamicRateController:
-    """
-    Controls streaming rate based on client performance feedback.
-    Implements adaptive rate adjustment from 1Hz to 10Hz.
-    """
 
-    def __init__(self, logger, initial_rate_hz: float = 1.0):
-        self.logger = logger
-        self.current_rate_hz = initial_rate_hz
-        self.min_rate_hz = 1.0
-        self.max_rate_hz = 10.0
-        self.target_rendering_time_ms = 16.0  # 60 FPS target
-        self.target_memory_threshold_mb = 100.0
-        self.target_frame_rate = 55.0  # Allow some headroom below 60 FPS
 
-        # Rate adjustment parameters
-        self.rate_increase_factor = 1.2
-        self.rate_decrease_factor = 0.8
-        self.stability_threshold = 5  # Number of good metrics before increasing rate
-        self.performance_history = []
-        self.good_performance_count = 0
 
-        self._lock = threading.Lock()
 
-    def get_current_sleep_time(self) -> float:
-        """Get the current sleep time between stream messages."""
-        with self._lock:
-            return 1.0 / self.current_rate_hz
-
-    def get_current_rate_hz(self) -> float:
-        """Get the current streaming rate in Hz."""
-        with self._lock:
-            return self.current_rate_hz
-
-    def process_performance_metrics(self, metrics: PerformanceMetrics) -> bool:
-        """
-        Process client performance metrics and adjust rate accordingly.
-
-        Args:
-            metrics: Performance metrics from client
-
-        Returns:
-            bool: True if rate was adjusted, False otherwise
-        """
-        with self._lock:
-            # Add to history (keep last 10 measurements)
-            self.performance_history.append(metrics)
-            if len(self.performance_history) > 10:
-                self.performance_history.pop(0)
-
-            # Determine if performance is good
-            is_good_performance = (
-                metrics.rendering_time_ms <= self.target_rendering_time_ms and
-                metrics.memory_usage_mb <= self.target_memory_threshold_mb and
-                metrics.frame_rate >= self.target_frame_rate and
-                metrics.dropped_frames == 0
-            )
-
-            old_rate = self.current_rate_hz
-
-            if not is_good_performance:
-                # Performance is poor, decrease rate immediately
-                self.current_rate_hz = max(
-                    self.min_rate_hz,
-                    self.current_rate_hz * self.rate_decrease_factor
-                )
-                self.good_performance_count = 0
-                self.logger.info(
-                    f"📉 Decreased streaming rate to {self.current_rate_hz:.1f}Hz due to poor performance: "
-                    f"render={metrics.rendering_time_ms:.1f}ms, mem={metrics.memory_usage_mb:.1f}MB, "
-                    f"fps={metrics.frame_rate:.1f}, dropped={metrics.dropped_frames}"
-                )
-            else:
-                # Performance is good
-                self.good_performance_count += 1
-
-                # Only increase rate after sustained good performance
-                if self.good_performance_count >= self.stability_threshold:
-                    self.current_rate_hz = min(
-                        self.max_rate_hz,
-                        self.current_rate_hz * self.rate_increase_factor
-                    )
-                    self.good_performance_count = 0
-                    self.logger.info(
-                        f"📈 Increased streaming rate to {self.current_rate_hz:.1f}Hz after sustained good performance"
-                    )
-
-            return old_rate != self.current_rate_hz
-
-    def get_performance_summary(self) -> Dict[str, Any]:
-        """Get a summary of current performance state."""
-        with self._lock:
-            if not self.performance_history:
-                return {"current_rate_hz": self.current_rate_hz, "metrics_count": 0}
-
-            recent_metrics = self.performance_history[-1]
-            avg_render_time = sum(m.rendering_time_ms for m in self.performance_history) / len(self.performance_history)
-            avg_memory = sum(m.memory_usage_mb for m in self.performance_history) / len(self.performance_history)
-            avg_frame_rate = sum(m.frame_rate for m in self.performance_history) / len(self.performance_history)
-
-            return {
-                "current_rate_hz": self.current_rate_hz,
-                "metrics_count": len(self.performance_history),
-                "good_performance_streak": self.good_performance_count,
-                "recent_metrics": {
-                    "rendering_time_ms": recent_metrics.rendering_time_ms,
-                    "memory_usage_mb": recent_metrics.memory_usage_mb,
-                    "frame_rate": recent_metrics.frame_rate,
-                    "dropped_frames": recent_metrics.dropped_frames
-                },
-                "averages": {
-                    "rendering_time_ms": avg_render_time,
-                    "memory_usage_mb": avg_memory,
-                    "frame_rate": avg_frame_rate
-                }
-            }
 
 
 class Plugin:
@@ -328,7 +199,7 @@ class Plugin:
             logger, RIG_STREAM_QUEUE, registrationParams.mac_address, use_ttl=True
         )
 
-        # Performance metrics consumer removed - rate limiting now handled server-side
+
 
         self._metrics = PingMetrics(
             avg_bpm=0, avg_hr=0, step=None, challengeCount=0, longestChallenge=None
@@ -354,7 +225,7 @@ class Plugin:
         self._stream_control_thread = None
         self._heartbeat_cleanup_thread = None
         self._rig_stream_thread = None
-        # Performance metrics thread removed - rate limiting now server-side
+
 
         # Monitoring and observability
         self._start_time = datetime.now()  # Track plugin start time for uptime calculation
@@ -362,7 +233,7 @@ class Plugin:
         # Status reporting system
         self._status_manager = StatusManager()
 
-        # Performance metrics removed - rate limiting now handled server-side
+
 
         # Set status callbacks for RabbitMQ clients
         self._rabbit_mq_client_consumer.set_error_callback(self._status_manager.report_status)
@@ -669,7 +540,7 @@ class Plugin:
             self._rig_stream_thread.start()
             self._log_info("📡 Rig stream producer thread started")
 
-            # Performance metrics consumer removed - rate limiting now server-side
+
 
     def pop_commands(self):
         """
@@ -880,10 +751,7 @@ class Plugin:
             )
             self._log_error(f"Unexpected command type in stream control: {command.get('type')}")
 
-    # Performance metrics consumer methods removed - rate limiting now server-side
-        self._log_info(f"Performance metrics listener stopped for MAC: {self._mac_address}")
 
-    # Performance metrics handler removed - rate limiting now server-side
 
     def _cleanup_inactive_users(self):
         """Remove users who haven't sent heartbeats recently."""
@@ -990,37 +858,11 @@ class Plugin:
 
             time.sleep(0.2)  # 5 times per second - FULL SPEED, NO RATE LIMITING
 
-    def _process_pending_performance_metrics(self):
-        """
-        Process any pending performance metrics from clients.
-        """
-        with self._performance_metrics_lock:
-            while self._performance_metrics_queue:
-                metrics = self._performance_metrics_queue.pop(0)
-                try:
-                    rate_changed = self._rate_controller.process_performance_metrics(metrics)
-                    if rate_changed:
-                        new_rate = self._rate_controller.get_current_rate_hz()
-                        self._log_info(f"🎛️ Rate adjusted to {new_rate:.1f}Hz based on client {metrics.user_id} performance")
-                except Exception as e:
-                    self._log_error(f"Error processing performance metrics: {e}")
 
-    def add_performance_metrics(self, metrics: PerformanceMetrics):
-        """
-        Add performance metrics from a client for processing.
-
-        Args:
-            metrics: Performance metrics from client
-        """
-        with self._performance_metrics_lock:
-            self._performance_metrics_queue.append(metrics)
-            # Keep queue size reasonable
-            if len(self._performance_metrics_queue) > 100:
-                self._performance_metrics_queue.pop(0)
 
     def get_streaming_status(self) -> Dict[str, Any]:
         """
-        Get current streaming status including rate and performance info.
+        Get current streaming status.
 
         Returns:
             Dict containing streaming status information
@@ -1028,8 +870,6 @@ class Plugin:
         return {
             "is_streaming": self.has_active_users(),
             "active_users_count": self.get_active_users_count(),
-            "current_rate_hz": self._rate_controller.get_current_rate_hz(),
-            "performance_summary": self._rate_controller.get_performance_summary(),
             "uptime_seconds": (datetime.now() - self._start_time).total_seconds()
         }
 
