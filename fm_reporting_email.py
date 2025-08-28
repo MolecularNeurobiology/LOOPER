@@ -213,6 +213,10 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
         all_runs_last_8_weeks[["week of the year","Rig"]]
         .groupby(by=["week of the year"], as_index=False).count().rename(columns={"Rig":"rig_run_count"})
     )
+    usable_count = (
+        all_runs_last_8_weeks[["week of the year","Rig","Usable?"]]
+        .groupby(by=["week of the year","Usable?"], as_index=False).count().rename(columns={"Rig":"usable_status_count"})
+    )
     error_count = pandas.merge((
         all_errors_last_8_weeks[["error_type", "week of the year", "EUID"]]
         .groupby(by=["error_type", "week of the year"], as_index=False)
