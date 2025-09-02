@@ -4,11 +4,15 @@
 
 tag="stable_2025-08-20a"
 
-# go to repository directory, git reset to tag for testing
+# go to repository directory, git reset to tag
 cd $HOME/git/Autoresuscitation
 git fetch --tags
+git checkout stable
+git pull
 git checkout $tag
 git reset --hard $tag
+git clean
+
 
 # check for dependency 
 # swig - is a recently needed dependency for 2025 updates 

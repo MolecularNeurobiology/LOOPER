@@ -22,15 +22,6 @@
 
 
   pre_tasks:
-  - name: Create local backup directory if it doesn't exist
-    file:
-      path: "{{ local_archive }}"
-      state: directory
-      mode: '0755'
-    delegate_to: localhost
-    run_once: true
-    tags: setup-local
-
   - name: Create remote host backup directory if it doesn't exist
     file:
       path: "{{ item }}"
