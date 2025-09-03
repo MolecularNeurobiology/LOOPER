@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 # import libraries
 import argparse
@@ -99,10 +99,14 @@ def collect_autoresuscitation_table():
     autores_df = pandas.DataFrame(autores_dict).transpose()
     return autores_df
 
-def build_summary_sheets(error_df, autores_df, output_path="report"):
-    # "all rig runs" list all rigruns, sort by date and rigname
-    all_runs = autores_df.sort_values(by=["Experimental_Date","Rig"])
+
+
+def prepare_recent_data(error_df, autores_df):
+    
+    # "all rig runs" list all rigruns, omit entries with no Experimental Date
+    all_runs = autores_df[autores_df["Experimental_Date"]!=""]
     # "all errors" list of all records sort by "error_type", "Component", "error_status"
+    
     all_errors = error_df.sort_values(by=["error_type", "Component", "error_status"])
     # fill in blank error types
     all_errors.loc[all_errors["error_type"] == "", "error_type"] = "unknown"
@@ -122,6 +126,8 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
     all_runs.loc[:,"Experimental_Date"] = pandas.to_datetime(
         all_runs["Experimental_Date"], format="mixed", dayfirst=False
     )
+    all_runs = all_runs.sort_values(by="Experimental_Date")
+    
     all_errors["error_type_subcategory"] = all_errors[
         [
             "error_type",
@@ -148,18 +154,27 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
         + "-1",
         format="%Y-W%W-%w",
     )
+
     all_runs["week of the year"] = pandas.to_datetime(
-        pandas.to_datetime(all_errors["Plethysmography::Experimental_Date"])
+        pandas.to_datetime(all_runs["Experimental_Date"])
         .dt.isocalendar()
         .year.astype(str)
         + "-W"
-        + pandas.to_datetime(all_errors["Plethysmography::Experimental_Date"])
+        + pandas.to_datetime(all_runs["Experimental_Date"])
         .dt.isocalendar()
         .week.astype(str)
         .str.zfill(2)
         + "-1",
         format="%Y-W%W-%w",
     )
+
+    return all_errors, all_runs
+
+
+
+
+def build_summary_sheets(error_df, autores_df, output_path="report"):
+    all_errors, all_runs = prepare_recent_data(error_df, autores_df)
 
     last_month_errors = all_errors[
         all_errors["Plethysmography::Experimental_Date"]
@@ -185,14 +200,6 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
         .groupby(["Plethysmography::Rig", "error_type", "Component"], as_index=False)
         .count()
     )
-    # create summary xlsx
-    writer = pandas.ExcelWriter(output_path + ".xlsx", engine="xlsxwriter")
-    all_errors.to_excel(writer, sheet_name="all_errors", index=False)
-    last_month_errors.to_excel(writer, sheet_name="last_month_errors", index=False)
-    last_month_runs.to_excel(writer, sheet_name="last_month_runs", index=False)
-    facemask.to_excel(writer, sheet_name="facemask", index=False)
-    rig.to_excel(writer, sheet_name="rig", index=False)
-    writer.close()
 
     # prepare graphs
     now = datetime.datetime.now()
@@ -200,47 +207,147 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
         f"{now.isocalendar().year}-W{now.isocalendar().week}-1", format="%Y-W%W-%w"
     ).date()
     iso_week_minus_8wks = iso_week - datetime.timedelta(weeks=8)
+    print(f"{iso_week_minus_8wks} - {iso_week}")
     iso_week_list = pandas.date_range(
         start=iso_week_minus_8wks, end=iso_week, freq=datetime.timedelta(days=7)
     )
     xminimum = iso_week_minus_8wks - datetime.timedelta(days=1)
     xmaximum = iso_week + datetime.timedelta(days=1)
     all_runs_last_8_weeks = all_runs[all_runs["week of the year"].dt.date >= iso_week_minus_8wks]
+    usable_runs = all_runs_last_8_weeks[all_runs_last_8_weeks["Usable?"]=="Yes"]
+    usable_runs["usable_status_count"] = 1
+    failed_runs = all_runs_last_8_weeks[all_runs_last_8_weeks["Usable?"]=="No"]
+    failed_runs["failed_status_count"] = 1
+    unknown_runs = all_runs_last_8_weeks[all_runs_last_8_weeks["Usable?"]==""]
+    unknown_runs["unknown_status_count"] = 1
+
+
     all_errors_last_8_weeks = all_errors[
         all_errors["week of the year"].dt.date >= iso_week_minus_8wks
     ]
+    all_errors_last_8_weeks["RUID"]=all_errors_last_8_weeks["Plethysmography::RUID"]
+    
+    all_errors_last_8_weeks = pandas.merge(
+        pandas.merge(
+            pandas.merge(all_errors_last_8_weeks,failed_runs[["RUID","failed_status_count","Usable?"]],how = "left", on = "RUID"),
+            usable_runs[["RUID","usable_status_count"]], how = "left", on = "RUID"
+        ),
+        unknown_runs[["RUID","unknown_status_count"]], how="left", on = "RUID"
+    )
+
     run_count = (
         all_runs_last_8_weeks[["week of the year","Rig"]]
         .groupby(by=["week of the year"], as_index=False).count().rename(columns={"Rig":"rig_run_count"})
     )
-    usable_count = (
-        all_runs_last_8_weeks[["week of the year","Rig","Usable?"]]
-        .groupby(by=["week of the year","Usable?"], as_index=False).count().rename(columns={"Rig":"usable_status_count"})
+    
+
+    error_count = pandas.merge(
+        (
+            all_errors_last_8_weeks[
+                ["error_type", "week of the year", "EUID", "usable_status_count", "failed_status_count", "unknown_status_count"]
+            ]
+            .groupby(by=["error_type", "week of the year"], as_index=False)
+            .count()
+        ),run_count, how = "outer", on = "week of the year"
     )
-    error_count = pandas.merge((
-        all_errors_last_8_weeks[["error_type", "week of the year", "EUID"]]
-        .groupby(by=["error_type", "week of the year"], as_index=False)
-        .count()
-    ),run_count, how = "outer", on = "week of the year")
-    error_subcategory_count = pandas.merge((
-        all_errors_last_8_weeks[
-            ["error_type_subcategory", "error_type", "week of the year", "EUID"]
-        ]
-        .groupby(
-            by=["error_type_subcategory", "error_type", "week of the year"],
-            as_index=False,
-        )
-        .count()
-    ), run_count, how = "outer", on = "week of the year")
+    
+
+    error_subcategory_count = pandas.merge(
+            (
+                all_errors_last_8_weeks[
+                    ["error_type_subcategory", "error_type", "week of the year", "EUID", "usable_status_count", "failed_status_count", "unknown_status_count"]
+                ]
+                .groupby(
+                    by=["error_type_subcategory", "error_type", "week of the year"],
+                    as_index=False,
+                )
+                .count()
+            ), run_count, how = "outer", on = "week of the year")
+    print(error_count.columns)
     error_count["count"] = error_count["EUID"]
     error_count["rate"] = error_count["EUID"]/error_count["rig_run_count"]
+    error_count["usable_rate_per_error"] = error_count["usable_status_count"]/error_count["count"]
+    error_count["failure_rate_per_error"] = error_count["failed_status_count"]/error_count["count"]
+    error_count["unknown_rate_per_error"] = error_count["unknown_status_count"]/error_count["count"]
+    error_count["usable_rate_per_run"] = error_count["usable_status_count"]/error_count["rig_run_count"]
+    error_count["failure_rate_per_run"] = error_count["failed_status_count"]/error_count["rig_run_count"]
+    error_count["unknown_rate_per_run"] = error_count["unknown_status_count"]/error_count["rig_run_count"]
     error_subcategory_count["count"] = error_subcategory_count["EUID"]
     error_subcategory_count["rate"] = error_subcategory_count["EUID"]/error_subcategory_count["rig_run_count"]
+    error_subcategory_count["usable_rate_per_error"] = error_subcategory_count["usable_status_count"]/error_subcategory_count["count"]
+    error_subcategory_count["failure_rate_per_error"] = error_subcategory_count["failed_status_count"]/error_subcategory_count["count"]
+    error_subcategory_count["unknown_rate_per_error"] = error_subcategory_count["unknown_status_count"]/error_subcategory_count["count"]
+    error_subcategory_count["usable_rate_per_run"] = error_subcategory_count["usable_status_count"]/error_subcategory_count["rig_run_count"]
+    error_subcategory_count["failure_rate_per_run"] = error_subcategory_count["failed_status_count"]/error_subcategory_count["rig_run_count"]
+    error_subcategory_count["unknown_rate_per_run"] = error_subcategory_count["unknown_status_count"]/error_subcategory_count["rig_run_count"]
+
+     # create summary xlsx
+    writer = pandas.ExcelWriter(output_path + ".xlsx", engine="xlsxwriter")
+    all_errors.to_excel(writer, sheet_name="all_errors", index=False)
+    last_month_errors.to_excel(writer, sheet_name="last_month_errors", index=False)
+    last_month_runs.to_excel(writer, sheet_name="last_month_runs", index=False)
+    facemask.to_excel(writer, sheet_name="facemask", index=False)
+    rig.to_excel(writer, sheet_name="rig", index=False)
+    all_errors_last_8_weeks.to_excel(writer, sheet_name="all_errors_last_8_weeks", index=False)
+    all_runs_last_8_weeks.to_excel(writer, sheet_name="all_runs_last_8_weeks", index=False)
+    usable_runs.to_excel(writer, sheet_name="usable_runs", index=False)
+    failed_runs.to_excel(writer, sheet_name="failed_runs", index=False)
+    unknown_runs.to_excel(writer, sheet_name="unknown_runs", index=False)
+    error_count.to_excel(writer, sheet_name="error_count", index=False)
+    error_subcategory_count.to_excel(writer, sheet_name="error_subcategory_count", index=False)
+    writer.close()
+
 
     pdf_filename = output_path + ".pdf"
     with PdfPages(pdf_filename) as pdf:
+        runs = error_count.groupby(by="week of the year", as_index=False).first()
+
+        graph = runs.plot(kind="line", x="week of the year", y="rig_run_count")
+        graph.legend(
+            fontsize=6, loc="upper left", bbox_to_anchor=(-0.10, -0.35), ncol=2
+        )
+        graph.set_title("Weekly Run Count", fontsize=10)
+        graph.set_ylabel("rig_run_count", fontsize=10)
+        graph.set_ylim(bottom=0)
+        graph.set_xlim(left=xminimum, right=xmaximum)
+        graph.xaxis.set_major_locator(
+            mdates.WeekdayLocator(byweekday=mdates.MO, interval=1)
+        )
+        graph.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+        plt.xticks(rotation=45)
+        plt.minorticks_off()
+        plt.subplots_adjust(bottom=0.5)
+        pdf.savefig()
+        plt.close()
         print("error graph")
-        for y_val in ["count"]:
+
+        all_runs = all_runs_last_8_weeks.groupby(
+            by=["week of the year", "Usable?"], as_index=False).count().pivot(
+                index="week of the year", columns="Usable?", values="RUID"
+            )
+        graph.legend(
+            fontsize=6, loc="upper left", bbox_to_anchor=(-0.10, -0.35), ncol=2
+        )
+        graph = all_runs.plot(kind="line") 
+        graph.set_title("Weekly Usable Status Count", fontsize=10)
+        graph.set_ylabel("Usable status count", fontsize=10)
+        graph.set_ylim(bottom=0)
+        graph.set_xlim(left=xminimum, right=xmaximum)
+        graph.xaxis.set_major_locator(
+            mdates.WeekdayLocator(byweekday=mdates.MO, interval=1)
+        )
+        graph.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+        plt.xticks(rotation=45)
+        plt.minorticks_off()
+        plt.subplots_adjust(bottom=0.5)
+        pdf.savefig()
+        plt.close()
+
+        for y_val in [
+            "count", "rate", 
+            "usable_rate_per_run", "failure_rate_per_run", "unknown_rate_per_run",
+            "usable_rate_per_error", "failure_rate_per_error", "unknown_rate_per_error"
+        ]:
             pivot = (
                 error_count.pivot(
                     index="week of the year", columns="error_type", values=y_val
@@ -256,6 +363,7 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
             graph.set_title("Weekly count of errors", fontsize=10)
             graph.set_ylabel(y_val, fontsize=10)
             graph.set_ylim(bottom=0)
+            if "rate" in y_val: graph.set_ylim(top=1)
             graph.set_xlim(left=xminimum, right=xmaximum)
             graph.xaxis.set_major_locator(
                 mdates.WeekdayLocator(byweekday=mdates.MO, interval=1)
@@ -275,7 +383,11 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
                 ].shape[0]
                 > 0
             ):
-                for y_val in ["count","rate"]:
+                for y_val in [
+                    "count", "rate", 
+                    "usable_rate_per_run", "failure_rate_per_run", "unknown_rate_per_run",
+                    "usable_rate_per_error", "failure_rate_per_error", "unknown_rate_per_error"
+                ]:
                     pivot = (
                         error_subcategory_count[error_subcategory_count["error_type"] == e]
                         .pivot(
@@ -297,6 +409,7 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
                     graph.set_title("Weekly count of errors", fontsize=10)
                     graph.set_ylabel(y_val, fontsize=10)
                     graph.set_ylim(bottom=0)
+                    if "rate" in y_val: graph.set_ylim(top=1)
                     graph.set_xlim(left=xminimum, right=xmaximum)
                     graph.xaxis.set_major_locator(
                         mdates.WeekdayLocator(byweekday=mdates.MO, interval=1)
@@ -316,7 +429,11 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
                 ].shape[0]
                 > 0
             ):
-                for y_val in ["count","rate"]:
+                for y_val in [
+                    "count", "rate", 
+                    "usable_rate_per_run", "failure_rate_per_run", "unknown_rate_per_run",
+                    "usable_rate_per_error", "failure_rate_per_error", "unknown_rate_per_error"
+                ]:
                     graph = error_subcategory_count[
                         error_subcategory_count["error_type_subcategory"] == e
                     ].plot(x="week of the year", y=y_val, title=e, kind="scatter", label=e)
@@ -326,6 +443,7 @@ def build_summary_sheets(error_df, autores_df, output_path="report"):
                     graph.set_title(e, fontsize=10)
                     graph.set_ylabel(y_val, fontsize=10)
                     graph.set_ylim(bottom=0)
+                    if "rate" in y_val: graph.set_ylim(top=1)
                     graph.set_xlim(left=xminimum, right=xmaximum)
                     graph.xaxis.set_major_locator(
                         mdates.WeekdayLocator(byweekday=mdates.MO, interval=1)
@@ -427,7 +545,12 @@ if __name__ == "__main__":
 
     print("sending email")
     send_message(
-        messageBody="Rig Error Reporting test_message - Please see the attached Error Summary (xlsx file). Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired. Anticipated email schedule will be weekly on Friday ~7am.",
+        messageBody="""
+        Rig Error Report - Please see the attached Error Summary (xlsx file) and plots (pdf file).
+
+        Please notify C Ward or S Lusk if modifications to the xlsx report or email body text are desired.
+        Email scheduled for Friday ~7am.
+        """,
         subject=f"Rig Error Reporting Summary - {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}",
         to_email=email_list,
         attachments=["report.xlsx", "report.pdf"],
