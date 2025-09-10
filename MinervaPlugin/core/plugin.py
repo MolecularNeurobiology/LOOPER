@@ -9,17 +9,12 @@ try:
         LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
         map_legacy_command, getCommandFilename, getStep
     )
-except:
-    print("attempting relative import of command")
-    from models.command import (
-        LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
-        map_legacy_command, getCommandFilename, getStep
-    )
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import command models: {e}") from e
 try:
     from .rabbitmq_client import RabbitMQClient
-except:
-    print("attempting relative import of rabbitmqclient")
-    from rabbitmq_client import RabbitMQClient
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import RabbitMQ client: {e}") from e
 try:
     from .config import (
         PING_QUEUE,
@@ -28,17 +23,13 @@ try:
         RIG_STREAM_QUEUE,
         STREAM_USER_TIMEOUT,
         STREAM_CONTROL_TTL,
+        RABBITMQ_SERVER,
+        RABBITMQ_AMQP_PORT,
+        RABBITMQ_USER,
+        DEBUG_ENABLED,
     )
-except:
-    print("attempting relative import of config")
-    from config import (
-        PING_QUEUE,
-        COMMAND_QUEUE,
-        STREAM_CONTROL_QUEUE,
-        RIG_STREAM_QUEUE,
-        STREAM_USER_TIMEOUT,
-        STREAM_CONTROL_TTL,
-    )
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import config variables: {e}\n💡 Check that config.py exists and contains all required variables") from e
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional, Union
@@ -46,9 +37,34 @@ from typing import List, Dict, Any, Optional, Union
 # Import status reporting system
 try:
     from .status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
-except:
-    print("attempting relative import of status_reporting")
-    from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+except ImportError as e:
+    print(f"Failed to import status_reporting with relative import: {e}")
+    try:
+        from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+        print("Successfully imported status_reporting with absolute import")
+    except ImportError as e2:
+        print(f"Failed to import status_reporting with absolute import: {e2}")
+        # Create dummy classes to prevent crashes
+        class StatusManager:
+            def report_status(self, *args, **kwargs):
+                pass
+            def get_status_summary(self):
+                return {"status": "error", "message": "Status reporting unavailable"}
+
+        class StatusSeverity:
+            CRITICAL = "critical"
+            HIGH = "high"
+            MEDIUM = "medium"
+            LOW = "low"
+            INFO = "info"
+
+        class StatusCategory:
+            CONNECTIVITY = "connectivity"
+            COMMAND_PROCESSING = "command"
+            DATA_PROCESSING = "data"
+
+        class StatusReport:
+            pass
 
 # Try to import numpy for type checking
 try:
@@ -180,24 +196,52 @@ class Plugin:
         self._is_streaming = False
         self._mac_address = registrationParams.mac_address
 
-        # Existing command consumer (for critical commands: start, go_to_next, stop_stream)
-        self._rabbit_mq_client_consumer = RabbitMQClient(
-            logger, COMMAND_QUEUE, registrationParams.mac_address, use_ttl=False
-        )
-        self._rabbit_mq_client_producer = RabbitMQClient(
-            logger, PING_QUEUE, use_ttl=False
-        )
+        # Log RabbitMQ initialization to CONSOLE (not just GUI logger)
+        print("🔌 INITIALIZING MINERVA PLUGIN RABBITMQ CONNECTIONS")
+        print("📡 Target server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+        print("👤 User: {}".format(RABBITMQ_USER))
+        print("🏷️  MAC Address: {}".format(self._mac_address))
 
-        # Stream control consumer (for stream heartbeat commands - latest-only)
-        # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
-        self._stream_control_consumer = RabbitMQClient(
-            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
-        )
+        # Also log to GUI logger if available
+        self._log_info("🔌 INITIALIZING MINERVA PLUGIN RABBITMQ CONNECTIONS")
+        self._log_info("📡 Target server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+        self._log_info("👤 User: {}".format(RABBITMQ_USER))
+        self._log_info("🏷️  MAC Address: {}".format(self._mac_address))
 
-        # Single rig stream producer (broadcasts to all clients for this rig)
-        self._rig_stream_producer = RabbitMQClient(
-            logger, RIG_STREAM_QUEUE, registrationParams.mac_address, use_ttl=True
-        )
+        try:
+            # Existing command consumer (for critical commands: start, go_to_next, stop_stream)
+            self._log_info("🔄 Creating command consumer client...")
+            self._rabbit_mq_client_consumer = RabbitMQClient(
+                logger, COMMAND_QUEUE, registrationParams.mac_address, use_ttl=False
+            )
+
+            self._log_info("🔄 Creating ping producer client...")
+            self._rabbit_mq_client_producer = RabbitMQClient(
+                logger, PING_QUEUE, use_ttl=False
+            )
+
+            # Stream control consumer (for stream heartbeat commands - latest-only)
+            # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
+            self._log_info("🔄 Creating stream control consumer...")
+            self._stream_control_consumer = RabbitMQClient(
+                logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
+            )
+
+            # Single rig stream producer (broadcasts to all clients for this rig)
+            self._log_info("🔄 Creating rig stream producer...")
+            self._rig_stream_producer = RabbitMQClient(
+                logger, RIG_STREAM_QUEUE, registrationParams.mac_address, use_ttl=True
+            )
+
+            print("✅ ALL RABBITMQ CLIENTS CREATED SUCCESSFULLY!")
+            self._log_info("✅ ALL RABBITMQ CLIENTS CREATED SUCCESSFULLY!")
+
+        except Exception as e:
+            print("❌ FAILED TO CREATE RABBITMQ CLIENTS: {}".format(e))
+            print("💡 This will cause PCC to crash. Check network connectivity and credentials.")
+            self._log_error("❌ FAILED TO CREATE RABBITMQ CLIENTS: {}".format(e))
+            self._log_error("💡 This will cause PCC to crash. Check network connectivity and credentials.")
+            raise
 
 
 

@@ -5,12 +5,9 @@ import logging
 import threading
 import socket
 try:
-    from config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
-except:
-    from .config import RABBITMQ_SERVER, STREAM_MESSAGE_TTL_SECONDS
-
-# Debug toggle - set to False to disable all debug logs
-DEBUG_ENABLED = True
+    from .config import RABBITMQ_SERVER, RABBITMQ_AMQP_PORT, RABBITMQ_USER, STREAM_MESSAGE_TTL_SECONDS, DEBUG_ENABLED
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import RabbitMQ config: {e}\n💡 Check that config.py exists and contains RABBITMQ_SERVER, RABBITMQ_AMQP_PORT, RABBITMQ_USER") from e
 
 class RabbitMQClient:
     def __init__(self, logger, queue, id = None, use_ttl = False, ttl_seconds = None, max_length = None):
@@ -79,10 +76,19 @@ class RabbitMQClient:
         """Check if RabbitMQ server is available by attempting a socket connection"""
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)  # 5 second timeout
+            # Use longer timeout for network connections (vs localhost)
+            timeout = 15 if RABBITMQ_SERVER != "localhost" and not RABBITMQ_SERVER.startswith("127.") else 5
+            sock.settimeout(timeout)
+            self._log_info("Checking RabbitMQ availability at {}:5672 (timeout: {}s)".format(RABBITMQ_SERVER, timeout))
             result = sock.connect_ex((RABBITMQ_SERVER, 5672))
             sock.close()
-            return result == 0
+
+            if result == 0:
+                self._log_info("RabbitMQ server is reachable")
+                return True
+            else:
+                self._log_warn("RabbitMQ server not reachable (connect_ex returned: {})".format(result))
+                return False
         except Exception as e:
             self._log_error("Error checking RabbitMQ availability: {}".format(e))
             return False
@@ -98,20 +104,104 @@ class RabbitMQClient:
                         self._reconnect_delay = min(self._reconnect_delay * 2, self._max_reconnect_delay)
                         continue
 
-                    self._log_info("Attempting to connect to RabbitMQ server")
-                    self.connection = pika.BlockingConnection(
-                        pika.ConnectionParameters(
+                    self._log_info("Attempting to connect to RabbitMQ server at {}".format(RABBITMQ_SERVER))
+
+                    # Use different connection parameters for network vs localhost
+                    if RABBITMQ_SERVER == "localhost" or RABBITMQ_SERVER.startswith("127."):
+                        # Localhost connection - use shorter timeouts
+                        connection_params = pika.ConnectionParameters(
                             host=RABBITMQ_SERVER,
                             heartbeat=600,  # 10 minute heartbeat
                             blocked_connection_timeout=300,  # 5 minute timeout
+                            socket_timeout=10,  # 10 second socket timeout
                         )
-                    )
+                    else:
+                        # Network connection - use longer timeouts and more robust settings
+                        connection_params = pika.ConnectionParameters(
+                            host=RABBITMQ_SERVER,
+                            heartbeat=300,  # 5 minute heartbeat (shorter for network)
+                            blocked_connection_timeout=180,  # 3 minute timeout
+                            socket_timeout=30,  # 30 second socket timeout for network
+                            connection_attempts=3,  # Retry connection attempts
+                            retry_delay=2,  # 2 second delay between retries
+                        )
+
+                    self.connection = pika.BlockingConnection(connection_params)
                     self.channel = self.connection.channel()
-                    self._log_info("Successfully connected to RabbitMQ server")
+
+                    # Enhanced success logging to CONSOLE
+                    print("🎉 RABBITMQ CONNECTION SUCCESSFUL!")
+                    print("✅ Connected to RabbitMQ server at {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+                    print("✅ Authentication successful with user: {}".format(RABBITMQ_USER))
+                    print("✅ Channel created successfully")
+                    print("✅ Queue: {} is ready for operations".format(self.queue))
+
+                    # Also log to GUI logger if available
+                    self._log_info("🎉 RABBITMQ CONNECTION SUCCESSFUL!")
+                    self._log_info("✅ Connected to RabbitMQ server at {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+                    self._log_info("✅ Authentication successful with user: {}".format(RABBITMQ_USER))
+                    self._log_info("✅ Channel created successfully")
+                    self._log_info("✅ Queue: {} is ready for operations".format(self.queue))
+
+                    # Report successful connection status
+                    self._report_status(
+                        severity="info",
+                        category="connectivity",
+                        code="RABBITMQ_CONNECTION_SUCCESS",
+                        message="Successfully connected to RabbitMQ server",
+                        details={
+                            'server': RABBITMQ_SERVER,
+                            'port': RABBITMQ_AMQP_PORT,
+                            'user': RABBITMQ_USER,
+                            'queue': self.queue,
+                            'connection_type': 'network' if RABBITMQ_SERVER != "localhost" and not RABBITMQ_SERVER.startswith("127.") else 'localhost'
+                        }
+                    )
+
                     self._reconnect_delay = 1  # Reset delay on successful connection
                     return True
                 except Exception as e:
-                    self._log_error("Failed to connect to RabbitMQ: {}".format(e))
+                    # Enhanced error logging to CONSOLE
+                    print("❌ RABBITMQ CONNECTION FAILED!")
+                    print("❌ Server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+                    print("❌ User: {}".format(RABBITMQ_USER))
+                    print("❌ Error: {}".format(e))
+                    print("❌ Error Type: {}".format(type(e).__name__))
+
+                    # Also log to GUI logger if available
+                    self._log_error("❌ RABBITMQ CONNECTION FAILED!")
+                    self._log_error("❌ Server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+                    self._log_error("❌ User: {}".format(RABBITMQ_USER))
+                    self._log_error("❌ Error: {}".format(e))
+                    self._log_error("❌ Error Type: {}".format(type(e).__name__))
+
+                    # Provide specific troubleshooting hints based on error type to CONSOLE
+                    error_str = str(e).lower()
+                    if "access refused" in error_str or "authentication" in error_str:
+                        print("💡 TROUBLESHOOTING: Authentication failed")
+                        print("   - Guest user is restricted to localhost connections")
+                        print("   - Create a new user: docker exec minerva-rabbit-mq-1 rabbitmqctl add_user minerva_user password")
+                        print("   - Set permissions: docker exec minerva-rabbit-mq-1 rabbitmqctl set_permissions minerva_user '.*' '.*' '.*'")
+                        self._log_error("💡 TROUBLESHOOTING: Authentication failed")
+                        self._log_error("   - Guest user is restricted to localhost connections")
+                        self._log_error("   - Create a new user: docker exec minerva-rabbit-mq-1 rabbitmqctl add_user minerva_user password")
+                        self._log_error("   - Set permissions: docker exec minerva-rabbit-mq-1 rabbitmqctl set_permissions minerva_user '.*' '.*' '.*'")
+                    elif "connection refused" in error_str or "timeout" in error_str:
+                        print("💡 TROUBLESHOOTING: Connection refused")
+                        print("   - Check if RabbitMQ is running: docker ps")
+                        print("   - Check firewall: ports 5672 and 15672 must be open")
+                        print("   - Test connectivity: telnet {} 5672".format(RABBITMQ_SERVER))
+                        self._log_error("💡 TROUBLESHOOTING: Connection refused")
+                        self._log_error("   - Check if RabbitMQ is running: docker ps")
+                        self._log_error("   - Check firewall: ports 5672 and 15672 must be open")
+                        self._log_error("   - Test connectivity: telnet {} 5672".format(RABBITMQ_SERVER))
+                    elif "name resolution" in error_str or "host" in error_str:
+                        print("💡 TROUBLESHOOTING: Host resolution failed")
+                        print("   - Check if IP address {} is correct".format(RABBITMQ_SERVER))
+                        print("   - Try ping: ping {}".format(RABBITMQ_SERVER))
+                        self._log_error("💡 TROUBLESHOOTING: Host resolution failed")
+                        self._log_error("   - Check if IP address {} is correct".format(RABBITMQ_SERVER))
+                        self._log_error("   - Try ping: ping {}".format(RABBITMQ_SERVER))
 
                     # Report connection status
                     self._report_status(
@@ -122,8 +212,11 @@ class RabbitMQClient:
                         details={
                             'queue': self.queue,
                             'server': RABBITMQ_SERVER,
+                            'port': RABBITMQ_AMQP_PORT,
+                            'user': RABBITMQ_USER,
                             'retry_delay': self._reconnect_delay,
-                            'error_type': type(e).__name__
+                            'error_type': type(e).__name__,
+                            'error_message': str(e)
                         },
                         exception=e
                     )
