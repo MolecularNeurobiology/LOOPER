@@ -290,9 +290,17 @@ class RabbitMQClient:
             else:
                 # Declare queue without TTL for ping/command queues
                 # Using durable=True to make all queues durable
+                # WINDOWS FIX: Add priority support for command queues to match Node.js side
+                queue_args = {}
+                if 'command_queue' in self.queue:
+                    # Command queues get priority support to prevent blocking during streaming
+                    queue_args['x-max-priority'] = 10
+                    self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
+
                 self.channel.queue_declare(
                     queue=self.queue,
-                    durable=True  # Changed to True to make all queues durable
+                    durable=True,  # Changed to True to make all queues durable
+                    arguments=queue_args if queue_args else None
                 )
                 # Publish message without TTL
                 self.channel.basic_publish(
@@ -391,7 +399,18 @@ class RabbitMQClient:
                     )
                 else:
                     # Command and ping queues also use durable=True to make all queues durable
-                    self.channel.queue_declare(queue=self.queue, durable=True)
+                    # WINDOWS FIX: Add priority support for command queues to match Node.js side
+                    queue_args = {}
+                    if 'command_queue' in self.queue:
+                        # Command queues get priority support to prevent blocking during streaming
+                        queue_args['x-max-priority'] = 10
+                        self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
+
+                    self.channel.queue_declare(
+                        queue=self.queue,
+                        durable=True,
+                        arguments=queue_args if queue_args else None
+                    )
 
                 # WINDOWS FIX: Optimized consumer settings to prevent blocking
                 self.channel.basic_qos(prefetch_count=1)  # Process one message at a time
