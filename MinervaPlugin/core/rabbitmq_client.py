@@ -109,11 +109,14 @@ class RabbitMQClient:
                     # Use different connection parameters for network vs localhost
                     if RABBITMQ_SERVER == "localhost" or RABBITMQ_SERVER.startswith("127."):
                         # Localhost connection - use shorter timeouts
+                        # WINDOWS FIX: Optimized connection parameters to prevent blocking
                         connection_params = pika.ConnectionParameters(
                             host=RABBITMQ_SERVER,
-                            heartbeat=600,  # 10 minute heartbeat
-                            blocked_connection_timeout=300,  # 5 minute timeout
-                            socket_timeout=10,  # 10 second socket timeout
+                            heartbeat=300,  # 5 minute heartbeat (reduced from 10)
+                            blocked_connection_timeout=60,  # 1 minute timeout (reduced from 5)
+                            socket_timeout=5,  # 5 second socket timeout (reduced from 10)
+                            connection_attempts=3,  # Retry connection attempts
+                            retry_delay=1,  # 1 second between retries
                         )
                     else:
                         # Network connection - use longer timeouts and more robust settings
@@ -332,15 +335,29 @@ class RabbitMQClient:
 
 
     def consume_message(self, callback):
-        """Consume messages with automatic reconnection handling"""
+        """Consume messages with automatic reconnection handling - WINDOWS OPTIMIZED"""
         def message_callback_wrapper(ch, method, properties, body):
             try:
                 # Parse and process the message
                 message = json.loads(body.decode())
+
+                # WINDOWS FIX: Immediate acknowledgment for critical commands to prevent blocking
+                cmd_type = message.get("type") if isinstance(message, dict) else None
+                is_critical = cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
+
+                if is_critical:
+                    # Acknowledge critical commands immediately to prevent queue blocking
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    self._log_info("🚨 CRITICAL COMMAND acknowledged immediately: {}".format(cmd_type))
+
+                # Process the message
                 callback(message)
-                # Acknowledge the message after successful processing
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                self._log_info("Message processed and acknowledged: {}".format(message))
+
+                if not is_critical:
+                    # Acknowledge non-critical messages after processing
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    self._log_info("Message processed and acknowledged: {}".format(message))
+
             except Exception as e:
                 # Log error but still acknowledge to prevent redelivery
                 self._log_error("Error processing message: {}".format(e))
@@ -376,6 +393,8 @@ class RabbitMQClient:
                     # Command and ping queues also use durable=True to make all queues durable
                     self.channel.queue_declare(queue=self.queue, durable=True)
 
+                # WINDOWS FIX: Optimized consumer settings to prevent blocking
+                self.channel.basic_qos(prefetch_count=1)  # Process one message at a time
                 self.channel.basic_consume(
                     queue=self.queue,
                     on_message_callback=message_callback_wrapper,

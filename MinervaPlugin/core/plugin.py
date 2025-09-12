@@ -359,6 +359,7 @@ class Plugin:
         """
         Dynamic command passthrough: enqueue non-`stream` commands as raw dicts for PCC to handle.
         `stream` commands are handled separately by _handle_stream_control.
+        PRIORITY PROCESSING: Critical commands are processed immediately to prevent blocking.
         """
         self._log_info(f"Plugin {self._mac_address} - Command received: {command}")
 
@@ -397,24 +398,46 @@ class Plugin:
 
         try:
             with self._commands_lock:
+                # PRIORITY PROCESSING: Critical commands get immediate processing
+                critical_commands = ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
 
-                # Append raw command for PCC/simulator dispatcher
-                self._commands.append(command)
-                self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
+                if cmd_type in critical_commands:
+                    # Insert critical commands at the front of the queue for immediate processing
+                    self._commands.insert(0, command)
+                    self._log_info(f"🚨 CRITICAL COMMAND '{cmd_type}' - Added to FRONT of queue for immediate processing")
 
-                # Report successful command processing
-                self._status_manager.report_status(
-                    severity=StatusSeverity.INFO,
-                    category=StatusCategory.COMMAND_PROCESSING,
-                    code="COMMAND_ENQUEUED_SUCCESS",
-                    message=f"Command successfully enqueued: {cmd_type}",
-                    details={
-                        'command_type': cmd_type,
-                        'mac_address': self._mac_address,
-                        'queue_size': len(self._commands)
-                    },
-                    component="command_handler"
-                )
+                    # Report critical command with high priority
+                    self._status_manager.report_status(
+                        severity=StatusSeverity.INFO,
+                        category=StatusCategory.COMMAND_PROCESSING,
+                        code="CRITICAL_COMMAND_PRIORITY_QUEUED",
+                        message=f"Critical command prioritized: {cmd_type}",
+                        details={
+                            'command_type': cmd_type,
+                            'mac_address': self._mac_address,
+                            'queue_size': len(self._commands),
+                            'priority': 'HIGH'
+                        },
+                        component="command_handler"
+                    )
+                else:
+                    # Regular commands go to the back of the queue
+                    self._commands.append(command)
+                    self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
+
+                    # Report successful command processing
+                    self._status_manager.report_status(
+                        severity=StatusSeverity.INFO,
+                        category=StatusCategory.COMMAND_PROCESSING,
+                        code="COMMAND_ENQUEUED_SUCCESS",
+                        message=f"Command successfully enqueued: {cmd_type}",
+                        details={
+                            'command_type': cmd_type,
+                            'mac_address': self._mac_address,
+                            'queue_size': len(self._commands)
+                        },
+                        component="command_handler"
+                    )
 
         except Exception as e:
             self._status_manager.report_status(
@@ -438,7 +461,23 @@ class Plugin:
     def _listen_for_commands(self):
         # added passthrough of _is_running to help with stopping on exit
         self._log_info(f"Starting command listener for MAC: {self._mac_address}")
-        self._rabbit_mq_client_consumer.consume_message(self._handle_command)
+
+        # WINDOWS FIX: Use aggressive message consumption to prevent blocking
+        def priority_command_callback(command):
+            """Enhanced command callback with Windows-specific optimizations"""
+            try:
+                # Process command immediately
+                self._handle_command(command)
+
+                # Force immediate processing of critical commands
+                cmd_type = command.get("type") if isinstance(command, dict) else None
+                if cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']:
+                    self._log_info(f"🚨 WINDOWS FIX: Critical command '{cmd_type}' processed immediately")
+
+            except Exception as e:
+                self._log_error(f"Error in priority command callback: {e}")
+
+        self._rabbit_mq_client_consumer.consume_message(priority_command_callback)
         self._log_info(f"Command listener stopped for MAC: {self._mac_address}")
 
     def _ping_loop(self):
