@@ -269,17 +269,22 @@ class RabbitMQClient:
                 ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
                 ttl_ms = ttl_seconds * 1000
 
-                # Declare queue with TTL for streaming data
-                # Messages older than TTL will be automatically discarded
-                # Stream queues should be durable=True for persistence
-                queue_args = {'x-message-ttl': ttl_ms}
-                if self.max_length is not None:
-                    queue_args['x-max-length'] = self.max_length
-                self.channel.queue_declare(
-                    queue=self.queue,
-                    durable=True,
-                    arguments=queue_args
-                )
+                # PERFORMANCE FIX: Only declare queue once per connection, not every message
+                if not hasattr(self, '_queue_declared_send') or not self._queue_declared_send:
+                    # Declare queue with TTL for streaming data
+                    # Messages older than TTL will be automatically discarded
+                    # Stream queues should be durable=True for persistence
+                    queue_args = {'x-message-ttl': ttl_ms}
+                    if self.max_length is not None:
+                        queue_args['x-max-length'] = self.max_length
+                    self.channel.queue_declare(
+                        queue=self.queue,
+                        durable=True,
+                        arguments=queue_args
+                    )
+                    self._queue_declared_send = True
+                    self._log_info(f"📡 Queue declared for streaming: {self.queue} (TTL: {ttl_seconds}s)")
+
                 # Publish message with TTL properties
                 self.channel.basic_publish(
                     exchange='',
@@ -288,20 +293,25 @@ class RabbitMQClient:
                     properties=pika.BasicProperties(expiration=str(ttl_ms))  # TTL per message
                 )
             else:
-                # Declare queue without TTL for ping/command queues
-                # Using durable=True to make all queues durable
-                # WINDOWS FIX: Add priority support for command queues to match Node.js side
-                queue_args = {}
-                if 'command_queue' in self.queue:
-                    # Command queues get priority support to prevent blocking during streaming
-                    queue_args['x-max-priority'] = 10
-                    self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
+                # PERFORMANCE FIX: Only declare queue once per connection, not every message
+                if not hasattr(self, '_queue_declared_send') or not self._queue_declared_send:
+                    # Declare queue without TTL for ping/command queues
+                    # Using durable=True to make all queues durable
+                    # WINDOWS FIX: Add priority support for command queues to match Node.js side
+                    queue_args = {}
+                    if 'command_queue' in self.queue:
+                        # Command queues get priority support to prevent blocking during streaming
+                        queue_args['x-max-priority'] = 10
+                        self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
 
-                self.channel.queue_declare(
-                    queue=self.queue,
-                    durable=True,  # Changed to True to make all queues durable
-                    arguments=queue_args if queue_args else None
-                )
+                    self.channel.queue_declare(
+                        queue=self.queue,
+                        durable=True,  # Changed to True to make all queues durable
+                        arguments=queue_args if queue_args else None
+                    )
+                    self._queue_declared_send = True
+                    self._log_info(f"📡 Queue declared for commands/ping: {self.queue}")
+
                 # Publish message without TTL
                 self.channel.basic_publish(
                     exchange='',
@@ -343,109 +353,120 @@ class RabbitMQClient:
 
 
     def consume_message(self, callback):
-        """Consume messages with automatic reconnection handling - WINDOWS OPTIMIZED"""
-        def message_callback_wrapper(ch, method, properties, body):
-            try:
-                # Parse and process the message
-                message = json.loads(body.decode())
+        """Consume messages with automatic reconnection handling - SMART ROUTING"""
+        # Use non-blocking ONLY for command queues, blocking for others (streaming)
+        if 'command_queue' in self.queue:
+            return self.consume_message_non_blocking(callback)
+        else:
+            # Use blocking consumption for streaming to ensure reliable data flow
+            return self.consume_message_original_blocking(callback)
 
-                # WINDOWS FIX: Immediate acknowledgment for critical commands to prevent blocking
-                cmd_type = message.get("type") if isinstance(message, dict) else None
-                is_critical = cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
+    def consume_message_non_blocking(self, callback):
+        """NON-BLOCKING message consumption using polling - prevents resource contention"""
+        self._log_info("Starting NON-BLOCKING message consumption on queue: {}".format(self.queue))
+        print("rabbit mq _is_running True - NON-BLOCKING MODE")
 
-                if is_critical:
-                    # Acknowledge critical commands immediately to prevent queue blocking
-                    ch.basic_ack(delivery_tag=method.delivery_tag)
-                    self._log_info("🚨 CRITICAL COMMAND acknowledged immediately: {}".format(cmd_type))
-
-                # Process the message
-                callback(message)
-
-                if not is_critical:
-                    # Acknowledge non-critical messages after processing
-                    ch.basic_ack(delivery_tag=method.delivery_tag)
-                    self._log_info("Message processed and acknowledged: {}".format(message))
-
-            except Exception as e:
-                # Log error but still acknowledge to prevent redelivery
-                self._log_error("Error processing message: {}".format(e))
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        self._log_info("Starting message consumption on queue: {}".format(self.queue))
-        print("rabbit mq _is_running True")
-
-        # Main consumption loop with reconnection handling
+        # Main consumption loop with NON-BLOCKING polling
         while self._is_running:
             try:
-                # Ensure we have a valid connection
-                if not self._ensure_connection():
+                # Ensure we have a valid connection and channel
+                if not self._ensure_connection() or not self.channel:
                     self._log_error("Failed to establish connection for consuming messages")
                     time.sleep(5)  # Wait before retrying
                     continue
 
-                # Declare queue with consistent settings based on use_ttl flag
-                # All queues should be durable=True
-                if self.use_ttl:
-                    # Calculate TTL in milliseconds for streaming queues - use custom TTL if provided
-                    ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
-                    ttl_ms = ttl_seconds * 1000
-                    queue_args = {'x-message-ttl': ttl_ms}
-                    if self.max_length is not None:
-                        queue_args['x-max-length'] = self.max_length
-                    self.channel.queue_declare(
-                        queue=self.queue,
-                        durable=True,
-                        arguments=queue_args
-                    )
-                else:
-                    # Command and ping queues also use durable=True to make all queues durable
-                    # WINDOWS FIX: Add priority support for command queues to match Node.js side
-                    queue_args = {}
-                    if 'command_queue' in self.queue:
-                        # Command queues get priority support to prevent blocking during streaming
-                        queue_args['x-max-priority'] = 10
-                        self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
+                # MEMORY LEAK FIX: Only declare queue once per connection, not every poll
+                if not hasattr(self, '_queue_declared') or not self._queue_declared:
+                    # Declare queue with consistent settings based on use_ttl flag
+                    if self.use_ttl:
+                        # Calculate TTL in milliseconds for streaming queues - use custom TTL if provided
+                        ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
+                        ttl_ms = ttl_seconds * 1000
+                        queue_args = {'x-message-ttl': ttl_ms}
+                        if self.max_length is not None:
+                            queue_args['x-max-length'] = self.max_length
+                        self.channel.queue_declare(
+                            queue=self.queue,
+                            durable=True,
+                            arguments=queue_args
+                        )
+                    else:
+                        # Command and ping queues also use durable=True to make all queues durable
+                        # WINDOWS FIX: Add priority support for command queues to match Node.js side
+                        queue_args = {}
+                        if 'command_queue' in self.queue:
+                            # Command queues get priority support to prevent blocking during streaming
+                            queue_args['x-max-priority'] = 10
+                            # Only log once per connection, not every poll
+                            if not hasattr(self, '_priority_queue_logged'):
+                                self._log_info("🚨 Creating command queue with priority support: {}".format(self.queue))
+                                self._priority_queue_logged = True
 
-                    self.channel.queue_declare(
-                        queue=self.queue,
-                        durable=True,
-                        arguments=queue_args if queue_args else None
-                    )
+                        self.channel.queue_declare(
+                            queue=self.queue,
+                            durable=True,
+                            arguments=queue_args if queue_args else None
+                        )
 
-                # WINDOWS FIX: Optimized consumer settings to prevent blocking
-                self.channel.basic_qos(prefetch_count=1)  # Process one message at a time
-                self.channel.basic_consume(
-                    queue=self.queue,
-                    on_message_callback=message_callback_wrapper,
-                    auto_ack=False  # Manual acknowledgment for better reliability
-                )
-                self._log_info("Listening for messages on {}. To exit press CTRL+C".format(self.queue))
+                    # Mark queue as declared to avoid repeated declarations
+                    self._queue_declared = True
 
-                # Start consuming - this will block until stop() is called or connection fails
-                self.channel.start_consuming()
+                # NON-BLOCKING: Poll for messages instead of blocking consumption
+                method_frame, header_frame, body = self.channel.basic_get(queue=self.queue)
 
-            except (pika.exceptions.AMQPConnectionError,
-                    pika.exceptions.ConnectionClosedByBroker,
-                    pika.exceptions.StreamLostError,
-                    pika.exceptions.IncompatibleProtocolError) as e:
-                self._log_error("Connection error during consumption: {}".format(e))
-                # Mark connection as invalid
-                if self.connection:
+                if method_frame:
                     try:
-                        self.connection.close()
-                    except:
-                        pass
-                    self.connection = None
-                    self.channel = None
+                        # Parse and process the message
+                        message = json.loads(body.decode())
 
-                if self._is_running:
-                    self._log_warn("Will attempt to reconnect in 5 seconds...")
-                    time.sleep(5)
+                        # WINDOWS FIX: Immediate acknowledgment for critical commands to prevent blocking
+                        cmd_type = message.get("type") if isinstance(message, dict) else None
+                        is_critical = cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
+
+                        if is_critical:
+                            # Acknowledge critical commands immediately to prevent queue blocking
+                            self.channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                            self._log_info("🚨 CRITICAL COMMAND acknowledged immediately: {}".format(cmd_type))
+
+                        # Process the message
+                        callback(message)
+
+                        if not is_critical:
+                            # Acknowledge non-critical messages after processing
+                            self.channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+                            self._log_info("Message processed and acknowledged: {}".format(message))
+
+                    except Exception as e:
+                        # Log error but still acknowledge to prevent redelivery
+                        self._log_error("Error processing message: {}".format(e))
+                        self.channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
+                # Short sleep to prevent CPU spinning - CRITICAL for non-blocking mode
+                # MEMORY LEAK FIX: Much longer polling to reduce CPU/memory usage
+                if 'command_queue' in self.queue:
+                    time.sleep(1.0)  # 1 second polling for commands - prevent memory leak
+                else:
+                    time.sleep(2.0)   # 2 second polling for other queues - prevent memory leak
 
             except Exception as e:
-                self._log_error("Unexpected error in consume_message: {}".format(e))
-                if self._is_running:
-                    time.sleep(5)  # Wait before retrying
+                self._log_error("Error during consumption: {}".format(e))
+                # Mark connection as invalid on connection errors
+                if "connection" in str(e).lower() or "channel" in str(e).lower():
+                    if self.connection:
+                        try:
+                            self.connection.close()
+                        except:
+                            pass
+                        self.connection = None
+                        self.channel = None
+
+                    if self._is_running:
+                        self._log_warn("Will attempt to reconnect in 5 seconds...")
+                        time.sleep(5)
+                else:
+                    # For other errors, just wait and retry
+                    if self._is_running:
+                        time.sleep(1)  # Shorter wait for non-connection errors
 
         print("rabbit mq _is_running False")
         self.close()
@@ -494,6 +515,114 @@ class RabbitMQClient:
             except Exception as e:
                 self._log_error("Error closing connection: {}".format(e))
 
-            # Clear references
+            # Clear references and reset queue declaration flags
             self.connection = None
             self.channel = None
+            # Reset queue declaration flags so they get re-declared on reconnection
+            if hasattr(self, '_queue_declared_send'):
+                self._queue_declared_send = False
+            if hasattr(self, '_queue_declared'):
+                self._queue_declared = False
+            if hasattr(self, '_queue_declared_blocking'):
+                self._queue_declared_blocking = False
+
+    def consume_message_original_blocking(self, callback):
+        """Original blocking message consumption - reliable for streaming"""
+        def message_callback_wrapper(ch, method, properties, body):
+            try:
+                # Parse and process the message
+                message = json.loads(body.decode())
+
+                # WINDOWS FIX: Immediate acknowledgment for critical commands to prevent blocking
+                cmd_type = message.get("type") if isinstance(message, dict) else None
+                is_critical = cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
+
+                if is_critical:
+                    # Acknowledge critical commands immediately to prevent queue blocking
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    self._log_info("🚨 CRITICAL COMMAND acknowledged immediately: {}".format(cmd_type))
+
+                # Process the message
+                callback(message)
+
+                if not is_critical:
+                    # Acknowledge non-critical messages after processing
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+                    self._log_info("Message processed and acknowledged: {}".format(message))
+
+            except Exception as e:
+                # Log error but still acknowledge to prevent redelivery
+                self._log_error("Error processing message: {}".format(e))
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+
+        self._log_info("Starting BLOCKING message consumption on queue: {}".format(self.queue))
+        print("rabbit mq _is_running True - BLOCKING MODE")
+
+        # Main consumption loop with reconnection handling
+        while self._is_running:
+            try:
+                # Ensure we have a valid connection and channel
+                if not self._ensure_connection() or not self.channel:
+                    self._log_error("Failed to establish connection for consuming messages")
+                    time.sleep(5)  # Wait before retrying
+                    continue
+
+                # Declare queue once per connection
+                if not hasattr(self, '_queue_declared_blocking') or not self._queue_declared_blocking:
+                    if self.use_ttl:
+                        ttl_seconds = self.ttl_seconds if self.ttl_seconds is not None else STREAM_MESSAGE_TTL_SECONDS
+                        ttl_ms = ttl_seconds * 1000
+                        queue_args = {'x-message-ttl': ttl_ms}
+                        if self.max_length is not None:
+                            queue_args['x-max-length'] = self.max_length
+                        self.channel.queue_declare(
+                            queue=self.queue,
+                            durable=True,
+                            arguments=queue_args
+                        )
+                    else:
+                        queue_args = {}
+                        if 'command_queue' in self.queue:
+                            queue_args['x-max-priority'] = 10
+                        self.channel.queue_declare(
+                            queue=self.queue,
+                            durable=True,
+                            arguments=queue_args if queue_args else None
+                        )
+                    self._queue_declared_blocking = True
+
+                # Set up blocking consumption
+                self.channel.basic_qos(prefetch_count=1)
+                self.channel.basic_consume(
+                    queue=self.queue,
+                    on_message_callback=message_callback_wrapper,
+                    auto_ack=False
+                )
+                self._log_info("Listening for messages on {}. To exit press CTRL+C".format(self.queue))
+
+                # Start consuming - this will block until stop() is called or connection fails
+                self.channel.start_consuming()
+
+            except Exception as e:
+                self._log_error("Error during blocking consumption: {}".format(e))
+                # Mark connection as invalid on connection errors
+                if "connection" in str(e).lower() or "channel" in str(e).lower():
+                    if self.connection:
+                        try:
+                            self.connection.close()
+                        except:
+                            pass
+                        self.connection = None
+                        self.channel = None
+                        self._queue_declared_blocking = False  # Reset queue declaration flag
+
+                    if self._is_running:
+                        self._log_warn("Will attempt to reconnect in 5 seconds...")
+                        time.sleep(5)
+                else:
+                    if self._is_running:
+                        time.sleep(1)
+
+        print("rabbit mq _is_running False - BLOCKING MODE")
+        self.close()
+        print("closing connection")

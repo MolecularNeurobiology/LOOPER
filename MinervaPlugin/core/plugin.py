@@ -209,11 +209,13 @@ class Plugin:
         self._log_info("🏷️  MAC Address: {}".format(self._mac_address))
 
         try:
-            # Existing command consumer (for critical commands: start, go_to_next, stop_stream)
-            self._log_info("🔄 Creating command consumer client...")
+            # STEP 2 FIX: Dedicated command consumer with separate connection
+            self._log_info("🔄 Creating DEDICATED command consumer client...")
             self._rabbit_mq_client_consumer = RabbitMQClient(
                 logger, COMMAND_QUEUE, registrationParams.mac_address, use_ttl=False
             )
+            # Mark this as a command consumer for priority handling
+            self._rabbit_mq_client_consumer._is_command_consumer = True
 
             self._log_info("🔄 Creating ping producer client...")
             self._rabbit_mq_client_producer = RabbitMQClient(
@@ -273,6 +275,13 @@ class Plugin:
 
         # Monitoring and observability
         self._start_time = datetime.now()  # Track plugin start time for uptime calculation
+
+        # STEP 3 FIX: Adaptive streaming rate control
+        self._streaming_rate_hz = 5.0  # Start at 5Hz
+        self._min_streaming_rate = 1.0  # Minimum 1Hz
+        self._max_streaming_rate = 5.0  # Maximum 5Hz
+        self._rate_adjustment_lock = threading.Lock()
+        self._command_processing_times = []  # Track command response times
 
         # Status reporting system
         self._status_manager = StatusManager()
@@ -361,6 +370,9 @@ class Plugin:
         `stream` commands are handled separately by _handle_stream_control.
         PRIORITY PROCESSING: Critical commands are processed immediately to prevent blocking.
         """
+        # STEP 3 FIX: Track command processing time for adaptive rate control
+        command_start_time = time.time()
+
         self._log_info(f"Plugin {self._mac_address} - Command received: {command}")
 
         # Validate input
@@ -455,6 +467,31 @@ class Plugin:
                 exception=e
             )
             self._log_error(f"Unknown error occurred processing command {str(command)}: {e}")
+
+        # STEP 3 FIX: Track command processing time and adjust streaming rate
+        finally:
+            command_end_time = time.time()
+            processing_time = command_end_time - command_start_time
+
+            # Store processing time for rate adjustment
+            with self._rate_adjustment_lock:
+                self._command_processing_times.append(processing_time)
+                # Keep only last 10 measurements
+                if len(self._command_processing_times) > 10:
+                    self._command_processing_times.pop(0)
+
+                # Adjust streaming rate based on command processing performance
+                avg_processing_time = sum(self._command_processing_times) / len(self._command_processing_times)
+
+                if avg_processing_time > 0.5:  # If commands take >500ms
+                    # Reduce streaming rate to free up resources
+                    self._streaming_rate_hz = max(self._min_streaming_rate, self._streaming_rate_hz * 0.8)
+                    self._log_info(f"🐌 Reduced streaming rate to {self._streaming_rate_hz:.1f}Hz due to slow command processing")
+                elif avg_processing_time < 0.1:  # If commands are fast (<100ms)
+                    # Increase streaming rate back towards maximum
+                    self._streaming_rate_hz = min(self._max_streaming_rate, self._streaming_rate_hz * 1.1)
+                    if self._streaming_rate_hz > 4.9:  # Close to max
+                        self._log_info(f"🚀 Restored streaming rate to {self._streaming_rate_hz:.1f}Hz - commands processing quickly")
 
 
 
@@ -939,7 +976,8 @@ class Plugin:
                 except Exception as e:
                     self._log_error(f"Error streaming to rig queue: {e}")
 
-            time.sleep(0.2)  # 5 times per second - FULL SPEED, NO RATE LIMITING
+            # TEMPORARY: Disable adaptive rate - use fixed 5Hz
+            time.sleep(0.2)  # Fixed 5Hz - disable adaptive rate control
 
 
 
