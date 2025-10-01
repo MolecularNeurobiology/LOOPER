@@ -1,0 +1,12 @@
+This is the version being prepared for Chris's whole system test.
+
+Adding Serial.println following the purple code
+adding [] for data transfer
+reconstruct state for both actuator & operation
+support C,V,P,S,A,R,U,D,Z,B,F
+Not support E (Start up (Part 2))
+
+Encounter motor jittering issue, because of report() takes time during motor running.
+
+
+6/25/2025
