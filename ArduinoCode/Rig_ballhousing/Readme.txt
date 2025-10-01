@@ -22,6 +22,8 @@ Test & flash procedure
 3. Open the Tool-serial monitor, manually touch each switch, and see if the plot changes. Adjust switch position or replace if necessary.
 4. Flash rig_ballhounding_test to the Arduino. 
 5. Run the test for 1 hour, and see if any jamming happens/
-6. Flash rig_ballhounding_main, put the USBcable back to Arduino
+6. Flash rig_ballhounding_main, put the USB-C cable back to Arduino
+7. Reboot the whole system after the flashing 
 
 9/5/2025
+
