@@ -15,17 +15,20 @@ from PySide6.QtCore import QTimer
 # %% define functions
 
 class LJ_DIO_pulse():
-    def __init__(self,device,pin,duration_ms):
+    def __init__(self,device,pin,duration_ms, logger = None):
         self.device = device
-        self.device.setDIOState(pin,0)
         self.pin = pin
+        self.logger = logger
+        if self.logger: self.logger.info(f"turning on pin {self.pin} for {duration_ms} ms")
+        self.device.setDIOState(self.pin,0)
         self.pulse_ender = QTimer()
-        self.pulse_ender.setSingleShot = True
+        self.pulse_ender.setSingleShot(True)
         self.pulse_ender.timeout.connect(self.on_timeout)
-        self.device.setDIOState(pin,1)
+        self.device.setDIOState(self.pin,1)
         self.pulse_ender.start(duration_ms)
 
     def on_timeout(self):
+        if self.logger: self.logger.info(f"turning off pin {self.pin}")
         self.device.setDIOState(self.pin,0)
 
 

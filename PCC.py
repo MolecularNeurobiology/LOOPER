@@ -8,15 +8,15 @@ Physiology Command Center
 @author: Christopher Ward (christow@bcm.edu, ward.chris.s@gmail.com)
 Created as part of the Russell Ray Molecular Neurobiology Group's
 Autoresuscitation Project
-contributions to this project include code, concepts, or consultation from 
-several individuals including Russell Ray, Eunice Aissi, Dipak Patel, 
+contributions to this project include code, concepts, or consultation from
+several individuals including Russell Ray, Eunice Aissi, Dipak Patel,
 Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, and Kevin Jiang
 This software provides a graphical interface for I/O between an computer
 and 1) Arduino Microcontroller, 2) LabJack Analog to Digital Converter.
 Signals from the LabJack undergo signal processing to identify key features
 used as triggers to execute programmed control sequences run by the Arduino.
-The current implementation utilizes pneumotachography and electrocardiogram 
-signals to monitor breathing and heart rate as part of a neonate 
+The current implementation utilizes pneumotachography and electrocardiogram
+signals to monitor breathing and heart rate as part of a neonate
 autoresuscitation assay.
 Default Workflow (subject to change)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,23 +31,23 @@ Default Workflow (subject to change)
 3-habituation mode (wait 30 minutes for habituation)
 **preview and capture signals for review later - consider updates to interval
 4-baseline mode (capture 10 minutes of signal for baseline)
-**preview and capture signals - consider criteria of 
+**preview and capture signals - consider criteria of
     QUANTITY_OF_QUALITY signal...
-    Q_O_Q : 10 seconds per interval of 'calm breathing', 
+    Q_O_Q : 10 seconds per interval of 'calm breathing',
     sum of intervals is at least 1 minute
-5-challenge mode (ANOXIA challenge until breath cessation, 
+5-challenge mode (ANOXIA challenge until breath cessation,
     Room Air until recovery....recovery based on >=X% HR and BPM recovery)
 **preview and capture signals - include tags for ANOXIA vs ROOM AIR
-**signal to DC/Serial out 
+**signal to DC/Serial out
     [trigger to switch between modes (DC on for ANOXIA, DC off for ROOM AIR)]
 **move to EXPERIMENT ENDED mode upon failure to recover breathing/hr
-6-experiment ended mode 
+6-experiment ended mode
 **terminate preview and capture, send signal to notify user
 **signal to DC out, or other Raspberry Pi notification
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Inputs: currently none - all settings are coordinated within the GUI
-Outputs: timeseries signal datafile 
-    [calibration capture, animal signal capture] - this is currently one file 
+Outputs: timeseries signal datafile
+    [calibration capture, animal signal capture] - this is currently one file
     with seperate sections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TODO regarding PCC
@@ -55,14 +55,14 @@ TODO regarding PCC
 *create flexibility to terminate study after variable number of trials
 *error checking to prevent inversion of y axis, baseline and threshold values
     (and any other common sources of crashes)
-*better handle/close out of labjack 
+*better handle/close out of labjack
     (probably try except and closing out connection)
 *better handling for arduino connection
 *incorporate logging library for improved status and debugging...maybe?
 *revisit UX restrictions for tweakables for display and general UX design
 related but slightly seperate
-*server/client for comms with Supervisor System and Worker Systems 
-    (i.e. central workstation communicates to rigs running PCC for set-up and 
+*server/client for comms with Supervisor System and Worker Systems
+    (i.e. central workstation communicates to rigs running PCC for set-up and
      monitoring)
 *tools to adapt PCC output for BASSPRO_STAGG pipeline, and Rice D2K pipelines
 
@@ -82,14 +82,14 @@ related but slightly seperate
             'DVTV':0.75 – disagreement in volume of inhaled vs exhaled tidal volume |iTV-eTV|/avg(iTV,eTV) is less than 0.75
 
         Each of the above parameters is calculated based on the preceding 5 seconds. And a minimum bout duration of 5 seconds is required for inclusion into the values to use for calculation of baseline.
-        
+
         As the animals accumulate bouts of quiet calm breathing QB_counter and QB_duration values should increase, and an average should be generated if any bouts were observed (but this apparently isn’t reliable working)
-        
+
         The green/red indicator should be green if all criteria are met, and will be red with text indicating criteria that are not being met.
 
-2.	Put a stop in after baseline that if baseline does not establish, 
-        the challenge period does not begin and instead cycles back to 
-        baseline** - 
+2.	Put a stop in after baseline that if baseline does not establish,
+        the challenge period does not begin and instead cycles back to
+        baseline** -
             baseline_increment = 5*60
             minimum_cummulative_QB_duration = 60
 3.	Permit manual setting of baseline values
@@ -99,7 +99,7 @@ related but slightly seperate
             -set recovery thresholds to 0
     b.	Recovery met if 30 total seconds meet recovery criteria within the last
         minute of the 5 minutes recovery period (not consecutive 30 seconds)
-            -revised implementation of sustained recovery check to permit 
+            -revised implementation of sustained recovery check to permit
             sustained recovery based on having a maximum of the munimum
             sustained duration within the recovery interval
 
@@ -188,7 +188,7 @@ try:
 
         ser=serial.Serial()
         ser.baudrate = 9600
-        
+
         # search for Arduino on comports
         arduino_list = []
         device_list = [d for d in serial.tools.list_ports.comports()]
@@ -197,7 +197,7 @@ try:
                 arduino_list.append(d)
             elif d.description is not None and 'Arduino' in d.description:
                 arduino_list.append(d)
-        
+
         if len(arduino_list) > 1:
             if logger: logger.warning('multiple arduinos found, using first')
             ser.port = arduino_list[0].device
@@ -430,8 +430,8 @@ def emailnotification(emailsettingslocation, dev):
     now = datetime.now()
     message = """\
     Subject: NOTIFICATION FROM LABJACK - RPi station {device} - {serial}
-    
-    
+
+
     Message: Program has ended at {YYYY}-{MM:02d}-{DD:02d} {hh:02d}:{mm:02d}:{ss:02d}""".format(
         device=dev.deviceName,
         serial=dev.serialNumber,
@@ -898,7 +898,7 @@ def processStatus(status,device,ser,ADC,logger = None):
             if logger: logger.info('{} - sent'.format(serialtext))
         except Exception as e:
             if logger: logger.warning(f'unable to transmit "{serialtext}" via serial io\n{e}')
-    
+
     return status
 
 
@@ -1025,7 +1025,7 @@ elif settings.sim_mode == 1:
     d=Stream.SimulatedDataReader()
 
 
-#%% start the labjack datastream 
+#%% start the labjack datastream
 if settings.sim_mode == 0:
     sdr = Stream.StreamDataReader(d)
     sdrThread = threading.Thread(target=sdr.readStreamData)
@@ -1075,6 +1075,33 @@ tank_box.update(VIOLET, BLACK, f"TANK:{rig_config.get('Tank_Number','unk')}")
 mask_box.update(WHITE, VIOLET, f"MASK:{rig_config.get('Facemask_ID','unk')}")
 ##
 try:
+        # --- Minerva dynamic command integration point ---
+        # If a MinervaPlugin instance is available and connected for this rig,
+        # poll commands here and dispatch them using the example dispatcher:
+        #
+        # from PCC_command_dispatcher_example import PCCDispatcher
+        # dispatcher = PCCDispatcher()
+        #
+        # # New seeded command handlers
+        # dispatcher.register_handler('initialize_rig', lambda cmd: start_run(cmd.get('payload')))
+        # dispatcher.register_handler('go_to_next', lambda cmd: advance_mode())
+        # dispatcher.register_handler('go_to_step', lambda cmd: jump_to_step((cmd.get('payload') or {}).get('step')))
+        # dispatcher.register_handler('send_filename', lambda cmd: load_file((cmd.get('payload') or {}).get('filename')))
+        # dispatcher.register_handler('stop_experiment', lambda cmd: stop_experiment())
+        #
+        # # Legacy command support for backward compatibility
+        # dispatcher.register_handler('start', lambda cmd: start_run(cmd.get('payload')))  # maps to initialize_rig
+        # dispatcher.register_handler('load_pups', lambda cmd: load_file((cmd.get('payload') or {}).get('filename')))  # maps to send_filename
+        #
+        # try:
+        #     commands = plugin.pop_commands()  # plugin should be instantiated elsewhere and started
+        #     for cmd in commands:
+        #         if not dispatcher.dispatch(cmd):
+        #             if logger: logger.debug(f"Unhandled command: {cmd}")
+        # except Exception as e:
+        #     if logger: logger.error(f"Error dispatching commands: {e}")
+        # --- end integration point ---
+
     while running == True:  # the main game loop
         # read serial i/o from arduino
 
@@ -2279,9 +2306,9 @@ try:
             if settings.sim_mode == 0:
                 r = d.processStreamData(result['result'])
             elif settings.sim_mode == 1:
-                r = result['result']        
-            
-            
+                r = result['result']
+
+
             ## save the data
             if Mode_dict[Current_Mode] in savable_modes:
                 if Current_Mode != prev_Mode:

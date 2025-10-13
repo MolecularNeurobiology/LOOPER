@@ -1,0 +1,13 @@
+#!/bin/bash
+
+tag="stable_2025-08-20a"
+
+# go to repository directory, git reset to tag
+cd $HOME/git/Autoresuscitation
+git fetch --tags
+git checkout $tag
+git reset --hard $tag
+
+# set up python environment and run
+source /home/pi/mambaforge/bin/activate py38
+python /home/pi/git/Autoresuscitation/rig_clean_up.py

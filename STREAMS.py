@@ -11,7 +11,14 @@ from copy import deepcopy
 from datetime import datetime
 import math
 from PySide6.QtCore import QTimer, Qt, QThreadPool, QRunnable
-import u6
+# Try to import u6 for LabJack hardware, fall back to simulation if not available
+try:
+    import u6
+    LABJACK_AVAILABLE = True
+except ImportError:
+    print("Warning: u6 module not found. LabJack functionality will be simulated.")
+    u6 = None
+    LABJACK_AVAILABLE = False
 import serial
 import serial.tools.list_ports as stl
 
@@ -67,7 +74,7 @@ class StreamArduino(object):
         try:
             print(f"To Arduino: {command}")
             self.logger.info(
-                f"Arduino Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+                f"Arduino Sending: {command.replace('<', '&lt;').replace('>', '&gt;')}"
             )
             self.device.write(str.encode(command))
         except Exception as e:
@@ -170,10 +177,10 @@ class SimulatedDataReader:
         self.data_sim_timer.setTimerType(Qt.PreciseTimer)
         self.data_sim_timer.timeout.connect(self.readStreamData)
         # default is 2.5Hz for ain0 and 8.5Hz for ain1 - odd behavior if using x.3 !!!TODO!!!
-        self.sim_sig_ain = {
-            0: [math.sin(i * 6.28 * 2 * 2.5) for i in range(60000)],
-            1: [math.sin(i * 6.28 * 2 * 8.5) for i in range(60000)],
-        }
+        # Initialize with base frequencies but we'll generate dynamic data
+        self.base_freq_ain0 = 2.5
+        self.base_freq_ain1 = 8.5
+        self.global_time = 0  # Simple incrementing time counter
         self.counter = 0
         self.counter_limit = 60000
         self.scan_frequency = 1000
@@ -184,6 +191,7 @@ class SimulatedDataReader:
             self.update_interval_ms / 1000 * self.sample_frequency
         )
 
+        self.readCount = 0  # Initialize readCount
         self.data_sim_timer.start(self.update_interval_ms)
 
     def setDIOState(self, *args):
@@ -211,23 +219,36 @@ class SimulatedDataReader:
     def readStreamData(self):
         self.finished = False
         self.start = datetime.now()
-        self.readCount = 0
+        self.readCount += 1  # Increment readCount each time this is called
 
         if self.counter + self.update_interval_ms >= self.counter_limit:
             self.counter = 0
 
         if not self.finished:
+            # Simple approach: increment global time and generate changing data
+            self.global_time += 0.1  # Increment by 0.1 seconds each call
+
+            # Generate simple but changing sine waves
+            ain0_data = []
+            ain1_data = []
+
+            for i in range(self.update_interval_ms):
+                t = self.global_time + i * 0.001  # Each sample is 1ms apart
+
+                # AIN0: Simple breathing pattern that changes over time
+                ain0_value = math.sin(t * 2 * math.pi * 0.3) + 0.5 * math.sin(t * 2 * math.pi * 0.05)  # 0.3Hz + slow variation
+                ain0_data.append(ain0_value)
+
+                # AIN1: Simple heart pattern that changes over time
+                ain1_value = math.sin(t * 2 * math.pi * 1.2) + 0.3 * math.sin(t * 2 * math.pi * 0.1)  # 1.2Hz + slow variation
+                ain1_data.append(ain1_value)
 
             returnDict = {
                 "errors": 0,
                 "missed": [],
                 "result": {
-                    "AIN0": self.sim_sig_ain[0][
-                        self.counter : self.counter + self.update_interval_ms
-                    ],
-                    "AIN1": self.sim_sig_ain[1][
-                        self.counter : self.counter + self.update_interval_ms
-                    ],
+                    "AIN0": ain0_data,
+                    "AIN1": ain1_data,
                     "AIN2": [0.2 for i in range(self.update_interval_ms)],
                     "AIN3": [0.3 for i in range(self.update_interval_ms)],
                     "AIN4": [0.4 for i in range(self.update_interval_ms)],
@@ -263,7 +284,15 @@ class Worker(QRunnable):
 class StreamDataReader(object):
     def __init__(self, logger):
         self.logger = logger
-        self.device = u6.U6()
+        if LABJACK_AVAILABLE and u6:
+            try:
+                self.device = u6.U6()
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize LabJack hardware: {e}. Using simulation.")
+                self.device = Simulated_U6_Device(logger)
+        else:
+            self.logger.info("LabJack hardware not available. Using simulation.")
+            self.device = Simulated_U6_Device(logger)
 
         self.channel_list = [0, 1, 2, 3, 4, 5]
         self.channel_key = ["FLOW", "ECG", "BT", "RH", "O2", "CO2"]
@@ -399,24 +428,55 @@ class MinervaReceiver:
 
     def process_data(self, pcc):
         for command in self.data:
-            print(command.__dict__)
-            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {command.type._name_}")
-            
-            if command.type._name_ == "GO_TO_NEXT_STEP":
+            print(command)
+            cmd_type = command.get("type") if isinstance(command, dict) else getattr(command, 'type', None)
+            pcc.logger.info(f"MINERVA COMMAND RECEIVED: {cmd_type}")
+
+            # Handle new seeded command names and legacy commands
+            if cmd_type == "go_to_next":
                 pcc.logger.info("going to next step")
                 pcc.action_next_stage()
-            elif command.type._name_ == "GO_TO_PREV_STEP":
-                pcc.logger.warning("go to prev step command received, this is not implemented in PCC")
-            elif command.type._name_ == "GO_TO_STEP":
-                pcc.logger.info(f"going to a step: {command.payload['stepName']}")
-                pcc.comboBox_Jump_To_Stage.setCurrentText(command.payload['stepName'])
-            elif command.type._name_ == "STOP":
-                pcc.logger.info("STOP command received")
-            elif command.type._name_ == "START":
-                pcc.logger.info(f"START command received - {command.__dict__}")
-                
+            elif cmd_type == "go_to_step":
+                # Handle new payload structure with 'step' field
+                payload = command.get('payload', {}) if isinstance(command, dict) else getattr(command, 'payload', {})
+                step_number = payload.get('step') if isinstance(payload, dict) else None
+                pcc.logger.info(f"going to step: {step_number}")
+                if step_number is not None:
+                    # Convert step number to stage name if needed
+                    pcc.logger.info(f"jumping to step number: {step_number}")
+                    # TODO: Implement step number to stage name mapping
+            elif cmd_type in ("start", "initialize_rig"):
+                pcc.logger.info(f"START/INITIALIZE_RIG command received - {command}")
+                # Handle start/initialize_rig command
+            elif cmd_type in ("load_pups", "send_filename"):
+                payload = command.get('payload', {}) if isinstance(command, dict) else getattr(command, 'payload', {})
+                filename = payload.get('filename') if isinstance(payload, dict) else None
+                pcc.logger.info(f"SEND_FILENAME command received - filename: {filename}")
+                # TODO: Implement filename processing
+            elif cmd_type == "stop_experiment":
+                pcc.logger.info("STOP_EXPERIMENT command received")
+                # TODO: Implement experiment stop logic
+            elif cmd_type == "stream":
+                pcc.logger.info("STREAM command received - handled by plugin")
+            elif cmd_type == "stop_stream":
+                pcc.logger.info("STOP_STREAM command received - handled by plugin")
+            # Legacy command handling for backward compatibility
+            elif hasattr(command, 'type') and hasattr(command.type, '_name_'):
+                if command.type._name_ == "GO_TO_PREV_STEP":
+                    pcc.logger.warning("go to prev step command received, this is not implemented in PCC")
+                elif command.type._name_ == "GO_TO_STEP":
+                    pcc.logger.info(f"going to a step: {command.payload.get('stepName', 'unknown')}")
+                    step_name = command.payload.get('stepName')
+                    if step_name:
+                        pcc.comboBox_Jump_To_Stage.setCurrentText(step_name)
+                elif command.type._name_ == "STOP":
+                    pcc.logger.info("STOP command received")
+                elif command.type._name_ == "START":
+                    pcc.logger.info(f"START command received - {command.__dict__}")
+                else:
+                    pcc.logger.warning(f"unknown legacy command: {command.__dict__}")
             else:
-                pcc.logger.warning(f"unknown minerva command: {command.__dict__}")
+                pcc.logger.warning(f"unknown minerva command: {command}")
 
     def readStreamData(self):
         if self.minerva_plugin_object is not None:

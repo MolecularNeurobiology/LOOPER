@@ -22,9 +22,12 @@ and general refactoring and reoganization of modules and functions.
 # %% import libraries
 # external libraries
 import argparse
+from datetime import datetime
+import json
 import logging
 import numpy
 import os
+from pathlib import Path
 import psutil
 from PySide6.QtCore import QFile, Qt, QTimer, QObject, Signal
 from PySide6.QtGui import QFontDatabase, QCloseEvent
@@ -39,7 +42,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtUiTools import QUiLoader
 import pyqtgraph
 import sys
-from datetime import datetime
+
 
 
 # internal libraries
@@ -54,7 +57,27 @@ import STAGES
 
 
 # %% define functions
-def get_mac():
+def get_mac(custom_mac=None):
+    """
+    Get MAC address for the system.
+
+    Args:
+        custom_mac (str, optional): Custom MAC address to use instead of system MAC.
+                                   Useful for simulation mode. Should be in format xx:xx:xx:xx:xx:xx
+
+    Returns:
+        str: MAC address string
+    """
+    if custom_mac is not None and custom_mac != "":
+        # Basic validation of MAC address format
+        import re
+        mac_pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+        if re.match(mac_pattern, custom_mac):
+            return custom_mac
+        else:
+            print("Warning: Invalid MAC address format '{}'. Using as-is.".format(custom_mac))
+            return custom_mac
+
     interfaces = psutil.net_if_addrs()
     mac = "nn:nn:nn:nn"
     for i_name, i_addr in interfaces.items():
@@ -69,6 +92,7 @@ def get_mac():
             except:
                 return "na:na:na:na"
     return mac
+
 
 
 # %% define classes
@@ -139,7 +163,9 @@ class MainWindow(QMainWindow):
         self.label_Title_and_Version.setText(f"PCC-client {version}")
 
         # get mac - used for registering with Minerva Server
-        self.mac = get_mac()
+        # use custom MAC if provided in simulation mode
+        custom_mac = getattr(parsed_args, 'custom_mac', None)
+        self.mac = get_mac(custom_mac)
         print(self.mac)
 
         # create stupid counter to use for printing things I want to calculate frequently but only want to check occasionally
@@ -147,7 +173,11 @@ class MainWindow(QMainWindow):
         self.stupid_counter_interval = 1000
 
         self.payload_counter = 0
-        self.payload_counter_interval = 100
+        self.payload_counter_interval = 200  # Send Minerva data every 200 timer cycles
+
+        # GUI update throttling
+        self.gui_update_counter = 0
+        self.gui_update_interval = 10  # Update GUI every 10 timer cycles (500ms)
 
         # create a logger
         self.logger = logging.getLogger(__name__)
@@ -166,6 +196,11 @@ class MainWindow(QMainWindow):
         # test logging output
         self.logger.debug("DEBUG")
         self.logger.info("INFO")
+
+        # Log custom MAC usage if applicable
+        custom_mac = getattr(parsed_args, 'custom_mac', None)
+        if custom_mac:
+            self.logger.info("Using custom MAC address: {}".format(self.mac))
         self.logger.warning("WARNING")
         self.logger.error("ERROR")
 
@@ -193,6 +228,9 @@ class MainWindow(QMainWindow):
 
         # set kill mode if CL option provided
         self.kill_after_count = self.parsed_args.kill
+
+        # get rig config
+        self.load_rig_config()
 
         # configure i/o
         if self.settings.sim_mode_labjack == 1:
@@ -228,6 +266,7 @@ class MainWindow(QMainWindow):
             output_path=self.settings.output_path, pcc=self
         )
 
+        self.resetting_stages = False
         self.prepare_stages()
 
         ## TODO !!! load settings based on signal from Minerva
@@ -256,6 +295,7 @@ class MainWindow(QMainWindow):
         self.pushButton_Save.clicked.connect(self.action_set_output_file_path)
         self.pushButton_RESET.clicked.connect(self.action_RESET)
         self.pushButton_SHUTDOWN.clicked.connect(self.action_SHUTDOWN)
+        self.pushButton_Edit_Settings.clicked.connect(self.action_Reload_Settings)
         
 
         # arduino quick command buttons
@@ -284,6 +324,45 @@ class MainWindow(QMainWindow):
         self.exit_status = "SHUTDOWN"
         self.ui.close()
         
+
+    def action_Reload_Settings(self):
+        # test for changing up study
+        trimmed_stages = [
+            "startup1",
+            "startup2",
+            "standby",
+            "signal_preview_1",
+            "calibration",
+            "signal_preview_2",
+            "habituation_1",
+            "baseline",
+            "challenge"
+        ]
+
+        self.settings.Mode_settings = {i:self.settings.Mode_settings[i] for i in trimmed_stages}
+
+        # reinitialize stages and data
+        self.resetting_stages = True
+        self.data = DATA.DATA()
+        self.prepare_stages()
+        self.resetting_stages = False
+
+
+    def load_rig_config(self):
+        self.logger.info("attempting to load rig config from home directory")
+        if os.path.exists(os.path.join(Path.home(),"rig.config")):
+            try:
+                with open(os.path.join(Path.home(),"rig.config"),"r") as open_file:
+                    self.rig_config = json.load(open_file)
+                for k,v in self.rig_config.items():
+                    self.logger.info(f"rig_config: {k} - {v}")
+            except Exception as e:
+                self.logger.error("unable to load rig config - please correct and restart: {e}")
+        else:
+            self.logger.error("no rig config found - please correct and restart")
+
+
+
 
     def prepare_graphs(self):
         self.graph1 = pyqtgraph.PlotWidget()
@@ -415,11 +494,12 @@ class MainWindow(QMainWindow):
 
 
     def action_jump_to_stage(self):
-        self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
-        self.active_stage.on_exit()
-        self.automated = False
-        self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
-        self.active_stage.on_load()
+        if not self.resetting_stages:
+            self.logger.info(f"going to stage: {self.comboBox_Jump_To_Stage.currentText()}")
+            self.active_stage.on_exit()
+            self.automated = False
+            self.active_stage = self.stage_dict[self.comboBox_Jump_To_Stage.currentText()]
+            self.active_stage.on_load()
 
 
     def action_set_output_file_path(self, barcode = None):
@@ -462,7 +542,7 @@ class MainWindow(QMainWindow):
         if command[:2] == "lj":
             print(f"To LabJack: {command}")
             self.logger.info(
-                f"LabJack Sending: {command.replace("<","&lt;").replace(">","&gt;")}"
+                f"LabJack Sending: {command.replace('<', '&lt;').replace('>', '&gt;')}"
             )
             lj_command = command.split(",")
             if lj_command[1] == "set_sim_ain":
@@ -474,7 +554,7 @@ class MainWindow(QMainWindow):
         elif command[:3] == "set":
             print(f"Update Setting: {command}")
             self.logger.info(
-                f"Setting Update: {command.replace("<","&lt;").replace(">","&gt;")}"
+                f"Setting Update: {command.replace('<', '&lt;').replace('>', '&gt;')}"
             )
             set_command = command.split(",")
             if set_command[1] == "num":
@@ -541,8 +621,8 @@ class MainWindow(QMainWindow):
 
 
     def action_start_timers(self):
-        self.pulse_timer.start(1000)
-        self.stream_timer.start(10)
+        self.pulse_timer.start(1000)  # 1 second pulse timer
+        self.stream_timer.start(50)   # 50ms = 20 times per second (reduced from 100)
 
 
     def action_pulse_timer(self):
@@ -819,9 +899,12 @@ class MainWindow(QMainWindow):
 
         # append to output
 
-        # refresh gui (if needed)
-        self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
-        # check for effector or auto_advance
+        # refresh gui (throttled to reduce flashing)
+        if self.gui_update_counter % self.gui_update_interval == 0:
+            self.label_Time_In_Stage.setText(f"{self.data.time_in_stage_seconds:.0f} sec")
+            self.gui_update_counter = 0
+
+        # check for effector or auto_advance (always run for functionality)
         self.active_stage.event_loop()
 
         
@@ -841,27 +924,33 @@ class MainWindow(QMainWindow):
 
             # self.logger.info("payload test in debug")
             # self.logger.debug("payload sent")
-            self.payload = mp.MinervaStreamData(
-                mac_address=self.mac,
-                stages=[
-                    (
-                        {
-                            "name": k,
-                            "type": v["stage_type"],
-                            "durationInSeconds": v["duration"],
-                        }
-                        if v["duration"] >= 0
-                        else {
-                            "name": k,
-                            "type": v["stage_type"],
-                        }
-                    )
-                    for k, v in self.settings.Mode_settings.items()
-                ],
-                current_stage=self.active_stage.name,
-                signals=self.data.prepare_data_payload()["signals"],
-            )
-            if self.minerva_stream:
+        # Generate new payload with current data (ALWAYS, regardless of minerva_stream)
+        signals_payload = self.data.prepare_data_payload(attr_dict=self.data.minerva_attr_dict)["signals"]
+
+        self.payload = mp.MinervaStreamData(
+            mac_address=self.mac,
+            stages=[
+                (
+                    {
+                        "name": k,
+                        "type": v["stage_type"],
+                        "durationInSeconds": v["duration"],
+                    }
+                    if v["duration"] >= 0
+                    else {
+                        "name": k,
+                        "type": v["stage_type"],
+                    }
+                )
+                for k, v in self.settings.Mode_settings.items()
+            ],
+            current_stage=self.active_stage.name,
+            signals=signals_payload,
+        )
+
+
+
+        if self.minerva_stream:
                 # Send data to all active user sessions instead of hardcoding user_id="1"
                 active_users = self.minerva_stream.get_active_user_sessions()
                 if active_users:
@@ -876,7 +965,7 @@ class MainWindow(QMainWindow):
                     self.minerva_stream.update_stream_data(self.payload)
                     self.logger.debug("No active users, sent to default stream data")
 
-        self.payload_counter += 10
+        self.payload_counter += 1  # Increment by 1 for cleaner timing
 
 
 
@@ -891,6 +980,8 @@ def main():
     parser.add_argument("-l", "--simulation_labjack", action="store_true")
     parser.add_argument("-a", "--simulation_arduino", action="store_true")
     parser.add_argument("-k", "--kill", type=int, help="kill process after __ seconds")
+    parser.add_argument("-m", "--custom-mac", dest="custom_mac", type=str,
+                       help="custom MAC address to use in simulation mode (format: xx:xx:xx:xx:xx:xx)")
     parsed_args = parser.parse_args()
 
     args = sys.argv.copy()
