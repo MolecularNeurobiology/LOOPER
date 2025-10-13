@@ -1,0 +1,128 @@
+# File Management Plays
+# Purpose: Manages files between control machine and Raspberry Pi systems
+# Usage: ansible-playbook file-management.yml --tags [tags]
+# Author: Christopher S Ward
+# Date: 2025-08-29
+
+---
+
+- name: File Management Plays
+  hosts: legacy_rigs
+  become: yes
+  gather_facts: yes
+  vars: 
+    app_user: "pi"
+    app_group: "pi"
+    local_source: "./source"
+    # Backup Setting:
+    local_archive: "./archive"
+    remote_archive: "/home/pi/Desktop/archive"
+    backup_timestamp: "{{ ansible_date_time.epoch }}"
+
+
+
+  pre_tasks:
+  - name: Create remote host backup directory if it doesn't exist
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+    loop:
+      - "{{remote_archive}}"
+    tags: setup-remote
+  
+
+
+  tasks:
+    # === COPYING FILES FROM RASPBERRY PIs ===
+    - name: Find all .sh files on desktop
+      find:
+        paths: "/home/pi/Desktop"
+        patterns: "*.sh"
+        file_type: file
+      register: found_sh_files
+      tags: 
+      - gather-scripts
+
+    - name: Fetch all found .sh files
+      fetch:
+        src: "{{ item.path }}"
+        dest: "{{ local_archive }}/{{ inventory_hostname }}/scripts/{{ backup_timestamp }}/{{ item.path | basename }}"
+        flat: yes
+      loop: "{{ found_sh_files.files }}"
+      when: found_sh_files.matched > 0
+      tags:
+        - gather-scripts
+
+
+    # === COPYING FILES TO RASPBERRY PIs ===
+    - name: Copy file to Raspberry Pis
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: "{{ item.owner | default(app_user) }}"
+        group: "{{ item.group | default(app_group) }}"
+        mode: "{{ item.mode | default('0644') }}" # Read/Write but not Execute
+        backup: yes
+      register: file_copy_results
+      loop:
+        - src: "{{ local_source }}/ansible_test.txt"
+          dest: "/home/pi/Desktop/ansible_test.txt"
+      tags: 
+        - copy-file
+
+    - name: Copy script to Raspberry Pis
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: '0755' # Executable
+        backup: yes
+      register: script_copy_results
+      loop:
+        - src: "{{ local_source }}/git_PCC_Tag.sh"
+          dest: "/home/pi/Desktop/git_PCC_Tag.sh"
+        - src: "{{ local_source }}/git_GEMouse_Tag.sh"
+          dest: "/home/pi/Desktop/git_GEMouse_Tag.sh"
+        - src: "{{ local_source }}/git_rig_cleanup.sh"
+          dest: "/home/pi/Desktop/git_rig_cleanup.sh"
+        
+      tags: 
+        - copy-script
+
+    
+    # === FIND AND MOVE BACKUP FILES ===
+    - name: Combine all copy results
+      set_fact:
+        all_copy_results: "{{ (file_copy_results.results | default([])) + (script_copy_results.results | default([])) }}"
+      tags: archive
+
+    - name: Display found backup files
+      debug:
+        msg: |
+          File: {{ item.item.dest }}
+          Changed: {{ item.changed }}
+          Backup created: {{ item.backup_file is defined }}
+          {% if item.backup_file is defined %}
+          Backup file: {{ item.backup_file }}
+          {% endif %}
+      loop: "{{ all_copy_results }}"
+      when: 
+        - all_copy_results | length > 0
+        - item.backup_file is defined
+        - item.backup_file != ""
+      tags: archive
+
+    - name: Move backup files to archive directory
+      command: >
+        mv "{{ item.backup_file }}" 
+        "{{ remote_archive }}/{{ item.backup_file | basename }}"
+      loop: "{{ all_copy_results }}"
+      when: 
+        - all_copy_results | length > 0
+        - item.backup_file is defined
+        - item.backup_file != ""
+      tags: archive
+    
+        

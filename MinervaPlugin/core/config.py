@@ -1,7 +1,7 @@
 # Configuration for RabbitMQ
 # Use localhost to connect to Docker RabbitMQ instance
 RABBITMQ_SERVER = (
-    "localhost"  # Connect to local Docker instance
+    "10.51.130.207"  # Connect to local Docker instance
 )
 RABBITMQ_PORT = 15672  # Management UI port
 RABBITMQ_AMQP_PORT = 5672  # AMQP protocol port (used by pika)
@@ -17,6 +17,7 @@ RIG_STREAM_QUEUE = "rig_stream"
 # Streaming configuration - TTL values set directly
 STREAM_TIMEOUT_SECONDS = 30  # Stop streaming after 30 seconds without stream command
 STREAM_HEARTBEAT_INTERVAL = 10  # Frontend sends stream command every 10 seconds
+
 STREAM_MESSAGE_TTL_SECONDS = 10  # Messages expire after 10 seconds
 
 # Dual queue architecture timing configurations
