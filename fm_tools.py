@@ -228,13 +228,14 @@ def extract_ruid(
     return ruid_re.match(filename).group('ruid')
 
 
-def generate_rig_save_path(filename, config_path=None):
-    if not config_path:
-        with open('/home/pi/rig.config','r') as openfile:
-            config = json.load(openfile)
-    else:
-        with open(config_path,'r') as openfile:
-            config = json.load(openfile)
+def generate_rig_save_path(filename, config_path=None, config=None):
+    if not config:
+        if not config_path:
+            with open('/home/pi/rig.config','r') as openfile:
+                config = json.load(openfile)
+        else:
+            with open(config_path,'r') as openfile:
+                config = json.load(openfile)
 
     table_keys = [
         'PlyUID',
@@ -259,15 +260,13 @@ def generate_rig_save_path(filename, config_path=None):
         table_keys
     )
 
-    rigname = config["RIGNAME"]
-
     filepath = os.path.join(
-        "/media/pi",
-        rigname,
+        config["AUTOSAVE_DIR"],
+        config["RIGNAME"],
         query_dict["Project Number"],
         query_dict["Project Number"]+"_DATA",
         "rigfiles",
-        filename+".txt"
+        filename+".pcco"
     )
     
     return filepath, query_dict

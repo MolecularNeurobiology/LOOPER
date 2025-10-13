@@ -180,6 +180,12 @@ class SimulatedDataReader:
         # Initialize with base frequencies but we'll generate dynamic data
         self.base_freq_ain0 = 2.5
         self.base_freq_ain1 = 8.5
+
+        self.sim_sig_ain = {
+            0:[math.sin(i * 6.28 *2* 2.5) for i in range(60000)],
+            1:[math.sin(i * 6.28 *2* 8.5) for i in range(60000)]
+        }
+
         self.global_time = 0  # Simple incrementing time counter
         self.counter = 0
         self.counter_limit = 60000
@@ -228,9 +234,11 @@ class SimulatedDataReader:
             # Simple approach: increment global time and generate changing data
             self.global_time += 0.1  # Increment by 0.1 seconds each call
 
+            """ # RPier sim signal - breaks the setsimsigain method
             # Generate simple but changing sine waves
             ain0_data = []
             ain1_data = []
+
 
             for i in range(self.update_interval_ms):
                 t = self.global_time + i * 0.001  # Each sample is 1ms apart
@@ -242,13 +250,18 @@ class SimulatedDataReader:
                 # AIN1: Simple heart pattern that changes over time
                 ain1_value = math.sin(t * 2 * math.pi * 1.2) + 0.3 * math.sin(t * 2 * math.pi * 0.1)  # 1.2Hz + slow variation
                 ain1_data.append(ain1_value)
+            """
 
             returnDict = {
                 "errors": 0,
                 "missed": [],
                 "result": {
-                    "AIN0": ain0_data,
-                    "AIN1": ain1_data,
+                    "AIN0": self.sim_sig_ain[0][
+                        self.counter : self.counter + self.update_interval_ms
+                    ],
+                    "AIN1": self.sim_sig_ain[1][
+                        self.counter : self.counter + self.update_interval_ms
+                    ],
                     "AIN2": [0.2 for i in range(self.update_interval_ms)],
                     "AIN3": [0.3 for i in range(self.update_interval_ms)],
                     "AIN4": [0.4 for i in range(self.update_interval_ms)],
@@ -439,28 +452,37 @@ class MinervaReceiver:
             elif cmd_type == "go_to_step":
                 # Handle new payload structure with 'step' field
                 payload = command.get('payload', {}) if isinstance(command, dict) else getattr(command, 'payload', {})
-                step_number = payload.get('step') if isinstance(payload, dict) else None
-                pcc.logger.info(f"going to step: {step_number}")
+                step_number = payload.get('stepIndex') if isinstance(payload, dict) else None
+                step_name = payload.get('stepName') if isinstance(payload,dict) else None
+                pcc.logger.info(f"going to step: {step_number}-{step_name}")
                 if step_number is not None:
                     # Convert step number to stage name if needed
                     pcc.logger.info(f"jumping to step number: {step_number}")
                     # TODO: Implement step number to stage name mapping
+                    pcc.comboBox_Jump_To_Stage.setCurrentText(step_name)
+
             elif cmd_type in ("start", "initialize_rig"):
                 pcc.logger.info(f"START/INITIALIZE_RIG command received - {command}")
                 # Handle start/initialize_rig command
-            elif cmd_type in ("load_pups", "send_filename"):
+            elif cmd_type in ("load_pups"):
                 payload = command.get('payload', {}) if isinstance(command, dict) else getattr(command, 'payload', {})
-                filename = payload.get('filename') if isinstance(payload, dict) else None
-                pcc.logger.info(f"SEND_FILENAME command received - filename: {filename}")
-                # TODO: Implement filename processing
+                filename_with_ruid = payload.get('ruid') if isinstance(payload, dict) else None
+                if filename_with_ruid:
+                    if filename_with_ruid != "":
+                        pcc.logger.info(f"SEND_FILENAME command received - filename: {filename_with_ruid}")
+                        pcc.action_set_output_file_path(barcode=filename_with_ruid)
+                    
             elif cmd_type == "stop_experiment":
                 pcc.logger.info("STOP_EXPERIMENT command received")
+                pcc.action_RESET()
+
                 # TODO: Implement experiment stop logic
             elif cmd_type == "stream":
                 pcc.logger.info("STREAM command received - handled by plugin")
             elif cmd_type == "stop_stream":
                 pcc.logger.info("STOP_STREAM command received - handled by plugin")
             # Legacy command handling for backward compatibility
+            """
             elif hasattr(command, 'type') and hasattr(command.type, '_name_'):
                 if command.type._name_ == "GO_TO_PREV_STEP":
                     pcc.logger.warning("go to prev step command received, this is not implemented in PCC")
@@ -477,6 +499,7 @@ class MinervaReceiver:
                     pcc.logger.warning(f"unknown legacy command: {command.__dict__}")
             else:
                 pcc.logger.warning(f"unknown minerva command: {command}")
+            """
 
     def readStreamData(self):
         if self.minerva_plugin_object is not None:

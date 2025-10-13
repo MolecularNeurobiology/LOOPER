@@ -504,29 +504,33 @@ class MainWindow(QMainWindow):
 
     def action_set_output_file_path(self, barcode = None):
         # if manual oride checkbox checked, manually set filepath, else use automated partsing
+        self.logger.info("...selecting output location...")
         if self.checkBox_Oride.isChecked():
+            self.logger.info("...o'ride...")
             self.settings.output_path = QFileDialog.getSaveFileName(
                 self, caption="select output filename", filter="PCC Output (*.pcco)"
             )[0]
         elif barcode:
             self.logger.info(
-                f"generating save path... config: {self.settings.config_path}"
+                f"generating save path... autosave dir: {self.rig_config["AUTOSAVE_DIR"]} + barcode: {barcode}"
             )
             self.settings.output_path, _ = fm_tools.generate_rig_save_path(
                 barcode,
-                config_path=self.settings.config_path,
+                config=self.rig_config,
             )
         else:
             self.logger.info(
-                f"generating save path... config: {self.settings.config_path}"
+                f"generating save path... autosave dir: {self.rig_config["AUTOSAVE_DIR"]} + barcode: None Provided"
             )
             self.settings.output_path, _ = fm_tools.generate_rig_save_path(
                 QInputDialog.getText(self, "Scan Barcode", "RUID:", QLineEdit.Normal)[
                     0
                 ],
-                config_path=self.settings.config_path,
+                config_path=self.rig_config,
             )
         self.logger.info(f"output_path set: {self.settings.output_path}")
+        os.makedirs(os.path.dirname(self.settings.output_path),exist_ok=True)
+        self.logger.info(f"output location - {os.path.dirname(self.settings.output_path)} -ready: {os.path.exists(os.path.dirname(self.settings.output_path))}")
         self.output_file_writer.output_path = self.settings.output_path
         self.label_output_path.setText(self.settings.output_path)
         self.output_file_writer.write_header()
