@@ -924,27 +924,33 @@ class MainWindow(QMainWindow):
 
             # self.logger.info("payload test in debug")
             # self.logger.debug("payload sent")
-            self.payload = mp.MinervaStreamData(
-                mac_address=self.mac,
-                stages=[
-                    (
-                        {
-                            "name": k,
-                            "type": v["stage_type"],
-                            "durationInSeconds": v["duration"],
-                        }
-                        if v["duration"] >= 0
-                        else {
-                            "name": k,
-                            "type": v["stage_type"],
-                        }
-                    )
-                    for k, v in self.settings.Mode_settings.items()
-                ],
-                current_stage=self.active_stage.name,
-                signals=self.data.prepare_data_payload(attr_dict=self.data.minerva_attr_dict)["signals"],
-            )
-            if self.minerva_stream:
+        # Generate new payload with current data (ALWAYS, regardless of minerva_stream)
+        signals_payload = self.data.prepare_data_payload(attr_dict=self.data.minerva_attr_dict)["signals"]
+
+        self.payload = mp.MinervaStreamData(
+            mac_address=self.mac,
+            stages=[
+                (
+                    {
+                        "name": k,
+                        "type": v["stage_type"],
+                        "durationInSeconds": v["duration"],
+                    }
+                    if v["duration"] >= 0
+                    else {
+                        "name": k,
+                        "type": v["stage_type"],
+                    }
+                )
+                for k, v in self.settings.Mode_settings.items()
+            ],
+            current_stage=self.active_stage.name,
+            signals=signals_payload,
+        )
+
+
+
+        if self.minerva_stream:
                 # Send data to all active user sessions instead of hardcoding user_id="1"
                 active_users = self.minerva_stream.get_active_user_sessions()
                 if active_users:

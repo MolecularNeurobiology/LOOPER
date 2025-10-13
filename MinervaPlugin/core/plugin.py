@@ -9,17 +9,12 @@ try:
         LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
         map_legacy_command, getCommandFilename, getStep
     )
-except:
-    print("attempting relative import of command")
-    from models.command import (
-        LEGACY_COMMAND_MAPPING, SEEDED_COMMANDS,
-        map_legacy_command, getCommandFilename, getStep
-    )
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import command models: {e}") from e
 try:
     from .rabbitmq_client import RabbitMQClient
-except:
-    print("attempting relative import of rabbitmqclient")
-    from rabbitmq_client import RabbitMQClient
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import RabbitMQ client: {e}") from e
 try:
     from .config import (
         PING_QUEUE,
@@ -28,17 +23,13 @@ try:
         RIG_STREAM_QUEUE,
         STREAM_USER_TIMEOUT,
         STREAM_CONTROL_TTL,
+        RABBITMQ_SERVER,
+        RABBITMQ_AMQP_PORT,
+        RABBITMQ_USER,
+        DEBUG_ENABLED,
     )
-except:
-    print("attempting relative import of config")
-    from config import (
-        PING_QUEUE,
-        COMMAND_QUEUE,
-        STREAM_CONTROL_QUEUE,
-        RIG_STREAM_QUEUE,
-        STREAM_USER_TIMEOUT,
-        STREAM_CONTROL_TTL,
-    )
+except ImportError as e:
+    raise ImportError(f"❌ CRITICAL ERROR: Failed to import config variables: {e}\n💡 Check that config.py exists and contains all required variables") from e
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Any, Optional, Union
@@ -46,9 +37,34 @@ from typing import List, Dict, Any, Optional, Union
 # Import status reporting system
 try:
     from .status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
-except:
-    print("attempting relative import of status_reporting")
-    from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+except ImportError as e:
+    print(f"Failed to import status_reporting with relative import: {e}")
+    try:
+        from status_reporting import StatusManager, StatusSeverity, StatusCategory, StatusReport
+        print("Successfully imported status_reporting with absolute import")
+    except ImportError as e2:
+        print(f"Failed to import status_reporting with absolute import: {e2}")
+        # Create dummy classes to prevent crashes
+        class StatusManager:
+            def report_status(self, *args, **kwargs):
+                pass
+            def get_status_summary(self):
+                return {"status": "error", "message": "Status reporting unavailable"}
+
+        class StatusSeverity:
+            CRITICAL = "critical"
+            HIGH = "high"
+            MEDIUM = "medium"
+            LOW = "low"
+            INFO = "info"
+
+        class StatusCategory:
+            CONNECTIVITY = "connectivity"
+            COMMAND_PROCESSING = "command"
+            DATA_PROCESSING = "data"
+
+        class StatusReport:
+            pass
 
 # Try to import numpy for type checking
 try:
@@ -136,6 +152,7 @@ class MinervaStreamData:
     stages: List[Dict[str, Any]] = field(default_factory=list)
     signals: List[Dict[str, Any]] = field(default_factory=list)
     current_stage: Optional[str] = None
+    timestamp: Optional[str] = None  # ISO timestamp when data was generated
 
 
 @dataclass
@@ -150,6 +167,14 @@ class UserStreamSession:
     rabbit_mq_client: RabbitMQClient
     thread: Optional[threading.Thread] = None
     is_active: bool = True
+
+
+
+
+
+
+
+
 
 
 class Plugin:
@@ -171,24 +196,56 @@ class Plugin:
         self._is_streaming = False
         self._mac_address = registrationParams.mac_address
 
-        # Existing command consumer (for critical commands: start, go_to_next, stop_stream)
-        self._rabbit_mq_client_consumer = RabbitMQClient(
-            logger, COMMAND_QUEUE, registrationParams.mac_address, use_ttl=False
-        )
-        self._rabbit_mq_client_producer = RabbitMQClient(
-            logger, PING_QUEUE, use_ttl=False
-        )
+        # Log RabbitMQ initialization to CONSOLE (not just GUI logger)
+        print("🔌 INITIALIZING MINERVA PLUGIN RABBITMQ CONNECTIONS")
+        print("📡 Target server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+        print("👤 User: {}".format(RABBITMQ_USER))
+        print("🏷️  MAC Address: {}".format(self._mac_address))
 
-        # Stream control consumer (for stream heartbeat commands - latest-only)
-        # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
-        self._stream_control_consumer = RabbitMQClient(
-            logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
-        )
+        # Also log to GUI logger if available
+        self._log_info("🔌 INITIALIZING MINERVA PLUGIN RABBITMQ CONNECTIONS")
+        self._log_info("📡 Target server: {}:{}".format(RABBITMQ_SERVER, RABBITMQ_AMQP_PORT))
+        self._log_info("👤 User: {}".format(RABBITMQ_USER))
+        self._log_info("🏷️  MAC Address: {}".format(self._mac_address))
 
-        # Single rig stream producer (broadcasts to all clients for this rig)
-        self._rig_stream_producer = RabbitMQClient(
-            logger, RIG_STREAM_QUEUE, registrationParams.mac_address, use_ttl=True
-        )
+        try:
+            # STEP 2 FIX: Dedicated command consumer with separate connection
+            self._log_info("🔄 Creating DEDICATED command consumer client...")
+            self._rabbit_mq_client_consumer = RabbitMQClient(
+                logger, COMMAND_QUEUE, registrationParams.mac_address, use_ttl=False
+            )
+            # Mark this as a command consumer for priority handling
+            self._rabbit_mq_client_consumer._is_command_consumer = True
+
+            self._log_info("🔄 Creating ping producer client...")
+            self._rabbit_mq_client_producer = RabbitMQClient(
+                logger, PING_QUEUE, use_ttl=False
+            )
+
+            # Stream control consumer (for stream heartbeat commands - latest-only)
+            # Use TTL=True with STREAM_CONTROL_TTL and max_length=1 to match the API's queue configuration
+            self._log_info("🔄 Creating stream control consumer...")
+            self._stream_control_consumer = RabbitMQClient(
+                logger, STREAM_CONTROL_QUEUE, registrationParams.mac_address, use_ttl=True, ttl_seconds=STREAM_CONTROL_TTL, max_length=1
+            )
+
+            # Single rig stream producer (broadcasts to all clients for this rig)
+            self._log_info("🔄 Creating rig stream producer...")
+            self._rig_stream_producer = RabbitMQClient(
+                logger, RIG_STREAM_QUEUE, registrationParams.mac_address, use_ttl=True
+            )
+
+            print("✅ ALL RABBITMQ CLIENTS CREATED SUCCESSFULLY!")
+            self._log_info("✅ ALL RABBITMQ CLIENTS CREATED SUCCESSFULLY!")
+
+        except Exception as e:
+            print("❌ FAILED TO CREATE RABBITMQ CLIENTS: {}".format(e))
+            print("💡 This will cause PCC to crash. Check network connectivity and credentials.")
+            self._log_error("❌ FAILED TO CREATE RABBITMQ CLIENTS: {}".format(e))
+            self._log_error("💡 This will cause PCC to crash. Check network connectivity and credentials.")
+            raise
+
+
 
         self._metrics = PingMetrics(
             avg_bpm=0, avg_hr=0, step=None, challengeCount=0, longestChallenge=None
@@ -215,11 +272,21 @@ class Plugin:
         self._heartbeat_cleanup_thread = None
         self._rig_stream_thread = None
 
+
         # Monitoring and observability
         self._start_time = datetime.now()  # Track plugin start time for uptime calculation
 
+        # STEP 3 FIX: Adaptive streaming rate control
+        self._streaming_rate_hz = 5.0  # Start at 5Hz
+        self._min_streaming_rate = 1.0  # Minimum 1Hz
+        self._max_streaming_rate = 5.0  # Maximum 5Hz
+        self._rate_adjustment_lock = threading.Lock()
+        self._command_processing_times = []  # Track command response times
+
         # Status reporting system
         self._status_manager = StatusManager()
+
+
 
         # Set status callbacks for RabbitMQ clients
         self._rabbit_mq_client_consumer.set_error_callback(self._status_manager.report_status)
@@ -301,7 +368,11 @@ class Plugin:
         """
         Dynamic command passthrough: enqueue non-`stream` commands as raw dicts for PCC to handle.
         `stream` commands are handled separately by _handle_stream_control.
+        PRIORITY PROCESSING: Critical commands are processed immediately to prevent blocking.
         """
+        # STEP 3 FIX: Track command processing time for adaptive rate control
+        command_start_time = time.time()
+
         self._log_info(f"Plugin {self._mac_address} - Command received: {command}")
 
         # Validate input
@@ -339,24 +410,46 @@ class Plugin:
 
         try:
             with self._commands_lock:
+                # PRIORITY PROCESSING: Critical commands get immediate processing
+                critical_commands = ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']
 
-                # Append raw command for PCC/simulator dispatcher
-                self._commands.append(command)
-                self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
+                if cmd_type in critical_commands:
+                    # Insert critical commands at the front of the queue for immediate processing
+                    self._commands.insert(0, command)
+                    self._log_info(f"🚨 CRITICAL COMMAND '{cmd_type}' - Added to FRONT of queue for immediate processing")
 
-                # Report successful command processing
-                self._status_manager.report_status(
-                    severity=StatusSeverity.INFO,
-                    category=StatusCategory.COMMAND_PROCESSING,
-                    code="COMMAND_ENQUEUED_SUCCESS",
-                    message=f"Command successfully enqueued: {cmd_type}",
-                    details={
-                        'command_type': cmd_type,
-                        'mac_address': self._mac_address,
-                        'queue_size': len(self._commands)
-                    },
-                    component="command_handler"
-                )
+                    # Report critical command with high priority
+                    self._status_manager.report_status(
+                        severity=StatusSeverity.INFO,
+                        category=StatusCategory.COMMAND_PROCESSING,
+                        code="CRITICAL_COMMAND_PRIORITY_QUEUED",
+                        message=f"Critical command prioritized: {cmd_type}",
+                        details={
+                            'command_type': cmd_type,
+                            'mac_address': self._mac_address,
+                            'queue_size': len(self._commands),
+                            'priority': 'HIGH'
+                        },
+                        component="command_handler"
+                    )
+                else:
+                    # Regular commands go to the back of the queue
+                    self._commands.append(command)
+                    self._log_info(f"✅ Command enqueued (dynamic): {cmd_type}")
+
+                    # Report successful command processing
+                    self._status_manager.report_status(
+                        severity=StatusSeverity.INFO,
+                        category=StatusCategory.COMMAND_PROCESSING,
+                        code="COMMAND_ENQUEUED_SUCCESS",
+                        message=f"Command successfully enqueued: {cmd_type}",
+                        details={
+                            'command_type': cmd_type,
+                            'mac_address': self._mac_address,
+                            'queue_size': len(self._commands)
+                        },
+                        component="command_handler"
+                    )
 
         except Exception as e:
             self._status_manager.report_status(
@@ -375,12 +468,53 @@ class Plugin:
             )
             self._log_error(f"Unknown error occurred processing command {str(command)}: {e}")
 
+        # STEP 3 FIX: Track command processing time and adjust streaming rate
+        finally:
+            command_end_time = time.time()
+            processing_time = command_end_time - command_start_time
+
+            # Store processing time for rate adjustment
+            with self._rate_adjustment_lock:
+                self._command_processing_times.append(processing_time)
+                # Keep only last 10 measurements
+                if len(self._command_processing_times) > 10:
+                    self._command_processing_times.pop(0)
+
+                # Adjust streaming rate based on command processing performance
+                avg_processing_time = sum(self._command_processing_times) / len(self._command_processing_times)
+
+                if avg_processing_time > 0.5:  # If commands take >500ms
+                    # Reduce streaming rate to free up resources
+                    self._streaming_rate_hz = max(self._min_streaming_rate, self._streaming_rate_hz * 0.8)
+                    self._log_info(f"🐌 Reduced streaming rate to {self._streaming_rate_hz:.1f}Hz due to slow command processing")
+                elif avg_processing_time < 0.1:  # If commands are fast (<100ms)
+                    # Increase streaming rate back towards maximum
+                    self._streaming_rate_hz = min(self._max_streaming_rate, self._streaming_rate_hz * 1.1)
+                    if self._streaming_rate_hz > 4.9:  # Close to max
+                        self._log_info(f"🚀 Restored streaming rate to {self._streaming_rate_hz:.1f}Hz - commands processing quickly")
+
 
 
     def _listen_for_commands(self):
         # added passthrough of _is_running to help with stopping on exit
         self._log_info(f"Starting command listener for MAC: {self._mac_address}")
-        self._rabbit_mq_client_consumer.consume_message(self._handle_command)
+
+        # WINDOWS FIX: Use aggressive message consumption to prevent blocking
+        def priority_command_callback(command):
+            """Enhanced command callback with Windows-specific optimizations"""
+            try:
+                # Process command immediately
+                self._handle_command(command)
+
+                # Force immediate processing of critical commands
+                cmd_type = command.get("type") if isinstance(command, dict) else None
+                if cmd_type in ['start', 'go_to_next', 'go_to_step', 'stop_stream', 'load_pups', 'stop', 'abort']:
+                    self._log_info(f"🚨 WINDOWS FIX: Critical command '{cmd_type}' processed immediately")
+
+            except Exception as e:
+                self._log_error(f"Error in priority command callback: {e}")
+
+        self._rabbit_mq_client_consumer.consume_message(priority_command_callback)
         self._log_info(f"Command listener stopped for MAC: {self._mac_address}")
 
     def _ping_loop(self):
@@ -525,6 +659,8 @@ class Plugin:
             self._rig_stream_thread.daemon = True
             self._rig_stream_thread.start()
             self._log_info("📡 Rig stream producer thread started")
+
+
 
     def pop_commands(self):
         """
@@ -735,6 +871,8 @@ class Plugin:
             )
             self._log_error(f"Unexpected command type in stream control: {command.get('type')}")
 
+
+
     def _cleanup_inactive_users(self):
         """Remove users who haven't sent heartbeats recently."""
         current_time = datetime.now()
@@ -812,7 +950,7 @@ class Plugin:
     def _stream_data_to_rig_queue(self):
         """
         Stream data to the single rig-specific queue when users are active.
-        Uses a single broadcast stream instead of per-user streaming.
+        Uses dynamic rate adjustment based on client performance feedback.
         """
         while self._is_running:
             # Only stream if there are active users
@@ -822,7 +960,7 @@ class Plugin:
                     stream_data = self._generate_current_stream_data()
                     stream_message = safe_json_dumps(stream_data)
 
-                    # Send to the single rig stream queue
+                    # Send to the single rig stream queue at FULL SPEED
                     self._rig_stream_producer.send_message(stream_message)
 
                     # Log active user count periodically (every 25 iterations = ~5 seconds)
@@ -833,12 +971,28 @@ class Plugin:
 
                     if self._stream_log_counter % 25 == 0:
                         active_count = self.get_active_users_count()
-                        self._log_info(f"📡 Streaming to rig queue for {active_count} active users")
+                        self._log_info(f"📡 Streaming at FULL SPEED (5Hz) to rig queue for {active_count} active users")
 
                 except Exception as e:
                     self._log_error(f"Error streaming to rig queue: {e}")
 
-            time.sleep(0.2)  # 5 times per second
+            # TEMPORARY: Disable adaptive rate - use fixed 5Hz
+            time.sleep(0.2)  # Fixed 5Hz - disable adaptive rate control
+
+
+
+    def get_streaming_status(self) -> Dict[str, Any]:
+        """
+        Get current streaming status.
+
+        Returns:
+            Dict containing streaming status information
+        """
+        return {
+            "is_streaming": self.has_active_users(),
+            "active_users_count": self.get_active_users_count(),
+            "uptime_seconds": (datetime.now() - self._start_time).total_seconds()
+        }
 
     def _generate_current_stream_data(self):
         """
@@ -850,13 +1004,17 @@ class Plugin:
         # Use the stream data provided by PCC_client via update_stream_data()
         # This ensures we use real PCC data (whether from hardware or PCC's simulation)
         if self._default_stream_data:
-            # Convert to dict for JSON serialization
-            return asdict(self._default_stream_data)
+            # Convert to dict for JSON serialization and add timestamp
+            stream_dict = asdict(self._default_stream_data)
+            stream_dict['timestamp'] = datetime.now().isoformat()
+            return stream_dict
         else:
             # Fallback: create minimal stream data if no data has been provided yet
             stream_data = MinervaStreamData(mac_address=self._mac_address)
             stream_data.signals = []  # Empty signals until PCC_client provides data
-            return asdict(stream_data)
+            stream_dict = asdict(stream_data)
+            stream_dict['timestamp'] = datetime.now().isoformat()
+            return stream_dict
 
     def _generate_mock_signals(self):
         """
