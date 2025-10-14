@@ -18,7 +18,7 @@ class SETTINGS:
     def __init__(self):
 
         self.output_path = None
-        self.config_path = "/home/pi/rig.config"
+        #self.config_path = "/home/pi/rig.config"
 
         # several of these settings migrated into the stage dict
         ## settings

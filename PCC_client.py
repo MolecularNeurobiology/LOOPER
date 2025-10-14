@@ -514,26 +514,33 @@ class MainWindow(QMainWindow):
             self.logger.info(
                 f"generating save path... autosave dir: {self.rig_config["AUTOSAVE_DIR"]} + barcode: {barcode}"
             )
-            self.settings.output_path, _ = fm_tools.generate_rig_save_path(
+            self.settings.output_path, self.fm_query_results = fm_tools.generate_rig_save_path(
                 barcode,
                 config=self.rig_config,
             )
+            self.load_settings_from_fm(self.fm_query_results)
         else:
             self.logger.info(
                 f"generating save path... autosave dir: {self.rig_config["AUTOSAVE_DIR"]} + barcode: None Provided"
             )
-            self.settings.output_path, _ = fm_tools.generate_rig_save_path(
+            self.settings.output_path, self.fm_query_results = fm_tools.generate_rig_save_path(
                 QInputDialog.getText(self, "Scan Barcode", "RUID:", QLineEdit.Normal)[
                     0
                 ],
-                config_path=self.rig_config,
+                config=self.rig_config,
             )
+            self.load_settings_from_fm(self.fm_query_results,config=self.rig_config)
         self.logger.info(f"output_path set: {self.settings.output_path}")
         os.makedirs(os.path.dirname(self.settings.output_path),exist_ok=True)
         self.logger.info(f"output location - {os.path.dirname(self.settings.output_path)} -ready: {os.path.exists(os.path.dirname(self.settings.output_path))}")
         self.output_file_writer.output_path = self.settings.output_path
         self.label_output_path.setText(self.settings.output_path)
         self.output_file_writer.write_header()
+
+
+    def load_settings_from_fm(self, fm_query_results, config = None):
+
+        pass
 
 
     def action_next_stage(self):
