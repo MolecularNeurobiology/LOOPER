@@ -56,12 +56,14 @@ def pull_the_table(
         
     fms.logout()
 
-
-    record_dict = {
-        i['recordId']:{
-            k:i[k] for k in table_keys 
-        } for i in records
-    }
+    if table_keys is None:
+        record_dict = {i.record_id:{k:v for k,v in zip(i.keys(),i.values())} for i in records}
+    else:
+        record_dict = {
+            i['recordId']:{
+                k:i[k] for k in table_keys 
+            } for i in records
+        }
     return record_dict
 
 
@@ -226,13 +228,14 @@ def extract_ruid(
     return ruid_re.match(filename).group('ruid')
 
 
-def generate_rig_save_path(filename, config_path=None):
-    if not config_path:
-        with open('/home/pi/rig.config','r') as openfile:
-            config = json.load(openfile)
-    else:
-        with open(config_path,'r') as openfile:
-            config = json.load(openfile)
+def generate_rig_save_path(filename, config_path=None, config=None):
+    if not config:
+        if not config_path:
+            with open('/home/pi/rig.config','r') as openfile:
+                config = json.load(openfile)
+        else:
+            with open(config_path,'r') as openfile:
+                config = json.load(openfile)
 
     table_keys = [
         'PlyUID',
@@ -245,8 +248,9 @@ def generate_rig_save_path(filename, config_path=None):
         'user':config['USER'],
         'password':config['PASSWORD']
     }
-            
+    print(f"generate_rig_save_path filename {filename}")
     ruid = extract_ruid(filename)
+    print(ruid)
     
     query_dict = pull_specific_record(
         credentials, 
@@ -256,15 +260,13 @@ def generate_rig_save_path(filename, config_path=None):
         table_keys
     )
 
-    rigname = config["RIGNAME"]
-
     filepath = os.path.join(
-        "/media/pi",
-        rigname,
+        config["AUTOSAVE_DIR"],
+        config["RIGNAME"],
         query_dict["Project Number"],
         query_dict["Project Number"]+"_DATA",
         "rigfiles",
-        filename+".txt"
+        filename+".pcco"
     )
     
     return filepath, query_dict
