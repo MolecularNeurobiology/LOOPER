@@ -1,0 +1,165 @@
+#include <Arduino.h>
+#include <AccelStepper.h> 
+#include "r_stepper.h"
+#include <Wire.h>
+#include <AS5600.h>
+
+AS5600 encoder;
+uint16_t prevRaw = 0;
+float totalAngle = 0.0;
+
+stepper1Info stepper1 = {
+  5,     //pull_1
+  6,    //dir_1
+  7,      //enablePin
+  300,  // Adjustable speed for Stepper2
+  500, // maxspeed
+  200,  // acceleration
+  0,  //targetPos
+  0,        // rpm_period
+  0,        // current_time;
+  0,      // prev_time;
+};
+
+stepper2Info stepper2 = {
+  2,    //pull_2
+  3,    //dir_2
+  4,    //enablePin
+  300,  // Adjustable speed for Stepper2
+  500, // maxspeed
+  200,  // acceleration
+};
+
+sensorPins sensors = {
+  10,
+  11,
+  12,
+};
+
+extern AccelStepper stepper1Motor; // Declare the stepper motor instance from main file
+extern AccelStepper stepper2Motor; // Declare the stepper motor instance from main file
+Stepper2State stepper2state = S2IDLE;
+Stepper1State stepper1state = S1IDLE;
+
+void stopMotor2() {
+  digitalWrite(stepper2.enablePin, HIGH);  // Disable motor
+  stepper2Motor.setSpeed(0);
+}
+
+void stopMotor1() {
+  digitalWrite(stepper1.enablePin, HIGH);  // Disable motor
+  stepper1Motor.setSpeed(0);
+}
+
+void move_f() {
+  digitalWrite(stepper2.enablePin, LOW);
+  stepper2Motor.setSpeed(-stepper2.speed);
+}
+
+void move_b() {
+  digitalWrite(stepper2.enablePin, LOW);
+  stepper2Motor.setSpeed(stepper2.speed);
+}
+
+// Function to move stepper1 to a specified position
+void move_pos(int pos)  {
+  digitalWrite(stepper1.enablePin, LOW);
+  stepper1Motor.moveTo(pos);
+  stepper1Motor.setSpeed(stepper1.speed);
+}
+
+void move_0() {
+  digitalWrite(stepper1.enablePin, LOW);
+  stepper1Motor.setSpeed(-stepper1.speed); // Reverse direction for homing
+}
+
+void setup_stepper(){
+  // Initialize stepper motor enable pins
+  pinMode(stepper1.enablePin, OUTPUT);
+  pinMode(stepper2.enablePin, OUTPUT);
+
+  // Disable steppers initially
+  digitalWrite(stepper1.enablePin, HIGH);
+  digitalWrite(stepper2.enablePin, HIGH);
+  
+  // Initialize sensor pins
+  pinMode(sensors.Sensor_home, INPUT);
+  pinMode(sensors.Sensor_f, INPUT);
+  pinMode(sensors.Sensor_b, INPUT);
+
+  // Configure stepper motors
+  stepper1Motor.setMaxSpeed(stepper1.maxspeed);
+  stepper1Motor.setAcceleration(stepper1.acceleration);
+  stepper2Motor.setMaxSpeed(stepper2.maxspeed);
+  stepper2Motor.setAcceleration(stepper2.acceleration);
+  
+    // Initial setup sequence
+  if (digitalRead(sensors.Sensor_f) == LOW || digitalRead(sensors.Sensor_b) == LOW) {
+    // Enable stepper2
+    digitalWrite(stepper2.enablePin, LOW);
+
+    // Move stepper2 clockwise until Sensor_b is high
+    while (digitalRead(sensors.Sensor_b) == LOW) {
+      stepper2Motor.setSpeed(200);
+      stepper2Motor.runSpeed();
+    }
+
+    // Move stepper1 clockwise until Sensor_home is high
+    digitalWrite(stepper1.enablePin, LOW);
+    stepper1Motor.setSpeed(-300); // Reverse direction for homing
+    while (digitalRead(sensors.Sensor_home) == LOW) {
+      stepper1Motor.runSpeed();
+    }
+    stepper1Motor.setCurrentPosition(0); // Set home position
+    digitalWrite(stepper1.enablePin, HIGH);
+
+    // Move stepper2 counterclockwise until Sensor_f is high
+    while (digitalRead(sensors.Sensor_f) == LOW) {
+      stepper2Motor.setSpeed(-200);
+      stepper2Motor.runSpeed();
+    }
+
+    // Move stepper2 clockwise again until Sensor_b is high
+    while (digitalRead(sensors.Sensor_b) == LOW) {
+      stepper2Motor.setSpeed(200);
+      stepper2Motor.runSpeed();
+    }
+
+    digitalWrite(stepper2.enablePin, HIGH); // Disable stepper2
+  }
+}
+
+void AS5600_setup() {
+  Wire.begin();
+  encoder.begin();
+
+  if (!encoder.isConnected()) {
+    //Serial.println("AS5600 not connected!");
+    while (1);
+  }
+
+  prevRaw = encoder.readAngle();
+  totalAngle = 0.0;
+
+  //Serial.println("AS5600 setup complete");
+}
+
+void AS5600_reset() {
+  prevRaw = encoder.readAngle();
+  totalAngle = 0.0;
+}
+
+float AS5600_increment() {
+  uint16_t raw = encoder.readAngle();
+  int delta = raw - prevRaw;
+
+  if (delta > 2048) delta -= 4096;
+  else if (delta < -2048) delta += 4096;
+
+  float deltaDeg = delta * 360.0 / 4096.0;
+  totalAngle += deltaDeg;
+
+  prevRaw = raw;
+  return totalAngle;
+}
+
