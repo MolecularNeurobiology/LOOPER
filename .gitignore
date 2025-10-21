@@ -2,8 +2,8 @@
 __pycache__/
 *.log
 *.pyc
-uv.lock
-token.json
 credentials.json
+token.json
 report.xlsx
 report.pdf
+uv.lock
