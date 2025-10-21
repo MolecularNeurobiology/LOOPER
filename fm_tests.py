@@ -8,10 +8,10 @@ from fmrest import server
 import os
 import json
 import re
-
-
-
 # %% define functions
+
+
+
 def pull_the_table(
     credentials,
     database,
@@ -64,74 +64,13 @@ def pull_the_table(
     }
     return record_dict
 
-
-
-def pull_filtered_records(
-    credentials,
-    database,
-    layout,
-    search_args,
-    table_keys,
-    logger = None
-):
-    SERVER_IP = credentials['ip']
-    USER = credentials['user']
-    PASSWORD = credentials['password']
-    DATABASE = database
-    LAYOUT = layout
-
-    fms =  server.Server(
-        SERVER_IP,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        layout=LAYOUT,
-        api_version="v2",
-        verify_ssl=False
-    )
-
-    fms.login()
-
-    records = []
-    offset = 1
-    limit = 100
-    order_by = [{'fieldName':table_keys[0], 'sortOrder':'ascend'}]
-    while True:
-        try:
-            print(f'{offset}-{len(records)}')
-            current_records = fms.find(search_args,sort = order_by, limit = limit, offset = offset) 
-            records+=[i for i in current_records]
-            offset += limit
-            if current_records.is_complete: break
-    
-        except Exception as e:
-            print(e)
-            break
-
-    fms.logout()
-    print(f'{len(records)} records found')
-    if 'recordId' not in table_keys:
-        table_keys.append('recordId')
-    
-    record_dict = {
-        i['recordId']:{
-            k:i[k] for k in table_keys 
-        } for i in records
-    }
-    return record_dict    
-    
-    
-    
-
-
-
+# %%
 def pull_specific_record(
     credentials,
     database,
     layout,
     search_args,
-    table_keys,
-    logger = None
+    table_keys
 ):
     SERVER_IP = credentials['ip']
     USER = credentials['user']
@@ -154,53 +93,18 @@ def pull_specific_record(
     records = fms.find([search_args])
 
     fms.logout()
-    
-    if 'recordId' not in table_keys:
-        table_keys.append('recordId')
-    
     record_dict = {
         i['recordId']:{
             k:i[k] for k in table_keys 
         } for i in records
     }
-    if logger:
-        if len(record_dict) == 0:
-            logger.warning('Filemaker returned 0 records')
-        elif len(record_dict) > 1:
-            logger.warning('Filemaker returned too many records - first one will be used')
-        else:
-            logger.info('Filemaker located record')
+
+    # need warning if multiple keys in dict
 
     return record_dict[list(record_dict.keys())[0]]
 
 
-def update_record(
-        credentials,
-        database,
-        layout,
-        record_id, 
-        field_dict
-):
-    SERVER_IP = credentials['ip']
-    USER = credentials['user']
-    PASSWORD = credentials['password']
-    DATABASE = database
-    LAYOUT = layout
-
-    fms =  server.Server(
-        SERVER_IP,
-        user=USER,
-        password=PASSWORD,
-        database=DATABASE,
-        layout=LAYOUT,
-        api_version="v2",
-        verify_ssl=False
-    )
-
-    fms.login() 
-    fms.edit_record(record_id,field_dict)
-    fms.logout()
-
+# %%
 
 def extract_ruid(
         filename
@@ -226,13 +130,11 @@ def extract_ruid(
     return ruid_re.match(filename).group('ruid')
 
 
-def generate_rig_save_path(filename, config_path=None):
-    if not config_path:
-        with open('/home/pi/rig.config','r') as openfile:
-            config = json.load(openfile)
-    else:
-        with open(config_path,'r') as openfile:
-            config = json.load(openfile)
+def generate_rig_save_path(filename):
+        #%%
+    with open('/home/pi/rig.config','r') as openfile:
+        config = json.load(openfile)
+        
 
     table_keys = [
         'PlyUID',
@@ -245,9 +147,10 @@ def generate_rig_save_path(filename, config_path=None):
         'user':config['USER'],
         'password':config['PASSWORD']
     }
-            
-    ruid = extract_ruid(filename)
+        
+    # %%
     
+    ruid = extract_ruid(filename)
     query_dict = pull_specific_record(
         credentials, 
         config["DATABASE"], 
@@ -262,12 +165,10 @@ def generate_rig_save_path(filename, config_path=None):
         "/media/pi",
         rigname,
         query_dict["Project Number"],
-        query_dict["Project Number"]+"_DATA",
-        "rigfiles",
         filename+".txt"
     )
     
-    return filepath, query_dict
+    return filepath
 
 # %% define main()
 def main():

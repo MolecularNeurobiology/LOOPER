@@ -1,3 +1,0 @@
-ansible -i inventory.ini all -m shell -a "cd git/Autoresuscitation && git status" -k
-
-ansible-playbook -i inventory.ini file_management.yaml -k

@@ -1,7 +1,0 @@
-venv
-__pycache__
-__queuestorage__
-logs
-__azurite_db_queue__.json
-__azurite_db_queue_extent__.json
-MinervaPlugin/config.py
