@@ -1,9 +1,7 @@
 <H1> Autoresuscitation </H1>
 repository for neonate autoresuscitation assay project (code, schematics, protocols)
 
-<H2>User manual and publication documentation</H2>
-All manuscript documentation, meeting minutes, and user manual information can be found at the following Dropbox.
-https://www.dropbox.com/scl/fo/97u7jy4ge2bd86g4v2n15/h?dl=0&rlkey=ynnx0a9nnpr0xhfgjxgbh4xnr
+
 
 <H2>Code - PCC</H2>
 Physiology Command Center
