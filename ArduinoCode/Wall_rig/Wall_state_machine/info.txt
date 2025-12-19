@@ -1,5 +1,0 @@
-first version State machine code
-includes P,C,V commands 
-
-being asked to add a bunch of Serial.println, so move to state_machine_v2 code
-6/25/2025
