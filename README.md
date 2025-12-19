@@ -22,7 +22,7 @@ Our software is available as source code compatible with Raspberry Pi 4 and Rasp
 
 # Where is the manual?
 Access the full user manual for this software [here](https://realchrisward.github.io/LOOPER/User_Manual/_build/html/index.html).
-Access the build guide for the robotics components [here]((https://realchrisward.github.io/LOOPER/doc/build/html/index.html).
+Access the build guide for the robotics components [here](https://realchrisward.github.io/LOOPER/doc/build/html/index.html).
 
 # Dependencies
 The environment needed to run LOOPER can be created using a python virtual enviroment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the python packages and versions that are suggested. The platform is designed to work with a robotic system (described [here](https://realchrisward.github.io/LOOPER/)) - Arduino code needed for flashing the microcontroller is available in the ArduinoCode subfolder
