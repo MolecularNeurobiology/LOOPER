@@ -1,1 +1,0 @@
-The contents of this project are developed by the laboratory of Russell Ray (Molecular Neurobiology). No rights for modification or distribution are granted without the expressed permission of invited members of this project.

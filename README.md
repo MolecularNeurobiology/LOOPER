@@ -1,71 +1,66 @@
-<H1> Autoresuscitation </H1>
-repository for neonate autoresuscitation assay project (code, schematics, protocols)
+# LOOPER
+Live Observation and Operation of Physiology Experiments with Robotics
 
+# What is it?
+LOOPER is an automated data collection platform for neonate pneumotachography experiments focused on the Autoresuscitation Reflex Assay. It is primarily written in python, and arduino code (C++). Tools to aid in analysis of data collected with LOOPER is co-released at https://github.com/MolecularNeurobiology/Breathe_Easy
 
+# Main Features
+What does LOOPER do?
 
-<H2>Code - PCC</H2>
-Physiology Command Center
-(C) 2019
-@author: Christopher Ward (christow@bcm.edu, ward.chris.s@gmail.com)
+1. realtime data collection using a labjack analog to digital interface
+1. realtime detection of breathing and heartbeat
+1. automated control of experiment steps via communications with an arduino microcontroller and robotics components
+  1. calibration air injections with a roboticly actuated micropipette
+  1. initiation of gas challenges with valve controls and motorized placement of gas exposure outlets
+  1. identification of sustained apnea
+  1. automated transition back to room air
+  1. automated detection of cardio-respiratory recovery
+  1. repetition autoresuscitation challenges
 
-Created as part of the Russell Ray Molecular Neurobiology Group's
-Autoresuscitation Project
+# Where to get it?
+Our software is available as source code compatible with Raspberry Pi 4 and Raspberry Pi 5 SBC's running Raspberry Pi OS.
 
-contributions to this project include code, concepts, or consultation from 
-several individuals including Russell Ray, Eunice Aissi, Dipak Patel, 
-Mariana Garcia Costa, Savannah Lusk, Brandon Ruiz, Kevin Jiang, and 
-Shourya Munjal.
+# Where is the manual?
+Access the full user manual for this software [here](https://realchrisward.github.io/LOOPER/).
 
+# Dependencies
+The environment needed to run LOOPER can be created using a python virtual enviroment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the python packages and versions that are suggested. The platform is designed to work with a robotic system (described [here](https://realchrisward.github.io/LOOPER/)) - Arduino code needed for flashing the microcontroller is available
 
-This software provides a graphical interface for I/O between an computer
-and 1) Arduino Microcontroller, 2) LabJack Analog to Digital Converter.
-Signals from the LabJack undergo signal processing to identify key features
-used as triggers to execute programmed control sequences run by the Arduino.
+## Installation and Usage - Python component
+### Install Python3
+Download python [here](https://www.python.org/downloads/)
+or https://conda-forge.org/download/
 
-The current implementation utilizes pneumotachography and electrocardiogram 
-signals to monitor breathing and heart rate as part of a neonate 
-autoresuscitation assay.
+### Install Python Dependencies
+Activate Python virtual environment to help manage package installation.
+```
+# Posix
+python3 -m venv <venv>
+source <venv>/bin/activate
+```
 
-<H3>Inputs/Outputs</H3>
-Inputs: currently none - all settings are coordinated within the GUI
-Outputs: timeseries signal datafile 
-    [calibration capture, animal signal capture] - this is currently one file 
-    with seperate sections
+Install dependencies
+```
+pip install -r requirements.txt
+```
 
-<H3>Default Workflow (subject to change)</H3>
+### Running From source
+```
+# Posix
+source venv/bin/activate
+python3 PCC.py
+```
 
-0-signal preview mode (adjust baseline and confirm tunable parameters)
-**user confirmation for next step
-1-calibration mode (receive calibration signals [20x30uL pulses])
-**signal to DC out [trigger auto pipette and LED] upon start
-**end upon timer (and confirmation from auto pipett upon complete?)
-+++creates save file for calibration values
-2-signal preview mode (adjust baseline and confirm tunable parameters)
-**user confirmation for next step
-3-habituation mode (wait 30 minutes for habituation)
-**preview and capture signals for review later - consider updates to interval
-4-baseline mode (capture 10 minutes of signal for baseline)
-**preview and capture signals - consider criteria of 
-    QUANTITY_OF_QUALITY signal...
-    Q_O_Q : 10 seconds per interval of 'calm breathing', 
-    sum of intervals is at least 1 minute
-5-challenge mode (ANOXIA challenge until breath cessation, 
-    Room Air until recovery....recovery based on >=X% HR and BPM recovery)
-**preview and capture signals - include tags for ANOXIA vs ROOM AIR
-**signal to DC/Serial out 
-    [trigger to switch between modes (DC on for ANOXIA, DC off for ROOM AIR)]
-**move to EXPERIMENT ENDED mode upon failure to recover breathing/hr
-6-experiment ended mode 
-**terminate preview and capture, send signal to notify user
-**signal to DC out, or other Raspberry Pi notification
+# Licensing
+'LOOPER' is dually licensed. The project is available under a 'GPLv3 or later' license as well as a commercial license (inquiries for commercial licensing may be directed to Russell.Ray@bcm.edu). 
 
-<H2>Code - AGE</H2>
-Automated Gas Exchanger
-Arduino Code
-...
+    LOOPER - Live Observation and Operation of Physiology Experiments with Robotics
+    Copyright (C) 2019  
+    Christopher Ward, Nicoletta Memos, Savannah Lusk,
+    Mariana Garcia Costa, Wenyu Zuo, Eunice Aissi, Brandon Ruiz, 
+    Dipak Patel, Kevin Jiang, Andersen Chang, and Russell Ray.
 
-<H2>Schematics</H2>
-...
-
-git tag test
-
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.

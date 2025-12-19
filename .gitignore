@@ -2,6 +2,7 @@
 __pycache__/
 *.log
 *.pyc
+*.ini
 credentials.json
 token.json
 report.xlsx
