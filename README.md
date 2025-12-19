@@ -21,7 +21,7 @@ What does LOOPER do?
 Our software is available as source code compatible with Raspberry Pi 4 and Raspberry Pi 5 SBC's running Raspberry Pi OS.
 
 # Where is the manual?
-Access the full user manual for this software [here](https://realchrisward.github.io/LOOPER/User_Manual/_build/html/index.html).
+Access the full user manual for this software [here](https://realchrisward.github.io/LOOPER/User_Manual/build/html/index.html).
 Access the build guide for the robotics components [here](https://realchrisward.github.io/LOOPER/doc/build/html/index.html).
 
 # Dependencies
