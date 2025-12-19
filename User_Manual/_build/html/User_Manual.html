@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Startup Check List &#8212; Neonate Rig Manual 4.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=9f5556dd"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Neonate Rig Manual Documentation" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="startup-check-list">
+<h1>Startup Check List<a class="headerlink" href="#startup-check-list" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Power on the rigs</p></li>
+<li><p>Power on the water baths</p></li>
+<li><p>Check to make sure gas tank valves are open (down position for yellow
+knob)</p></li>
+<li><p>Make sure the vacuum is on (Flowmeter: silver ball at 10 and black
+ball at 20)</p></li>
+<li><p>Make sure all air bubbles are removed from the water baths</p></li>
+<li><p>Each rig has its own set of calibration mask and face mask</p></li>
+<li><p>ECG box is on and switch is on AC</p></li>
+<li><p>Validyne box is on</p></li>
+<li><p>Arduino is on</p></li>
+<li><p>Git_PCC is running</p></li>
+<li><p>And Finish Startup process is completed without issues</p></li>
+</ul>
+</section>
+<section id="materials-list">
+<h1>Materials List<a class="headerlink" href="#materials-list" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Impregum base pate + Catalyst Paste</p></li>
+<li><p>Facemask – each rig should have its own set (pup and calibration
+facemask)</p></li>
+<li><p>Swabs</p></li>
+<li><p>Conductive Paste</p></li>
+<li><p>ECG Leads – will need to be made so refer to wiki on instructions</p></li>
+<li><p>Super glue</p></li>
+</ul>
+</section>
+<section id="important-notes-before-starting">
+<h1>Important Notes Before Starting<a class="headerlink" href="#important-notes-before-starting" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Heed the advice given in the <em>order of operations</em> section below as
+it will streamline your operations.</p></li>
+<li><p><strong>Facemask tips</strong></p>
+<ul>
+<li><p><strong>DO NOT</strong> remove the facemasks from the respective rig.</p></li>
+<li><p><strong>IT IS IMPORTANT</strong> to avoid getting any paste on the pups mouth or
+nose as it will impact the breathing and the run.</p></li>
+</ul>
+</li>
+<li><p><strong>ECG tips</strong></p>
+<ul>
+<li><p><strong>IT IS IMPORTANT</strong> that none of the conductive paste spots of the
+leads overlap with each other; this will result in a noisy signal.</p></li>
+<li><p>It is best to place the red and black leads on with just the
+conductive paste first and verify a good signal being recorded in
+the GUI. This allows you to make adjustments without needing to
+rip off superglue, re-strip the wires, and reapply the conductive
+paste and glue every time.</p></li>
+<li><p>If you experience noise on the ECG channels, but have a decent
+signal, try gently pulling on the wires from behind to apply
+tension. Sometimes this helps the signal and resolves noise
+nicely.</p></li>
+</ul>
+</li>
+<li><p>Pay attention to the rigs during the startup process. This will be
+your best opportunity to find out if you will experience errors
+during your run that will prevent you from being able to use that
+recording.</p></li>
+<li><p>Be sure to record all of the following metadata surrounding your
+experiments. These data are essential to record as they cannot be
+retroactively collected. Other data may be included in a datasheet
+you use during collection, but these data are the most essential.</p>
+<ul>
+<li><p>CUID</p></li>
+<li><p>RUID</p></li>
+<li><p>Sex</p></li>
+<li><p>Weight</p></li>
+<li><p>DOB</p></li>
+<li><p>Age</p></li>
+<li><p>Rig</p></li>
+<li><p>Number of run on that rig that day</p></li>
+<li><p>Gas tank ID (GUID)</p></li>
+</ul>
+</li>
+<li><p>Make notes on components that are not working or if you notice
+something out of the ordinary during the run. See <em>reporting errors</em>
+section below.</p></li>
+</ul>
+</section>
+<section id="order-of-operations-quickstart">
+<h1>Order of Operations QuickStart<a class="headerlink" href="#order-of-operations-quickstart" title="Link to this heading">¶</a></h1>
+<ol class="arabic simple">
+<li><p>Turn on water heater and water pump.</p></li>
+<li><p>Generate RUIDs for each mouse you intend to run on the Derived
+Resources database and enter just the CUID for each of those mice.
+Make 5 entries at a time (or however many rigs are currently
+functional).</p></li>
+<li><p>Turn on each rig:</p>
+<ol class="loweralpha simple">
+<li><p>Ensure you have a PM folder for your project on that rig.</p></li>
+<li><p>Run git_PCC and adjust all window sizes and settings.</p></li>
+<li><p>Push through the protocol until you get to Signal Preview 2 and
+save the file in the format RUID_date.</p></li>
+</ol>
+</li>
+<li><p>Go downstairs and get your mice.</p></li>
+<li><p>By the time you get back upstairs, 45 minutes will have passed so you
+can immediately begin mounting mice.</p></li>
+<li><p>Prior to preparing each mouse for the run, put a small dab of both
+the Impregum base paste with a small line of the catalyst next to
+each dab on the prep tray prior to mounting any pups.</p>
+<ol class="loweralpha simple">
+<li><p>This saves a lot of time because for each rig as you go along you
+can immediately start mixing and placing the facemask without
+having to open and close the Impregum tubes each time. This also
+makes it easier to use smaller amounts of the pastes, which
+results in less waste.</p></li>
+</ol>
+</li>
+<li><p>Weigh your mice and get set up on each rig, one at time. Record the
+aforementioned variables using your preferred paper or electronic
+documentation method.</p>
+<ol class="loweralpha simple">
+<li><p>Eventually all of this data will be input into the derived
+resources or autoresuscitation plethysmography database. Recording
+at this stage is really only temporary until it is transferred.</p></li>
+</ol>
+</li>
+</ol>
+</section>
+<section id="detailed-operations-outline">
+<h1>Detailed Operations Outline<a class="headerlink" href="#detailed-operations-outline" title="Link to this heading">¶</a></h1>
+<ol class="arabic simple">
+<li><p>Ensure the water bath is on and is set to 35 °C.</p>
+<ol class="upperalpha simple">
+<li><p>Ensure no leaks coming from the water baths.</p></li>
+<li><p>Ensure all bubbles are removed from each water bath.</p></li>
+<li><p>Ensure ECG leads of sufficient length are pulled through the
+water bath and not directly in a drip line of water. They must be
+dry at the time of application.</p></li>
+</ol>
+</li>
+<li><p>Open git_PCC.</p></li>
+<li><p>Click <em>Finish Startup</em>.</p>
+<ol class="upperalpha simple">
+<li><p>Pay attention to the startup, especially if this is the first
+time that rig has been run that day. Check for:</p>
+<ol class="lowerroman simple">
+<li><p>Motor function</p></li>
+<li><p>Pipette calibration</p></li>
+<li><p>Calibration waveform on GUI</p></li>
+<li><p>Gas valves operational and audible gas exiting when
+challenge gas valve opened.</p></li>
+</ol>
+</li>
+<li><p>While Startup is running, you can get all the way through window
+size adjustment and saving the file as you get faster and more
+familiar with the program. Just be sure that you see the
+calibration waveform appear in the GUI before proceeding.</p>
+<ol class="lowerroman simple">
+<li><p>Adjust the window sizes and thresholds as follows:</p>
+<ol class="arabic simple">
+<li><p>Windows:</p>
+<ol class="loweralpha simple">
+<li><p>0.5: Upper window size for Flow</p></li>
+<li><p>-0.5: Lower window size for Flow</p></li>
+<li><p>0.5: Upper window size for ECG</p></li>
+<li><p>-0.5: Lower window size for ECG</p></li>
+</ol>
+</li>
+<li><p>Thresholds:</p>
+<ol class="loweralpha simple">
+<li><p>0.05: Red line in the Flow to indicate a breath</p></li>
+<li><p>0.1: Green line in the flow to indicate breath during
+challenge</p></li>
+<li><p>0.14: Red line for ECG window to indicate HR</p></li>
+</ol>
+</li>
+<li><p>Other settings</p>
+<ol class="loweralpha simple">
+<li><p>100 sec.: Calibration duration</p></li>
+<li><p>10 sec.: Prefill duration for challenge chamber</p></li>
+<li><p>Change from pleth filter off (red) to on (green)</p>
+<ol class="lowerroman simple">
+<li><p><strong>Verify that the respiratory trace is at 0 before
+turning on the filter. You can adjust this using the
+knob on the Validyne box.</strong></p></li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Once startup is completed, or during startup if you get fast enough,
+save the file (K).</p>
+<ol class="upperalpha simple">
+<li><p>Make sure to save it to the external SSD</p>
+<ol class="lowerroman simple">
+<li><p>Go all the way back in the window prompt</p></li>
+<li><p>Media/Pi/PNY SSD/Your_PM_Folder</p></li>
+<li><p>Save your file with file name: RUID_date (ex.
+R1156_9-15-2022)</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Click the green button (L) to move onto standby phase.</p></li>
+<li><p>Once the hangar read “Finished Standby”, click (L) again to move
+onto Signal Preview 1.</p>
+<ol class="upperalpha simple">
+<li><p>It is at this point that you can change settings for the
+challenge and timing throughout the experiment.</p>
+<ol class="lowerroman simple">
+<li><p>Click (M) to change the times for the respective step.</p></li>
+<li><p><strong>DO NOT</strong> hit the step directly otherwise it will transition
+to that step.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Do a quick check at this point to make sure your file is saved as
+you want, and all window, threshold, timing, and challenge settings
+are correct.</p></li>
+<li><p>Click the green button (L) to move onto calibration.</p>
+<ol class="upperalpha simple">
+<li><p>Complete up to this point on all rigs BEFORE retrieving pups.</p></li>
+</ol>
+</li>
+<li><p>Place the prep tray on the first rig you intend to place a mouse on
+an put a small dab of Impregum base paste with a small line of
+Impregum catalyst next to each dab for the number of mice you plan
+to run.</p>
+<ol class="upperalpha simple">
+<li><p>For example, if you plan to run 5 mice, then prepare 5 Impregum
+dabs with catalyst lines on the prep tray before going
+downstairs.</p></li>
+</ol>
+</li>
+<li><p>Go get pups from downstairs.</p></li>
+<li><p>Immediately begin, one-by-one, weighing and preparing the pups on
+the rigs.</p>
+<ol class="upperalpha simple">
+<li><p>Preparing the pup:</p>
+<ol class="lowerroman simple">
+<li><p>Mix one of the Impregum paste mounds until you get a purple
+color paste.</p></li>
+<li><p>Apply the paste around the face starting from one eye and
+going in a full circle to the other eye and the top of the
+head.</p></li>
+<li><p>Push the facemask onto the pup and hold it there for about
+30 seconds</p></li>
+<li><p>Load the mouse onto the rig, which should be in Signal
+Preview 2.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Attach the ECG leads to the back of the pup in the following order:
+Red, white, black</p>
+<ol class="upperalpha simple">
+<li><p>You will need to put a small amount of ECG paste onto the pup for
+each lead.</p></li>
+<li><p>Trim off the end of the lead to remove the exposed wire from the
+last use..</p></li>
+<li><p>Strip the end of the wire to reveal fresh wire approximately 1-2
+cm long.</p></li>
+<li><p>Press the freshly stripped leads into the conductive paste
+applied to the back of the pup.</p>
+<ol class="lowerroman simple">
+<li><p>It is not a bad idea to have a tiny bit of conductive paste on
+the wooden tip while you press these in so you can ensure a
+good connection with the leads.</p></li>
+</ol>
+</li>
+<li><p>The best position for the red lead is between the ears.</p>
+<ol class="lowerroman simple">
+<li><p>The higher the better if you are doing intrascapular
+injections.</p></li>
+</ol>
+</li>
+<li><p>The white lead should be in the middle of the back.</p></li>
+<li><p>The black lead should go a little bit above the tail.</p></li>
+<li><p>Once the leads are providing sufficient ECG traces, apply
+superglue to hold them in place.</p>
+<ol class="lowerroman simple">
+<li><p>It might be easier to just apply the red and black leads
+first, superglue those in place, then attach the white lead
+last.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Slide the water bath over the pup, ensure the ECG still looks clean,
+and hit the green button (L).</p></li>
+<li><p>At this point the assay will run by itself and you can monitor via
+VNC.</p>
+<ol class="upperalpha simple">
+<li><p>Additional steps will be required if doing an injection
+experiment. See <em>injection protocol</em> to pick up from this point
+with the protocol for injections.</p></li>
+</ol>
+</li>
+<li><p>Towards the end of Habituation (before starting baseline) it is
+important to double check to make sure the box (N) is green for a
+majority of the time.</p>
+<ol class="upperalpha simple">
+<li><p>If it is red, you will need to go back to Signal Preview 2 and
+adjust the requirements (most likely avg BPM and avg HR) where
+the yellow boxes are (O).</p></li>
+</ol>
+</li>
+<li><p>When the run is completed, write down the number of episodes and
+click Shutdown.</p></li>
+<li><p>Close the GUI.</p></li>
+<li><p>At the end of the day when all runs are completed, set up a transfer
+of the data you’ve collected from the external hard drive onto the
+brains server into a PM folder that matches the PM you’re saving
+under on the Pi.</p></li>
+</ol>
+</section>
+<section id="injection-protocol">
+<h1>Injection Protocol<a class="headerlink" href="#injection-protocol" title="Link to this heading">¶</a></h1>
+<ol class="arabic simple">
+<li><p>The protocol for injections includes 2 baselines. As default the
+second baseline (after drug administration) is used for injections.
+Therefore, no real requirements or restrictions are set on the first
+baseline.</p>
+<ol class="upperalpha simple">
+<li><p>Thus, it is imperative that you check periodically during the
+initial habituation and baseline to make sure that you are getting
+quality breathing enough to perform calculations on baseline,
+pre-drug levels.</p></li>
+</ol>
+</li>
+<li><p>Once the animal has gone through baseline, the protocol will stop on
+Inject. It will not advance without input from this point.</p>
+<ol class="upperalpha simple">
+<li><p>Prep your injections in your syringe prior to proceeding.</p></li>
+<li><p>Pull back the water bath to reveal the animal.</p></li>
+<li><p>Using flat tweezers, lift the skin between the shoulder blades
+directly up away from the animal.</p></li>
+<li><p>Into this teepee of skin you’ve created, insert your needle.</p>
+<ol class="lowerroman simple">
+<li><p>Keep your head directly above the animal as you insert the
+needle to make sure you do not push it through the other
+side.</p></li>
+<li><p>Also make sure to not have the needle going into the head of
+the animal.</p></li>
+<li><p>Basically, only insert the tip of the needle in as far as you
+need for the injection to dispense under the skin.</p></li>
+</ol>
+</li>
+<li><p>Very slowly inject your drug or placebo.</p>
+<ol class="lowerroman simple">
+<li><p>Do not do this step quickly, because their skin is very thin
+and flimsy and the injected bolus will simply exit the entry
+hole where you put the needle in.</p></li>
+</ol>
+</li>
+<li><p>You should see the skin balloon out as you inject. This is a GOOD
+sign.</p></li>
+<li><p>Remove the needle.</p></li>
+<li><p>Replace the water bath.</p></li>
+<li><p>Ensure the ECG and respiratory traces are of equal quality to
+those before the injection.</p></li>
+</ol>
+</li>
+<li><p>Advance the program from Inject to the next phase of habituation (L).</p></li>
+<li><p>From here, the program will run without need for human intervention.
+You should remain in the room, however, as many errors will require
+you hearing them and intervening, otherwise you will loose the run.</p></li>
+<li><p>When the run is completed, write down the number of episodes and
+click Shutdown.</p></li>
+<li><p>Close the GUI.</p></li>
+<li><p>At the end of the day when all runs are completed, set up a transfer
+of the data you’ve collected from the external hard drive onto the
+brains server into a PM folder that matches the PM you’re saving
+under on the Pi.</p></li>
+</ol>
+</section>
+<section id="error-reporting">
+<h1>Error Reporting<a class="headerlink" href="#error-reporting" title="Link to this heading">¶</a></h1>
+<p>For reporting issues and errors with the rigs there are a few things to
+keep in mind. Depending on the error, different people with different
+backgrounds that may be required to fix the problem. So, it is important
+that you record all the information that each of these kinds of people
+may need so that sufficient information is available for troubleshooting
+and repair.</p>
+<p>Standard troubleshooting first step for all kinds of problems: can you
+reproduce the error with the eMouse? If so, what are the steps to
+reproduce this error?</p>
+<p>Below I’ve outlined the various documents and/ or documentation for each
+branch of the development team. For every error, it is best practice to
+collect ALL of the below items regardless of where you think the error
+is derived.</p>
+<p>For GitHub migration, tags will be utilized to keep track of engineering
+vs. software issues.</p>
+<ol class="arabic simple" start="8">
+<li><p>Engineers</p>
+<ol class="upperalpha simple">
+<li><p><em>Error tracking and reporting back on fixes will be migrated to
+GitHub.</em></p></li>
+<li><p><em>Complete an error reporting checklist, which can be found on the
+adjustment clipboards for each rig.</em></p>
+<ol class="lowerroman simple">
+<li><p>Include checkboxes for common errors (I.e., missing waveform,
+shaky rig/ fast movement)</p></li>
+</ol>
+</li>
+<li><p><em>Take notes on the following:</em></p>
+<ol class="lowerroman simple">
+<li><p>Describe the particular piece of the rig involved in the
+failure</p></li>
+<li><p>Describe the failure with as much detail as you can
+(including when during the run the error occurred)</p></li>
+<li><p>A picture of the portion of the rig that failed</p></li>
+<li><p>A video of the failure, if possible</p></li>
+<li><p>What, if anything, have you done to attempt to fix this
+error?</p></li>
+<li><p>Is the rig no longer functional because of this error? (this
+helps with determining urgency)</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Software</p>
+<ol class="upperalpha simple">
+<li><p><em>Error tracking and reporting back on fixing errors on GitHub for
+software.</em></p></li>
+<li><p>The .txt and .log files for the run with clear naming</p>
+<ol class="lowerroman simple">
+<li><p>When you give these to Chris, be sure to include a ReadMe
+document in the folder you choose to share with him that
+outlines what the name of the file is and which error that
+file demonstrates.</p></li>
+<li><p>If you use the above convention, as you run in to new or more
+errors, you can simply continue adding files to the same
+shared folder on Box, Dropbox etc. and just update the ReadMe
+file.</p></li>
+</ol>
+</li>
+<li><p>A picture of the GUI screen during or just after the error</p></li>
+<li><p>A text file that contains the contents of the command terminal
+(copy and paste the contents into a text file and save with
+naming convention RUID_date_terminaloutput)</p></li>
+<li><p>Description of the failure (including when during the run the
+error occurred)</p></li>
+</ol>
+</li>
+<li><p>General</p>
+<ol class="upperalpha simple">
+<li><p>Has the error occurred previously?</p></li>
+<li><p>Who else has experienced this error?</p></li>
+<li><p>Have you noticed anything about the circumstances that stick out?</p>
+<ol class="lowerroman simple">
+<li><p>For example, does it seem to only happen at the end of the
+day, or after another run has occurred prior to this run.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_static/Software_Screen_Picture1.png"><img alt="Software Screen Picture" src="_static/Software_Screen_Picture1.png" style="width: 6.73148in; height: 4.12083in;" /></a>
+<figcaption>
+<p><span class="caption-number">Figure 1 </span><span class="caption-text">Software Screen Picture</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Neonate Rig Manual</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Startup Check List</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#materials-list">Materials List</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#important-notes-before-starting">Important Notes Before Starting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#order-of-operations-quickstart">Order of Operations QuickStart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#detailed-operations-outline">Detailed Operations Outline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#injection-protocol">Injection Protocol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#error-reporting">Error Reporting</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Neonate Rig Manual Documentation</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Neonate Rig Team.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/User_Manual.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
