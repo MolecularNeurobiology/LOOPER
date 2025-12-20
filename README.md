@@ -38,7 +38,7 @@ Access the build guide for the robotics components [here](https://realchrisward.
 
 ## How do I set up the user interface software?
 ### Dependencies
-The environment needed to run LOOPER can be created using a python virtual enviroment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the python packages and versions that are suggested. The platform is designed to work with a robotic system (described [here](https://realchrisward.github.io/LOOPER/)) - Arduino code needed for flashing the microcontroller is available in the ArduinoCode subfolder
+The environment needed to run LOOPER can be created using a python virtual enviroment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the python packages and versions that are suggested. Arduino code needed for flashing the microcontroller is available in the ArduinoCode subfolder
 
 #### Installation and Usage - Python component
 ##### Install Python3
