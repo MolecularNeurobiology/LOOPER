@@ -2,7 +2,7 @@
 Live Observation and Operation of Physiology Experiments with Robotics
 
 # What is it?
-LOOPER is an automated data collection platform for neonate pneumotachography experiments focused on the Autoresuscitation Reflex Assay. Its software is primarily written in python, and arduino code (C++). The robotics includes commonly available electrical components, sensors, motors, and mechanical linkages. Structural components also include extruded aluminum pieces, 3D printed pieces, and milled acrylic. Physiology signals from laboraory grade sensors are captured using a LabJack analog to digital USB capture card connected to a Raspberry Pi Single Board Computer which provides access to the user interface. An Arduino Mega microcontroller with a custom assembled printed circuit board is used to coordinate control of motorized parts.
+LOOPER is an automated data collection platform for neonate pneumotachography experiments focused on the Autoresuscitation Reflex Assay. Its software is written in Python, and Arduino code (C++). The robotics includes commonly available electrical components, sensors, motors, and mechanical linkages. Structural components also include extruded aluminum pieces, 3D printed pieces, and milled acrylic. Physiology signals from laboratory grade sensors are captured using a LabJack analog to digital USB capture card connected to a Raspberry Pi Single Board Computer which provides access to the user interface. An Arduino Mega microcontroller with a custom assembled printed circuit board coordinates control of motorized parts.
 
 Tools to aid in analysis of data collected with LOOPER are co-released at https://github.com/MolecularNeurobiology/Breathe_Easy
 
@@ -21,8 +21,8 @@ What does LOOPER do?
 
 1. Real-time data collection using a LabJack analog to digital interface
 1. Real-time detection of breathing and heartbeat
-1. Automated control of experiment steps via communications with an arduino microcontroller and robotics components
-1. Calibration air injections with a roboticly actuated micropipette
+1. Automated control of experiment steps via communications with an Arduino microcontroller and robotics components
+1. Calibration air injections with a robotically actuated micropipette
 1. Initiation of gas challenges with valve controls and motorized placement of gas exposure outlets
 1. Identification of sustained apnea
 1. Automated transition back to room air
@@ -30,7 +30,7 @@ What does LOOPER do?
 1. Repetition autoresuscitation challenges
 
 # Where to get it? How to build it? How to use it?
-The software (available as source code), build instructions (including parts lists and schematics), and user manual for conducting an Auroresuscitation Assay are available at our project repository for [LOOPER](https://github.com/realchrisward/LOOPER).
+The software (available as source code), build instructions (including parts lists and schematics), and user manual for conducting an Autoresuscitation Assay are available at our project repository for [LOOPER](https://github.com/realchrisward/LOOPER).
 
 
 ## Where is the build manual?
@@ -38,11 +38,11 @@ Access the build guide for the robotics components [here](https://realchrisward.
 
 ## How do I set up the user interface software?
 ### Dependencies
-The environment needed to run LOOPER can be created using a python virtual enviroment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the python packages and versions that are suggested. Arduino code needed for flashing the microcontroller is available in the ArduinoCode subfolder
+The environment needed to run LOOPER can be created using a Python virtual environment tool (such as miniforge). A requirements.txt and pyproject.toml file enumerate the Python packages and versions that are suggested. Arduino code needed for flashing the microcontroller is available in the ArduinoCode subfolder
 
 #### Installation and Usage - Python component
 ##### Install Python3
-Download python [here](https://www.python.org/downloads/)
+Download Python [here](https://www.python.org/downloads/)
 or https://conda-forge.org/download/
 
 ##### Install Python Dependencies
@@ -58,7 +58,7 @@ Install dependencies
 pip install -r requirements.txt
 ```
 
-##### Running From source
+##### Running From Source
 ```
 # Posix
 source venv/bin/activate
@@ -67,7 +67,7 @@ python3 PCC.py
 
 
 ## How do I use LOOPER to perform an Autoresuscitation Assay?
-Our user guide for interactinge with the LOOPER system and its user interface is available [here](https://realchrisward.github.io/LOOPER/User_Manual/build/html/index.html).
+Our user guide for interacting with the LOOPER system and its user interface is available [here](https://realchrisward.github.io/LOOPER/User_Manual/build/html/index.html).
 
 
 # Licensing
