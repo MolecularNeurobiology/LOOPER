@@ -10,7 +10,7 @@ git checkout stable
 git pull
 git checkout $tag
 git reset --hard $tag
-git clean
+git clean -f
 
 # set-up python environment and run
 source /home/pi/mambaforge/bin/activate py38

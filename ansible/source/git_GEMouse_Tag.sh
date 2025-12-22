@@ -11,7 +11,7 @@ git checkout stable
 git pull
 git checkout $tag
 git reset --hard $tag
-git clean
+git clean -f
 
 
 # check for dependency 
