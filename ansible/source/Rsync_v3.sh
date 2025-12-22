@@ -2,7 +2,7 @@
 
 # ==== IMPROVED RSYNC SCRIPT WITH NETWORK STABILITY CHECKS ====
 today=$(date +"%y%m%d")
-RIGNAME="Riggy"  # Change this value to set the rig name
+RIGNAME="Change My Name"  # Change this value to set the rig name
 source_dir="/media/pi/${RIGNAME}/"
 destination_dir="/home/pi/data2/Projects"
 
@@ -293,4 +293,4 @@ main() {
 }
 
 # Run the main function
-main "$@" (base)
+main "$@"
