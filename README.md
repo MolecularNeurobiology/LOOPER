@@ -30,11 +30,11 @@ What does LOOPER do?
 1. Repetition autoresuscitation challenges
 
 # Where to get it? How to build it? How to use it?
-The software (available as source code), build instructions (including parts lists and schematics), and user manual for conducting an Autoresuscitation Assay are available at our project repository for [LOOPER](https://github.com/realchrisward/LOOPER).
+The software (available as source code), build instructions (including parts lists and schematics), and user manual for conducting an Autoresuscitation Assay are available at our project repository for [LOOPER](https://github.com/molecularneurobiology/LOOPER).
 
 
 ## Where is the build manual?
-Access the build guide for the robotics components [here](https://realchrisward.github.io/LOOPER/doc/build/html/index.html). This provides parts lists of commercially available parts, fabrication instructions and specifications for custom 3D printed, milled, or PCB components, and an assembly and set-up guide.
+Access the build guide for the robotics components [here](https://molecularneurobiology.github.io/LOOPER/doc/build/html/index.html). This provides parts lists of commercially available parts, fabrication instructions and specifications for custom 3D printed, milled, or PCB components, and an assembly and set-up guide.
 
 ## How do I set up the user interface software?
 ### Dependencies
@@ -67,7 +67,7 @@ python3 PCC.py
 
 
 ## How do I use LOOPER to perform an Autoresuscitation Assay?
-Our user guide for interacting with the LOOPER system and its user interface is available [here](https://realchrisward.github.io/LOOPER/User_Manual/build/html/index.html).
+Our user guide for interacting with the LOOPER system and its user interface is available [here](https://molecularneurobiology.github.io/LOOPER/User_Manual/build/html/index.html).
 
 
 # Licensing
