@@ -21,7 +21,7 @@ What does LOOPER do?
 
 1. Real-time data collection using a LabJack analog to digital interface
 1. Real-time detection of breathing and heartbeat
-1. Automated control of experiment steps via communications with an Arduino microcontroller and robotics components
+1. Automated closed-loop control of experiment steps via communications with an Arduino microcontroller and robotics components
 1. Calibration air injections with a robotically actuated micropipette
 1. Initiation of gas challenges with valve controls and motorized placement of gas exposure outlets
 1. Identification of sustained apnea
