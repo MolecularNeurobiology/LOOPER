@@ -6,7 +6,7 @@ Divided by where they are used
 
 """
 
-__CONSTANTS_version__ = "0.1.0"
+__CONSTANTS_version__ = "0.2.0"
 
 
 import pygame
