@@ -403,7 +403,7 @@ OLD_STATUS = "Not Ready"
 long_challenge_induction_threshold = 120
 
 filt_crit_Dict = {
-    "avgBPM": 250,
+    "avgBPM": 300,
     "cvTT": 0.50,
     "avgHR": 850,
     "avgRR": 999,

@@ -8,3 +8,4 @@ token.json
 report.xlsx
 report.pdf
 uv.lock
+.venv
