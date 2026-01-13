@@ -1,7 +1,7 @@
 #!/bin/bash
 # bash script to run PCC
 
-tag="stable_2025-08-20a"
+tag="stable_2026-01-12b"
 
 # go to repository directory, git reset to tag
 cd $HOME/git/Autoresuscitation
