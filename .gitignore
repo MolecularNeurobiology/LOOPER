@@ -9,3 +9,5 @@ report.xlsx
 report.pdf
 uv.lock
 .venv
+
+/ansible/archive*

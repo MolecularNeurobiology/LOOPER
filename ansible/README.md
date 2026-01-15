@@ -9,3 +9,6 @@ testing and development of ansible playbooks and architecture needed to help man
  - [ ] run scripts to prepare/update/patch working environment of pi
  - [ ] run script to automate code/container deployment to pi's
  - [ ] run script for general housekeeping needs (reboot, ..., ?)
+
+ ## Notes
+  * if editing scripts on windows, ensure the files are saved using "LF" instead of "CRLF" line feed characters (otherwise the scripts may not execute once copied)
