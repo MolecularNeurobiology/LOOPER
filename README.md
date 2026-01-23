@@ -35,7 +35,7 @@ What does LOOPER do?
 1. Repetition autoresuscitation challenges
 
 # Where to get it? How to build it? How to use it?
-The software (available as source code), build instructions (including parts lists and schematics), and user manual for conducting an Autoresuscitation Assay are available at our project repository for [LOOPER](https://github.com/molecularneurobiology/LOOPER).
+The software (available as source code), [build instructions](https://molecularneurobiology.github.io/LOOPER/doc/build/html/index.html) (including parts lists and schematics), and [user manual](https://molecularneurobiology.github.io/LOOPER/User_Manual/build/html/index.html) for conducting an Autoresuscitation Assay are available at our project repository for [LOOPER](https://github.com/molecularneurobiology/LOOPER).
 
 
 ## Where is the build manual?
