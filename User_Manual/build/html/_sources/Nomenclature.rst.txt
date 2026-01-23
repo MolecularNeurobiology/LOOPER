@@ -1,0 +1,29 @@
+Database and Nomenclature Overview
+===================================
+
+This page explains the lab-specific terminology and abbreviations used throughout this manual.
+It will also give in overview on the database that is used in the lab to keep track of the animals and experiments.
+
+Identifiers
+-----------
+
+CUID
+   **Cross Unique Identifier** - A unique identifier assigned to each mating cross.
+
+RUID
+   **Resource Unique Identifier** - A unique identifier assigned to each experimental run on a rig. This identifier is generated in the Derived Resources database and is used to track what resource was used for each run (a pup in this case).
+
+GUID
+   **Gas Unique Identifier** - A unique identifier for the gas tank being used during an experiment. This is important for tracking which gas mixture was used for each run.
+
+PM Folder
+   **Project Manager Folder** - A folder on the rig's external SSD drive that corresponds to a specific project manager (PM). All experimental data files are saved within the PM folder structure.
+
+Software and Equipment
+----------------------
+
+git_PCC
+   The primary software application used to control the rig and run experiments. This program manages the experimental protocol, data acquisition, and provides the graphical user interface (GUI) for monitoring experiments.
+
+eMouse
+   A calibration device used to test rig functionality and troubleshoot errors. When reporting errors, it's important to determine if the error can be reproduced with the eMouse, as this helps isolate whether the issue is with the rig hardware or the experimental subject.

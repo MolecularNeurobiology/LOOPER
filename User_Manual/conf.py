@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Neonate Rig Manual'
+project = 'LOOPER User Manual'
 copyright = '2024, Neonate Rig Team'
 author = 'Neonate Rig Team'
 

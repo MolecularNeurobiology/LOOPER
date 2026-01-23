@@ -1,8 +1,12 @@
+.. note::
+   This manual uses Ray lab-specific terminology, abbreviations, and opporational methodologies. 
+   For detailed explanations of terms like CUID, RUID, GTID, PM folder, and eMouse, please refer to the :doc:`Database and Nomenclature Overview <Database>` page.
+
 
 Startup Check List
 ==================
 
--  Power on the rigs
+-  Power on LOOPER
 
 -  Power on the water baths
 
@@ -14,7 +18,8 @@ Startup Check List
 
 -  Make sure all air bubbles are removed from the water baths
 
--  Each rig has its own set of calibration mask and face mask
+-  Each LOOPER has its own set of calibration mask and facemask
+   - Facemasks can be interchanged between each LOOPER platform
 
 -  ECG box is on and switch is on AC
 
@@ -22,7 +27,7 @@ Startup Check List
 
 -  Arduino is on
 
--  Git_PCC is running
+-  git_PCC is running
 
 -  And Finish Startup process is completed without issues
 
@@ -31,14 +36,15 @@ Materials List
 
 -  Impregum base pate + Catalyst Paste
 
--  Facemask – each rig should have its own set (pup and calibration
+-  Facemask – each LOOPER should have its own set (pup and calibration
    facemask)
+   - Facemasks can be interchanged between each LOOPER platform
 
 -  Swabs
 
 -  Conductive Paste
 
--  ECG Leads – will need to be made so refer to wiki on instructions
+-  ECG Leads (see :doc:`Making ECG Leads <Making_ECG_Leads>`)
 
 -  Super glue
 
@@ -50,10 +56,13 @@ Important Notes Before Starting
 
 -  **Facemask tips**
 
-   -  **DO NOT** remove the facemasks from the respective rig.
-
    -  **IT IS IMPORTANT** to avoid getting any paste on the pups mouth or
       nose as it will impact the breathing and the run.
+
+   -  **FOR BEST RESULTS** form a bead of the impregum paste and apply it 
+      to were the eye of the pup is and bring it down to the neck and to the other 
+      eye. Then take some more and apply it to the top of the head and completing the 
+      circle to the other eye.
 
 -  **ECG tips**
 
@@ -71,10 +80,19 @@ Important Notes Before Starting
       tension. Sometimes this helps the signal and resolves noise
       nicely.
 
--  Pay attention to the rigs during the startup process. This will be
+-  Pay attention to the LOOPERs during the startup process. This will be
    your best opportunity to find out if you will experience errors
    during your run that will prevent you from being able to use that
    recording.
+
+   -  Look for the following:
+
+      -  Calibration waveform on GUI
+
+      -  Motor function
+
+      -  Gas valves operational and audible gas exiting when
+         challenge gas valve opened.
 
 -  Be sure to record all of the following metadata surrounding your
    experiments. These data are essential to record as they cannot be
@@ -93,57 +111,57 @@ Important Notes Before Starting
 
    -  Age
 
-   -  Rig
+   -  LOOPER name (if more than one LOOPER platform is present)
 
-   -  Number of run on that rig that day
+   -  Number of run on that LOOPER that day
 
-   -  Gas tank ID (GUID)
+   -  Gas tank ID (GTID)
+      - This is Ray Lab specific
+
+   .. note::
+      For explanations of lab-specific terminology and abbreviations (such as CUID, RUID, GTID, PM folder, git_PCC, etc.), see the :doc:`Database and Nomenclature Overview <Database>` page.
 
 -  Make notes on components that are not working or if you notice
    something out of the ordinary during the run. See *reporting errors*
    section below.
 
-Order of Operations QuickStart
-==============================
+Order of Operations QuickStart for the Ray Lab
+==============================================
 
 1. Turn on water heater and water pump.
+   - Water pump is needed if multiple LOOPERs are being used on the same water bath
 
 2. Generate RUIDs for each mouse you intend to run on the Derived
    Resources database and enter just the CUID for each of those mice.
-   Make 5 entries at a time (or however many rigs are currently
+   Make 5 entries at a time (or however many LOOPERs are currently
    functional).
 
-3. Turn on each rig:
+3. Turn on each LOOPER:
 
-   a. Ensure you have a PM folder for your project on that rig.
+   a. Ensure you have a PM folder for your project on that LOOPER.
 
-   b. Run git_PCC and adjust all window sizes and settings.
+   b. Run git_PCC.sh and execute in the terminal and adjust all window sizes and settings (if needed).
 
    c. Push through the protocol until you get to Signal Preview 2 and
-      save the file in the format RUID_date.
+      save the file.
 
-4. Go downstairs and get your mice.
-
-5. By the time you get back upstairs, 45 minutes will have passed so you
-   can immediately begin mounting mice.
-
-6. Prior to preparing each mouse for the run, put a small dab of both
+4. Prior to retrieving each mouse for the run, put a small dab of both
    the Impregum base paste with a small line of the catalyst next to
-   each dab on the prep tray prior to mounting any pups.
+   each dab on the prep tray.
 
-   a. This saves a lot of time because for each rig as you go along you
+   a. This saves a lot of time because for each LOOPER as you go along you
       can immediately start mixing and placing the facemask without
       having to open and close the Impregum tubes each time. This also
       makes it easier to use smaller amounts of the pastes, which
       results in less waste.
 
-7. Weigh your mice and get set up on each rig, one at time. Record the
+5. Retrieve your mice.
+
+6. Weigh your mice and get set up on each LOOPER, one at time. Record the
    aforementioned variables using your preferred paper or electronic
    documentation method.
 
-   a. Eventually all of this data will be input into the derived
-      resources or autoresuscitation plethysmography database. Recording
-      at this stage is really only temporary until it is transferred.
+   a. In the Ray lab, this is annotated directly in the resources and Autores database.
 
 Detailed Operations Outline
 ===========================
@@ -158,12 +176,18 @@ Detailed Operations Outline
        water bath and not directly in a drip line of water. They must be
        dry at the time of application.
 
-2.  Open git_PCC.
+2.  Open git_PCC.sh and execute in the terminal.
 
+3. Change pleth filter off (red) to on (green)
+
+   -  **Verify that the respiratory trace is at 0 before
+      turning on the filter. You can adjust this using the
+      knob on the Validyne box.**
+                   
 3.  Click *Finish Startup*.
 
     A. Pay attention to the startup, especially if this is the first
-       time that rig has been run that day. Check for:
+       time that LOOPER has been run that day. Check for:
 
        i.   Motor function
 
@@ -175,11 +199,9 @@ Detailed Operations Outline
             challenge gas valve opened.
 
     B. While Startup is running, you can get all the way through window
-       size adjustment and saving the file as you get faster and more
-       familiar with the program. Just be sure that you see the
-       calibration waveform appear in the GUI before proceeding.
+       size adjustment if needed. Below are the values used in the Ray lab.
 
-       i. Adjust the window sizes and thresholds as follows:
+       i. Adjust the window sizes and thresholds as follows (if needed):
 
           1. Windows:
 
@@ -206,79 +228,74 @@ Detailed Operations Outline
 
              b. 10 sec.: Prefill duration for challenge chamber
 
-             c. Change from pleth filter off (red) to on (green)
 
-                i. **Verify that the respiratory trace is at 0 before
-                   turning on the filter. You can adjust this using the
-                   knob on the Validyne box.**
+4.  Click the green button (L) in the top right corner of the GUI to move onto standby phase.
 
-4.  Once startup is completed, or during startup if you get fast enough,
-    save the file (K).
-
-    A. Make sure to save it to the external SSD
-
-       i.   Go all the way back in the window prompt
-
-       ii.  Media/Pi/PNY SSD/Your_PM_Folder
-
-       iii. Save your file with file name: RUID_date (ex.
-            R1156_9-15-2022)
-
-5.  Click the green button (L) to move onto standby phase.
-
-6.  Once the hangar read “Finished Standby”, click (L) again to move
+5.  Once the hangar read “Finished Standby”, click (L) again to move
     onto Signal Preview 1.
 
-    A. It is at this point that you can change settings for the
-       challenge and timing throughout the experiment.
+6.  Next, save the file (K).
 
-       i.  Click (M) to change the times for the respective step.
+    A. Make sure to save it to the external SSD or whichever storage device you are using.
 
-       ii. **DO NOT** hit the step directly otherwise it will transition
-           to that step.
+7.  Click the green button (L) to move onto calibration.
 
-7.  Do a quick check at this point to make sure your file is saved as
-    you want, and all window, threshold, timing, and challenge settings
-    are correct.
+    A. Complete up to this point on all LOOPERs BEFORE retrieving pups.
 
-8.  Click the green button (L) to move onto calibration.
+8. Retrieve pups.
 
-    A. Complete up to this point on all rigs BEFORE retrieving pups.
+9. Collect the metadata for the pups that is listed above and any others you are interested in recording.
 
-9.  Place the prep tray on the first rig you intend to place a mouse on
-    an put a small dab of Impregum base paste with a small line of
-    Impregum catalyst next to each dab for the number of mice you plan
-    to run.
+10. Prepare the pup:
 
-    A. For example, if you plan to run 5 mice, then prepare 5 Impregum
-       dabs with catalyst lines on the prep tray before going
-       downstairs.
+    A. Mix one of the Impregum paste mounds until you get a purple color paste.
 
-10. Go get pups from downstairs.
+      .. figure:: Images/User_Manual/Impregum.png
+         :alt: Impregum
+         :width: 100%
+         :align: center
+         
+         Impregum
 
-11. Immediately begin, one-by-one, weighing and preparing the pups on
-    the rigs.
+    B. Apply the paste around the face starting from one eye and going in a full circle to the other eye and the top of the head.
 
-    A. Preparing the pup:
+      .. figure:: Images/User_Manual/Applied_Impregum.png
+         :alt: Applied_Impregum
+         :width: 100%
+         :align: center
+         
+         Applied_Impregum
 
-       i.   Mix one of the Impregum paste mounds until you get a purple
-            color paste.
+    C. Push the facemask onto the pup and hold it there for about 1 minute.
 
-       ii.  Apply the paste around the face starting from one eye and
-            going in a full circle to the other eye and the top of the
-            head.
+      .. figure:: Images/User_Manual/Facemask_application.png
+         :alt: Facemask_application
+         :width: 100%
+         :align: center
+         
+         Facemask_application
 
-       iii. Push the facemask onto the pup and hold it there for about
-            30 seconds
+    D. Load the mouse onto the LOOPER, which should be in Signal Preview 2.
 
-       iv.  Load the mouse onto the rig, which should be in Signal
-            Preview 2.
+    .. figure:: Images/User_Manual/Pup_on_stand.png
+         :alt: Pup_on_stand
+         :width: 100%
+         :align: center
+         
+         Pup_on_stand
 
-12. Attach the ECG leads to the back of the pup in the following order:
-    Red, white, black
+11. Attach the ECG leads to the back of the pup in the following order:
+    Red, white, black from head to tail.
 
     A. You will need to put a small amount of ECG paste onto the pup for
        each lead.
+
+       .. figure:: Images/User_Manual/ECG_Paste.png
+          :alt: ECG_Paste
+          :width: 100%
+          :align: center
+          
+          ECG_Paste
 
     B. Trim off the end of the lead to remove the exposed wire from the
        last use..
@@ -305,37 +322,59 @@ Detailed Operations Outline
     H. Once the leads are providing sufficient ECG traces, apply
        superglue to hold them in place.
 
+       .. figure:: Images/User_Manual/Super_Glue.png
+          :alt: Super_Glue
+          :width: 100%
+          :align: center
+          
+          Super_Glue
+
        i. It might be easier to just apply the red and black leads
           first, superglue those in place, then attach the white lead
           last.
 
-13. Slide the water bath over the pup, ensure the ECG still looks clean,
+12. Slide the water bath over the pup, ensure the ECG still looks clean,
     and hit the green button (L).
 
-14. At this point the assay will run by itself and you can monitor via
-    VNC.
+    .. figure:: Images/User_Manual/Waterbath.png
+       :alt: Waterbath
+       :width: 100%
+       :align: center
+       
+       Waterbath
+
+   .. figure:: Images/User_Manual/Trace.png
+      :alt: Trace
+      :width: 100%
+      :align: center
+   
+      Trace
+
+13. At this point the assay will run by itself
 
     A. Additional steps will be required if doing an injection
        experiment. See *injection protocol* to pick up from this point
        with the protocol for injections.
 
-15. Towards the end of Habituation (before starting baseline) it is
+14. Towards the end of Habituation (before starting baseline) it is
     important to double check to make sure the box (N) is green for a
     majority of the time.
 
     A. If it is red, you will need to go back to Signal Preview 2 and
-       adjust the requirements (most likely avg BPM and avg HR) where
+       adjust the requirements (most likely increaseing the thresholds for avg BPM and avg HR) where
        the yellow boxes are (O).
 
-16. When the run is completed, write down the number of episodes and
+15. When the run is completed, write down the number of episodes and
     click Shutdown.
 
-17. Close the GUI.
+16. Close the GUI.
 
-18. At the end of the day when all runs are completed, set up a transfer
-    of the data you’ve collected from the external hard drive onto the
-    brains server into a PM folder that matches the PM you’re saving
-    under on the Pi.
+.. figure:: Images/User_Manual/Software_Screen_Picture1.png
+   :width: 6.73148in
+   :height: 4.12083in
+   :alt: Software Screen Picture
+
+   Software Screen Picture
 
 Injection Protocol
 ==================
@@ -404,97 +443,3 @@ Injection Protocol
    brains server into a PM folder that matches the PM you’re saving
    under on the Pi.
 
-Error Reporting
-================
-
-For reporting issues and errors with the rigs there are a few things to
-keep in mind. Depending on the error, different people with different
-backgrounds that may be required to fix the problem. So, it is important
-that you record all the information that each of these kinds of people
-may need so that sufficient information is available for troubleshooting
-and repair.
-
-Standard troubleshooting first step for all kinds of problems: can you
-reproduce the error with the eMouse? If so, what are the steps to
-reproduce this error?
-
-Below I’ve outlined the various documents and/ or documentation for each
-branch of the development team. For every error, it is best practice to
-collect ALL of the below items regardless of where you think the error
-is derived.
-
-For GitHub migration, tags will be utilized to keep track of engineering
-vs. software issues.
-
-8.  Engineers
-
-    A. *Error tracking and reporting back on fixes will be migrated to
-       GitHub.*
-
-    B. *Complete an error reporting checklist, which can be found on the
-       adjustment clipboards for each rig.*
-
-       i. Include checkboxes for common errors (I.e., missing waveform,
-          shaky rig/ fast movement)
-
-    C. *Take notes on the following:*
-
-       i.   Describe the particular piece of the rig involved in the
-            failure
-
-       ii.  Describe the failure with as much detail as you can
-            (including when during the run the error occurred)
-
-       iii. A picture of the portion of the rig that failed
-
-       iv.  A video of the failure, if possible
-
-       v.   What, if anything, have you done to attempt to fix this
-            error?
-
-       vi.  Is the rig no longer functional because of this error? (this
-            helps with determining urgency)
-
-9.  Software
-
-    A. *Error tracking and reporting back on fixing errors on GitHub for
-       software.*
-
-    B. The .txt and .log files for the run with clear naming
-
-       i.  When you give these to Chris, be sure to include a ReadMe
-           document in the folder you choose to share with him that
-           outlines what the name of the file is and which error that
-           file demonstrates.
-
-       ii. If you use the above convention, as you run in to new or more
-           errors, you can simply continue adding files to the same
-           shared folder on Box, Dropbox etc. and just update the ReadMe
-           file.
-
-    C. A picture of the GUI screen during or just after the error
-
-    D. A text file that contains the contents of the command terminal
-       (copy and paste the contents into a text file and save with
-       naming convention RUID_date_terminaloutput)
-
-    E. Description of the failure (including when during the run the
-       error occurred)
-
-10. General
-
-    A. Has the error occurred previously?
-
-    B. Who else has experienced this error?
-
-    C. Have you noticed anything about the circumstances that stick out?
-
-       i. For example, does it seem to only happen at the end of the
-          day, or after another run has occurred prior to this run.
-
-.. figure:: _static/Software_Screen_Picture1.png
-   :width: 6.73148in
-   :height: 4.12083in
-   :alt: Software Screen Picture
-
-   Software Screen Picture
