@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Auotres Build Manual'
+project = 'LOOPER Build Manual'
 copyright = '2024, Ray Lab'
 author = 'Ray Lab'
 release = 'N/A'
