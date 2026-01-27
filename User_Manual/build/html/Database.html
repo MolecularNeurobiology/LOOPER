@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Database and Nomenclature Overview &#8212; LOOPER User Manual 4.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=61cd365c" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <script src="_static/documentation_options.js?v=9f5556dd"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Making ECG Leads" href="Making_ECG_Leads.html" />
+    <link rel="prev" title="Startup Check List" href="User_Manual.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="database-and-nomenclature-overview">
+<h1>Database and Nomenclature Overview<a class="headerlink" href="#database-and-nomenclature-overview" title="Link to this heading">¶</a></h1>
+<p>This page explains the lab-specific terminology and abbreviations used throughout this manual.
+It will also give in overview on the database that is used in the lab to keep track of the animals and experiments.
+The lab uses Filemaker Pro to manage the databases.</p>
+<section id="resources-database">
+<h2>Resources Database<a class="headerlink" href="#resources-database" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="_images/Derived_Resource2.png"><img alt="Derived Resources Database" src="_images/Derived_Resource2.png" style="width: 100%;" /></a>
+<figcaption>
+<p><span class="caption-number">Figure 10 </span><span class="caption-text">Derived Resources Database</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The resource database is used to initially create a unique identifier for each mouse pup that is ran on LOOPER in the Ray lab.
+It allows us to keep track of all the necessary information for each pup that is crucial for the metadata and post-hoc processes.</p>
+<ol class="upperalpha simple">
+<li><p><strong>RUID</strong> - A unique identifier assigned to each experimental run on a rig. This identifier is generated in the Derived Resources database and is used to track what resource was used for each run (a pup in this case).</p></li>
+<li><p><strong>Derivative Cross</strong> - Refers to the Cross Unique Identifier (CUID) that is used to track the parents from which the pups were derived from.</p></li>
+<li><p><strong>Sex and Weight</strong> - This is where the sex and weight of the pups are recorded.</p></li>
+<li><p><strong>PlyUID</strong> - Plythesmography Unique Identifier - This is a unique identifier for the plythesmography experiment that is linked to the Autores database.</p></li>
+<li><p><strong>Genotype</strong> - The genotype of the resource (pup) can be put in here and it will be linked to the Autores database as well. Gel’s confirming the genotype will appear in the right white box.</p></li>
+<li><p><strong>Project Number</strong> - Each resource is connected to a PM number. This is used to keep track of which resources are apart of which project along with all the associated information.</p></li>
+</ol>
+</section>
+<section id="autores-database">
+<h2>Autores Database<a class="headerlink" href="#autores-database" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id2">
+<a class="reference internal image-reference" href="_images/Autores_Table2.png"><img alt="Autores Database" src="_images/Autores_Table2.png" style="width: 100%;" /></a>
+<figcaption>
+<p><span class="caption-number">Figure 11 </span><span class="caption-text">Autores Database</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>This database is contains information for each experiment that was run on the LOOPER rig. It links all the metadata from the Derived Resources database and contains other sources of information
+that allows us to keep track of what components were used.</p>
+<ol class="upperalpha simple">
+<li><p>Contains the <strong>PlyUID (Plythesmography Unique Identifier)</strong> that is generated along with the information from the Derived Resources database and Breeding Log database.</p></li>
+<li><p>Contains information about the experiment such as the date ran, age of pup (automatically calculated), number of episodes survived, experiental tratements (i.e, if an injection was given or not), time serpeated from dam, and time experiment started.</p></li>
+<li><p>Contains information about the run such as LOOPER (rig) used, number of run on that day, <strong>gas tank identifier (GTID)</strong>, pressure before and after the run of the gas tank, along with vaccum pressure, and which face mask was used.</p></li>
+</ol>
+</section>
+<section id="breeding-log-database">
+<h2>Breeding Log Database<a class="headerlink" href="#breeding-log-database" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="_images/Breeding2.png"><img alt="Breeding Log Database" src="_images/Breeding2.png" style="width: 100%;" /></a>
+<figcaption>
+<p><span class="caption-number">Figure 12 </span><span class="caption-text">Breeding Log Database</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>This database is primarily used to keep track of the matings which allows us to derive the pups used for experiments.</p>
+<ol class="upperalpha simple">
+<li><p><strong>Cross Unique Identifier (CUID)</strong> - A unique identifier assigned to each mating cross and which cross the pups are derived from.</p></li>
+<li><p><strong>Mouse Unique Identifier (MUID)</strong> - A unique identifier assigned to each mouse and lists the Sire and Dam that were used for breeding, along with their genotypes, to produce the pups.</p></li>
+<li><p><strong>Birthday and Number of Offspring</strong> - This is where the birthday of the pups is recorded and the number of pups born for that cross.</p></li>
+</ol>
+</section>
+<section id="mouse-database">
+<h2>Mouse Database<a class="headerlink" href="#mouse-database" title="Link to this heading">¶</a></h2>
+<figure class="align-center" id="id4">
+<a class="reference internal image-reference" href="_images/MUID_Table2.png"><img alt="Mouse Database" src="_images/MUID_Table2.png" style="width: 100%;" /></a>
+<figcaption>
+<p><span class="caption-number">Figure 13 </span><span class="caption-text">Mouse Database</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>This database is not extensivly used for the LOOPER experiments directly. It is mainly used to keep track of the parents of the pups that that are used for experiments.</p>
+<ol class="upperalpha simple">
+<li><p>Shows the <strong>Mouse Unique Identifier (MUID)</strong>, tag number for the ear tag the mouse is given, which cross the mouse is derived from, date of birth, when it was weaned, and the current status.</p></li>
+<li><p>Shows the genotype of the mouse along with the which Sire and Dam it was derived from with their associated genotypes.</p></li>
+<li><p>Shows all the <strong>Cross Unique Identifiers (CUID)</strong> that the mouse was used in.</p></li>
+<li><p>This area is where the genotyping gel is uploaded for the mouse if there is one.</p></li>
+</ol>
+</section>
+<section id="software-and-equipment">
+<h2>Software and Equipment<a class="headerlink" href="#software-and-equipment" title="Link to this heading">¶</a></h2>
+<dl class="simple">
+<dt>eMouse</dt><dd><p>A calibration device used to test rig functionality and troubleshoot errors. When reporting errors, it’s important to determine if the error can be reproduced with the eMouse, as this helps isolate whether the issue is with the rig hardware or the experimental subject.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">LOOPER User Manual</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html">Startup Check List</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html#materials-list">Materials List</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html#important-notes-before-starting">Important Notes Before Starting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html#order-of-operations-quickstart-for-the-ray-lab">Order of Operations QuickStart for the Ray Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html#detailed-operations-outline">Detailed Operations Outline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="User_Manual.html#injection-protocol">Injection Protocol</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Database and Nomenclature Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#resources-database">Resources Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#autores-database">Autores Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#breeding-log-database">Breeding Log Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mouse-database">Mouse Database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#software-and-equipment">Software and Equipment</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Making_ECG_Leads.html">Making ECG Leads</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="User_Manual.html" title="previous chapter">Startup Check List</a></li>
+      <li>Next: <a href="Making_ECG_Leads.html" title="next chapter">Making ECG Leads</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Neonate Rig Team.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.3.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="_sources/Database.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
